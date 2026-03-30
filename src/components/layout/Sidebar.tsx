@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
+import { NotificationBell } from "./NotificationBell";
 import { useLanguage } from "@/lib/language";
 
 export function Sidebar() {
@@ -59,6 +60,7 @@ export function Sidebar() {
       </nav>
 
       <div className="p-3 border-t border-border">
+        <NotificationBell />
         <ThemeToggle />
         <LanguageToggle />
         <button
