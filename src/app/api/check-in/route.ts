@@ -7,6 +7,7 @@ import {
   calculateStabilityScore,
 } from "@/lib/skills/progression";
 
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
 
   // Determine the target date (body.date or today)
   let targetDate = now;
-  const isBackfill = !!body.date;
+ // const isBackfill = !!body.date;
   if (body.date) {
     const parsed = new Date(body.date);
     if (isNaN(parsed.getTime())) {
