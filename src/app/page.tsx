@@ -28,7 +28,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="text-center max-w-2xl">
         <h1 className="text-5xl font-bold text-foreground mb-4">
-          Study <span className="text-[#38bdf8]">Habits</span>
+          Study <span className="text-primary">Habits</span>
         </h1>
         <p className="text-xl text-muted-foreground mb-2">
           One skill at a time. One habit that sticks.
@@ -39,7 +39,7 @@ export default function Home() {
         </p>
         <div className="flex gap-4 justify-center">
           <Link href="/register">
-            <Button className="bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold px-8 py-6 text-lg">
+            <Button className="bg-primary hover:bg-primary/80 text-primary-foreground font-semibold px-8 py-6 text-lg">
               Get Started
             </Button>
           </Link>

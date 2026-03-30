@@ -36,6 +36,26 @@ export async function checkObservationComplete(
     };
   }
 
+  // Relaxed path: if 10+ days have passed and user has 3+ total check-ins since phase start
+  const daysSinceStart = Math.ceil(
+    (Date.now() - activePhase.phaseStart.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  if (daysSinceStart >= 10) {
+    const totalCheckIns = await prisma.checkIn.count({
+      where: {
+        userId,
+        date: { gte: activePhase.phaseStart },
+      },
+    });
+    if (totalCheckIns >= 3) {
+      return {
+        advanced: true,
+        reason: `${totalCheckIns} check-ins over ${daysSinceStart} days — relaxed threshold met`,
+        newPhase: "skill_training",
+      };
+    }
+  }
+
   return {
     advanced: false,
     reason: `${checkInCount}/5 check-ins completed. Need ${5 - checkInCount} more.`,

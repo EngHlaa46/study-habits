@@ -18,7 +18,7 @@ interface CheckInWidgetProps {
 const focusColors: Record<string, string> = {
   none: "bg-gray-600",
   brief: "bg-yellow-500",
-  focused: "bg-[#38bdf8]",
+  focused: "bg-primary",
   deep: "bg-[#4ade80]",
 };
 
@@ -41,7 +41,7 @@ export function CheckInWidget({
           </div>
         ) : (
           <Link href="/check-in">
-            <Button className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold">
+            <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold">
               {t("dashboard.startCheckIn")}
             </Button>
           </Link>

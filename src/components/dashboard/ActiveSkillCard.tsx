@@ -24,7 +24,7 @@ export function ActiveSkillCard({
 
   const weekInfo: Record<number, { label: string; color: string }> = {
     0: { label: t("skills.notStarted"), color: "text-muted-foreground" },
-    1: { label: t("skills.week1Short"), color: "text-[#38bdf8]" },
+    1: { label: t("skills.week1Short"), color: "text-primary" },
     2: { label: t("skills.week2Short"), color: "text-[#fbbf24]" },
     3: { label: t("skills.week3Short"), color: "text-[#4ade80]" },
   };

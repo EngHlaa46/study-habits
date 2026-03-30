@@ -57,7 +57,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to send message");
+        throw new Error(t("chat.errorSend"));
       }
 
       const reader = res.body?.getReader();
@@ -100,7 +100,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
         const updated = [...prev];
         const last = updated[updated.length - 1];
         if (last.role === "assistant" && !last.content) {
-          last.content = "Sorry, something went wrong. Please try again.";
+          last.content = t("chat.errorFallback");
         }
         return updated;
       });

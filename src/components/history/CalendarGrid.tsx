@@ -25,7 +25,7 @@ interface CalendarGridProps {
 const focusColors: Record<string, string> = {
   none: "bg-gray-600",
   brief: "bg-yellow-500",
-  focused: "bg-[#38bdf8]",
+  focused: "bg-primary",
   deep: "bg-[#4ade80]",
 };
 
@@ -89,7 +89,7 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
         onClick={() => ci ? setSelectedDay(ci) : setSelectedDay(null)}
         disabled={isFuture}
         className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all ${bgClass} ${
-          isToday ? "ring-2 ring-[#38bdf8]" : ""
+          isToday ? "ring-2 ring-primary" : ""
         } ${ci ? "cursor-pointer hover:opacity-80" : "cursor-default"} ${
           isFuture ? "opacity-30" : "opacity-80"
         } ${ci?.atypical ? "ring-1 ring-[#fbbf24]" : ""}`}
@@ -148,7 +148,7 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
               <span className="text-muted-foreground/70 text-xs">{t("history.brief")}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-[#38bdf8]" />
+              <div className="w-3 h-3 rounded-sm bg-primary" />
               <span className="text-muted-foreground/70 text-xs">{t("history.focused")}</span>
             </div>
             <div className="flex items-center gap-1.5">

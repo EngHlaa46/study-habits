@@ -80,8 +80,8 @@ export function SkillRadarChart({ skills }: SkillRadarChartProps) {
             />
             <Radar
               dataKey="value"
-              stroke="#38bdf8"
-              fill="#38bdf8"
+              stroke="hsl(var(--primary))"
+              fill="hsl(var(--primary))"
               fillOpacity={0.2}
               strokeWidth={2}
             />

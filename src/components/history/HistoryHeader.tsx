@@ -21,7 +21,7 @@ export function HistoryHeader({ totalCheckIns, studiedDays, focusedDays }: Histo
           <p className="text-muted-foreground/70 text-xs mt-1">{t("history.checkIns30d")}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-[#38bdf8]">{studiedDays}</p>
+          <p className="text-2xl font-bold text-primary">{studiedDays}</p>
           <p className="text-muted-foreground/70 text-xs mt-1">{t("history.daysStudied")}</p>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">

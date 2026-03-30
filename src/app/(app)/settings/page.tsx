@@ -32,6 +32,8 @@ export default function SettingsPage() {
   async function applyColor(hex: string, hsl: string) {
     setActiveColor(hex);
     document.documentElement.style.setProperty("--primary", hsl);
+    document.documentElement.style.setProperty("--ring", hsl);
+    document.documentElement.style.setProperty("--chart-1", hsl);
     setSaving(true);
     await fetch("/api/user/theme-prefs", {
       method: "PATCH",

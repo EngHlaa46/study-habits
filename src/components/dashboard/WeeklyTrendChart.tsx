@@ -28,13 +28,16 @@ const focusToValue: Record<string, number> = {
   deep: 4,
 };
 
-const focusToColor: Record<number, string> = {
-  0: "#1f1f2e",
-  1: "#6b7280",
-  2: "#eab308",
-  3: "#38bdf8",
-  4: "#4ade80",
-};
+// focusToColor is built at render time so it picks up the current --primary value
+function buildFocusToColor(accentColor: string): Record<number, string> {
+  return {
+    0: "#1f1f2e",
+    1: "#6b7280",
+    2: "#eab308",
+    3: accentColor,
+    4: "#4ade80",
+  };
+}
 
 const focusToLabel: Record<number, string> = {
   0: "No check-in",
@@ -58,6 +61,13 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export function WeeklyTrendChart({ checkIns }: WeeklyTrendChartProps) {
+  // Read accent color from CSS variable so it follows theme
+  const primaryHsl = typeof window !== "undefined"
+    ? getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()
+    : "199 89% 60%";
+  const accentColor = `hsl(${primaryHsl})`;
+  const focusToColor = buildFocusToColor(accentColor);
+
   // Build data for last 14 days
   const data = [];
   for (let i = 13; i >= 0; i--) {
@@ -128,7 +138,7 @@ export function WeeklyTrendChart({ checkIns }: WeeklyTrendChartProps) {
         <div className="flex items-center justify-center gap-4 mt-3">
           {[
             { label: "Brief", color: "#eab308" },
-            { label: "Focused", color: "#38bdf8" },
+            { label: "Focused", color: accentColor },
             { label: "Deep", color: "#4ade80" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5">

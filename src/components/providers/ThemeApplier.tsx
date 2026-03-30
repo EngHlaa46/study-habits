@@ -20,6 +20,8 @@ export function ThemeApplier() {
         const hsl = colorToHsl[prefs.accentColor];
         if (hsl) {
           document.documentElement.style.setProperty("--primary", hsl);
+          document.documentElement.style.setProperty("--ring", hsl);
+          document.documentElement.style.setProperty("--chart-1", hsl);
         }
       })
       .catch(() => {}); // silently fail — default theme remains

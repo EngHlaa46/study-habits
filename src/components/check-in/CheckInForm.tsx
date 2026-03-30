@@ -14,10 +14,19 @@ interface CheckInFormProps {
   aiQuestions?: string[];
 }
 
+function getDateOffset(daysBack: number): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - daysBack);
+  return d.toISOString().split("T")[0];
+}
+
 export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormProps) {
   const router = useRouter();
   const { t } = useLanguage();
   const [step, setStep] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = today
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [initiated, setInitiated] = useState<boolean | null>(null);
   const [focusLevel, setFocusLevel] = useState<string | null>(null);
   const [decayPoint, setDecayPoint] = useState<string | null>(null);
@@ -100,12 +109,17 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
           missReason: getFinalMissReason(),
           studyMethod: selectedMethods.length > 0 ? selectedMethods : null,
           aiResponses,
+          ...(selectedDate ? { date: selectedDate, backfilled: true } : {}),
         }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to submit");
+        if (res.status === 409) {
+          setError(t("checkin.alreadyCheckedIn"));
+        } else {
+          setError(data.error || "Failed to submit");
+        }
         setSubmitting(false);
         return;
       }
@@ -118,8 +132,58 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
     }
   };
 
+  const dateOptions = [
+    { label: t("checkin.yesterday"), value: getDateOffset(1) },
+    { label: t("checkin.twoDaysAgo"), value: getDateOffset(2) },
+    { label: t("checkin.threeDaysAgo"), value: getDateOffset(3) },
+  ];
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
+      <h1 className="text-2xl font-bold text-foreground">{t("checkin.title")}</h1>
+
+      {/* Date selector */}
+      <Card className="bg-card border-border">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center justify-between">
+            <span className="text-foreground text-sm font-medium">
+              {selectedDate
+                ? `${t("checkin.checkingInFor")} ${dateOptions.find((d) => d.value === selectedDate)?.label ?? selectedDate}`
+                : t("checkin.today")}
+            </span>
+            <button
+              onClick={() => {
+                setShowDatePicker((v) => !v);
+                if (showDatePicker) setSelectedDate(null);
+              }}
+              className="text-primary text-xs hover:underline"
+            >
+              {showDatePicker ? t("common.cancel") : t("checkin.differentDay")}
+            </button>
+          </div>
+          {showDatePicker && (
+            <div className="flex gap-2 mt-3">
+              {dateOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setSelectedDate(opt.value);
+                    setShowDatePicker(false);
+                  }}
+                  className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                    selectedDate === opt.value
+                      ? "border-primary text-primary bg-primary/10"
+                      : "border-border text-muted-foreground hover:border-muted-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Step 1: Did you study? */}
       <Card className="bg-card border-border">
         <CardContent className="pt-6">
@@ -139,7 +203,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
                 }}
                 className={`flex-1 py-6 ${
                   initiated === opt.value
-                    ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
+                    ? "border-primary text-primary bg-primary/10"
                     : "border-border text-muted-foreground hover:border-muted-foreground"
                 }`}
               >
@@ -165,7 +229,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
                 }}
                 className={`w-full text-left justify-start py-4 ${
                   missReason === opt.value
-                    ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
+                    ? "border-primary text-primary bg-primary/10"
                     : "border-border text-muted-foreground hover:border-muted-foreground"
                 }`}
               >
@@ -183,7 +247,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
                 <Button
                   onClick={() => setStep(4)}
                   disabled={!otherMissReason.trim()}
-                  className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
+                  className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
                 >
                   {t("common.next")}
                 </Button>
@@ -210,7 +274,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
                   }}
                   className={`py-6 flex flex-col items-center gap-1 h-auto ${
                     focusLevel === opt.value
-                      ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
+                      ? "border-primary text-primary bg-primary/10"
                       : "border-border text-muted-foreground hover:border-muted-foreground"
                   }`}
                 >
@@ -236,7 +300,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
                   onClick={() => setDecayPoint(opt.value)}
                   className={`py-4 text-sm ${
                     decayPoint === opt.value
-                      ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
+                      ? "border-primary text-primary bg-primary/10"
                       : "border-border text-muted-foreground hover:border-muted-foreground"
                   }`}
                 >
@@ -281,7 +345,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
             </div>
             <Button
               onClick={() => setStep(4)}
-              className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
+              className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
             >
               {selectedMethods.length > 0 ? t("common.continue") : t("common.skip")}
             </Button>
@@ -328,7 +392,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
                       key={v}
                       onClick={() => setEnergy(energy === v ? null : v)}
                       className={`flex-1 h-6 rounded ${
-                        energy && v <= energy ? "bg-[#38bdf8]" : "bg-secondary"
+                        energy && v <= energy ? "bg-primary" : "bg-secondary"
                       } transition-colors`}
                     />
                   ))}
@@ -355,7 +419,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
             <Button
               onClick={() => hasAiQuestions ? setStep(5) : handleSubmit()}
               disabled={submitting || initiated === null}
-              className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold py-6"
+              className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-6"
             >
               {hasAiQuestions ? t("checkin.continueArrow") : submitting ? t("checkin.submitting") : t("checkin.submitCheckIn")}
             </Button>
@@ -402,7 +466,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
               <Button
                 onClick={handleSubmit}
                 disabled={submitting || initiated === null}
-                className="flex-1 bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
+                className="flex-1 bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
               >
                 {submitting ? t("checkin.submitting") : t("checkin.submitCheckIn")}
               </Button>

@@ -140,7 +140,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
 
   return (
     <>
-      <div>
+      <div className="max-w-lg mx-auto">
         {[1, 2, 3, 4].map((tier) => {
           const tierSkills = skills.filter((s) => s.tier === tier);
           const tc = tierConfig[tier];
@@ -263,13 +263,14 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                   preserveAspectRatio="none"
                 >
                   {connections.map(([from, to], i) => {
-                    const xs = [25, 75];
+                    // Account for gap-3 (12px): left center = 25% - 3px, right center = 75% + 3px
+                    const xs = ["calc(25% - 3px)", "calc(75% + 3px)"];
                     return (
                       <line
                         key={i}
-                        x1={`${xs[from]}%`}
+                        x1={xs[from]}
                         y1="0"
-                        x2={`${xs[to]}%`}
+                        x2={xs[to]}
                         y2="32"
                         stroke={tc.color}
                         strokeWidth="1.5"

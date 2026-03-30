@@ -68,7 +68,7 @@ export default function EventsPage() {
         <h1 className="text-2xl font-bold text-foreground">{t("events.title")}</h1>
         <Button
           onClick={() => setShowForm(!showForm)}
-          className="bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black"
+          className="bg-primary hover:bg-primary/80 text-primary-foreground"
         >
           <Plus size={16} className="mr-2" />
           {t("events.addEvent")}
@@ -107,7 +107,7 @@ export default function EventsPage() {
                     onClick={() => setType(v)}
                     className={`capitalize ${
                       type === v
-                        ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
+                        ? "border-primary text-primary bg-primary/10"
                         : "border-border text-muted-foreground"
                     }`}
                   >
@@ -119,7 +119,7 @@ export default function EventsPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleAdd}
-                className="bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black"
+                className="bg-primary hover:bg-primary/80 text-primary-foreground"
               >
                 {t("events.add")}
               </Button>

@@ -48,7 +48,7 @@ export function Sidebar() {
               onClick={() => setOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
                 isActive
-                  ? "bg-[#38bdf8]/10 text-[#38bdf8]"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`}
             >
@@ -79,7 +79,7 @@ export function Sidebar() {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 z-50">
         <Link href="/dashboard" className="text-lg font-bold text-foreground">
-          Study <span className="text-[#38bdf8]">Habits</span>
+          Study <span className="text-primary">Habits</span>
         </Link>
         <button
           onClick={() => setOpen(!open)}
@@ -108,7 +108,7 @@ export function Sidebar() {
       <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-card border-r border-border flex-col z-50">
         <div className="p-6">
           <Link href="/dashboard" className="text-xl font-bold text-foreground">
-            Study <span className="text-[#38bdf8]">Habits</span>
+            Study <span className="text-primary">Habits</span>
           </Link>
         </div>
         {navContent}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bell, X } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 interface Notification {
   id: string;
@@ -10,6 +11,7 @@ interface Notification {
 }
 
 export function NotificationBell() {
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -59,17 +61,17 @@ export function NotificationBell() {
             </span>
           )}
         </div>
-        <span className="text-sm font-medium">Notifications</span>
+        <span className="text-sm font-medium">{t("notifications.title")}</span>
       </button>
 
       {open && (
         <div className="absolute bottom-full left-0 mb-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
-            <p className="text-sm font-semibold text-foreground">Notifications</p>
+            <p className="text-sm font-semibold text-foreground">{t("notifications.title")}</p>
           </div>
           {notifications.length === 0 ? (
             <p className="text-muted-foreground/60 text-sm text-center py-6">
-              All caught up
+              {t("notifications.allCaughtUp")}
             </p>
           ) : (
             <ul className="max-h-72 overflow-y-auto divide-y divide-border">

@@ -82,13 +82,13 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-border bg-surface-inset accent-[#38bdf8]"
+                  className="h-4 w-4 rounded border-border bg-surface-inset accent-primary"
                 />
                 <span className="text-sm text-muted-foreground">{t("auth.rememberMe")}</span>
               </label>
               <Link
                 href="/forgot-password"
-                className="text-sm text-[#38bdf8] hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 {t("auth.forgotPassword")}
               </Link>
@@ -99,14 +99,14 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
+              className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
             >
               {loading ? t("auth.signingIn") : t("auth.signIn")}
             </Button>
           </form>
           <p className="text-center text-muted-foreground text-sm mt-4">
             {t("auth.noAccount")}{" "}
-            <Link href="/register" className="text-[#38bdf8] hover:underline">
+            <Link href="/register" className="text-primary hover:underline">
               {t("auth.register")}
             </Link>
           </p>

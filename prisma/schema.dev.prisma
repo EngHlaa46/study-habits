@@ -40,6 +40,7 @@ model UserProfile {
   assessmentText      String?
   assessmentAt        DateTime?
   themePrefs          String?   // JSON: { accentColor: string }
+  bannerImageUrl      String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }

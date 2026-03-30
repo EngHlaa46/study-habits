@@ -112,14 +112,14 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
+              className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
             >
               {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
             </Button>
           </form>
           <p className="text-center text-muted-foreground text-sm mt-4">
             {t("auth.alreadyHaveAccountQ")}{" "}
-            <Link href="/login" className="text-[#38bdf8] hover:underline">
+            <Link href="/login" className="text-primary hover:underline">
               {t("auth.signInLink")}
             </Link>
           </p>

@@ -6,28 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const challengeOptions = [
-  "Starting is the hardest part",
-  "I get distracted easily",
-  "I study but nothing sticks",
-  "I can't focus for long",
-  "I procrastinate until the last minute",
-  "I don't know what to study first",
-  "Other",
-];
-
-const times = [
-  "Early morning",
-  "Late morning",
-  "Afternoon",
-  "Evening",
-  "Late night",
-  "Varies day to day",
-];
+import { useLanguage } from "@/lib/language";
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [studyGoal, setStudyGoal] = useState("");
   const [selectedChallenges, setSelectedChallenges] = useState<string[]>([]);
@@ -39,15 +22,37 @@ export default function OnboardingPage() {
   const [eventType, setEventType] = useState("exam");
   const [submitting, setSubmitting] = useState(false);
 
-  const toggleChallenge = (c: string) => {
+  // Challenge options use translation keys; store key as value, display via t()
+  const challengeKeys = [
+    "onboarding.challenge.starting",
+    "onboarding.challenge.distracted",
+    "onboarding.challenge.nothingSticks",
+    "onboarding.challenge.cantFocus",
+    "onboarding.challenge.procrastinate",
+    "onboarding.challenge.dontKnowWhat",
+    "onboarding.challenge.other",
+  ];
+
+  const timeKeys = [
+    "onboarding.time.earlyMorning",
+    "onboarding.time.lateMorning",
+    "onboarding.time.afternoon",
+    "onboarding.time.evening",
+    "onboarding.time.lateNight",
+    "onboarding.time.varies",
+  ];
+
+  const toggleChallenge = (key: string) => {
     setSelectedChallenges((prev) =>
-      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
+      prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]
     );
   };
 
   const buildBiggestChallenge = () => {
-    const items = selectedChallenges.map((c) =>
-      c === "Other" ? otherChallenge.trim() || "Other" : c
+    const items = selectedChallenges.map((key) =>
+      key === "onboarding.challenge.other"
+        ? otherChallenge.trim() || "Other"
+        : t(key)
     ).filter(Boolean);
     return JSON.stringify(items);
   };
@@ -61,7 +66,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           studyGoal,
           biggestChallenge: buildBiggestChallenge(),
-          preferredTime,
+          preferredTime: preferredTime ? t(preferredTime) : "",
           typicalHours,
           eventName,
           eventDate,
@@ -86,7 +91,7 @@ export default function OnboardingPage() {
             <div
               key={i}
               className={`w-2 h-2 rounded-full ${
-                i <= step ? "bg-[#38bdf8]" : "bg-secondary"
+                i <= step ? "bg-primary" : "bg-secondary"
               }`}
             />
           ))}
@@ -96,28 +101,28 @@ export default function OnboardingPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
-                What are you working toward?
+                {t("onboarding.studyGoalTitle")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-foreground/80">Your study goal</Label>
+                <Label className="text-foreground/80">{t("onboarding.studyGoalLabel")}</Label>
                 <Input
                   value={studyGoal}
                   onChange={(e) => setStudyGoal(e.target.value)}
-                  placeholder="e.g., Pass organic chemistry, improve GPA..."
+                  placeholder={t("onboarding.studyGoalPlaceholder")}
                   className="bg-surface-inset border-border text-foreground"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground/80">
-                  How many hours do you typically study per day?
+                  {t("onboarding.hoursLabel")}
                 </Label>
                 <Input
                   type="number"
                   value={typicalHours}
                   onChange={(e) => setTypicalHours(e.target.value)}
-                  placeholder="e.g., 2"
+                  placeholder={t("onboarding.hoursPlaceholder")}
                   min="0"
                   max="16"
                   step="0.5"
@@ -126,9 +131,9 @@ export default function OnboardingPage() {
               </div>
               <Button
                 onClick={() => setStep(1)}
-                className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
+                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
               >
-                Next
+                {t("common.next")}
               </Button>
             </CardContent>
           </Card>
@@ -138,39 +143,39 @@ export default function OnboardingPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
-                What trips you up most?
+                {t("onboarding.challengesTitle")}
               </CardTitle>
-              <p className="text-muted-foreground text-sm">Select all that apply.</p>
+              <p className="text-muted-foreground text-sm">{t("onboarding.challengesSubtitle")}</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              {challengeOptions.map((c) => (
+              {challengeKeys.map((key) => (
                 <Button
-                  key={c}
+                  key={key}
                   variant="outline"
-                  onClick={() => toggleChallenge(c)}
+                  onClick={() => toggleChallenge(key)}
                   className={`w-full text-left justify-start py-4 ${
-                    selectedChallenges.includes(c)
-                      ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
+                    selectedChallenges.includes(key)
+                      ? "border-primary text-primary bg-primary/10"
                       : "border-border text-muted-foreground hover:border-muted-foreground"
                   }`}
                 >
-                  {c}
+                  {t(key)}
                 </Button>
               ))}
-              {selectedChallenges.includes("Other") && (
+              {selectedChallenges.includes("onboarding.challenge.other") && (
                 <Input
                   value={otherChallenge}
                   onChange={(e) => setOtherChallenge(e.target.value)}
-                  placeholder="Describe your challenge..."
+                  placeholder={t("onboarding.challengePlaceholder")}
                   className="bg-surface-inset border-border text-foreground"
                 />
               )}
               <Button
                 onClick={() => setStep(2)}
                 disabled={selectedChallenges.length === 0}
-                className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold mt-2"
+                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold mt-2"
               >
-                Next
+                {t("common.next")}
               </Button>
             </CardContent>
           </Card>
@@ -180,26 +185,26 @@ export default function OnboardingPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
-                When do you usually study?
+                {t("onboarding.timeTitle")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                {times.map((t) => (
+                {timeKeys.map((key) => (
                   <Button
-                    key={t}
+                    key={key}
                     variant="outline"
                     onClick={() => {
-                      setPreferredTime(t);
+                      setPreferredTime(key);
                       setStep(3);
                     }}
                     className={`py-4 ${
-                      preferredTime === t
-                        ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
+                      preferredTime === key
+                        ? "border-primary text-primary bg-primary/10"
                         : "border-border text-muted-foreground hover:border-muted-foreground"
                     }`}
                   >
-                    {t}
+                    {t(key)}
                   </Button>
                 ))}
               </div>
@@ -211,24 +216,24 @@ export default function OnboardingPage() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
-                Upcoming academic event
+                {t("onboarding.eventTitle")}
               </CardTitle>
               <p className="text-muted-foreground text-sm">
-                Add an exam, quiz, or deadline to anchor your training.
+                {t("onboarding.eventSubtitle")}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-foreground/80">Event name</Label>
+                <Label className="text-foreground/80">{t("onboarding.eventNameLabel")}</Label>
                 <Input
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
-                  placeholder="e.g., Midterm Exam"
+                  placeholder={t("onboarding.eventNamePlaceholder")}
                   className="bg-surface-inset border-border text-foreground"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-foreground/80">Date</Label>
+                <Label className="text-foreground/80">{t("onboarding.eventDateLabel")}</Label>
                 <Input
                   type="date"
                   value={eventDate}
@@ -237,21 +242,21 @@ export default function OnboardingPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-foreground/80">Type</Label>
+                <Label className="text-foreground/80">{t("onboarding.eventTypeLabel")}</Label>
                 <div className="flex flex-wrap gap-2">
-                  {["exam", "quiz", "deadline", "project"].map((t) => (
+                  {["exam", "quiz", "deadline", "project"].map((v) => (
                     <Button
-                      key={t}
+                      key={v}
                       variant="outline"
                       size="sm"
-                      onClick={() => setEventType(t)}
+                      onClick={() => setEventType(v)}
                       className={`capitalize ${
-                        eventType === t
-                          ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
+                        eventType === v
+                          ? "border-primary text-primary bg-primary/10"
                           : "border-border text-muted-foreground"
                       }`}
                     >
-                      {t}
+                      {t(`events.${v}`)}
                     </Button>
                   ))}
                 </div>
@@ -259,9 +264,9 @@ export default function OnboardingPage() {
               <Button
                 onClick={handleComplete}
                 disabled={submitting}
-                className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold py-6"
+                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-6"
               >
-                {submitting ? "Setting up..." : "Start Observation Phase"}
+                {submitting ? t("onboarding.settingUp") : t("onboarding.startObservation")}
               </Button>
               <Button
                 variant="ghost"
@@ -269,7 +274,7 @@ export default function OnboardingPage() {
                 disabled={submitting}
                 className="w-full text-muted-foreground/70 hover:text-foreground/80"
               >
-                Skip event for now
+                {t("onboarding.skipEvent")}
               </Button>
             </CardContent>
           </Card>
@@ -281,7 +286,7 @@ export default function OnboardingPage() {
             onClick={() => setStep(step - 1)}
             className="mt-4 text-muted-foreground/70 hover:text-foreground/80"
           >
-            Back
+            {t("onboarding.back")}
           </Button>
         )}
       </div>

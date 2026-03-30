@@ -46,23 +46,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid aiResponses" }, { status: 400 });
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
-  // Check for existing check-in today
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // Determine the target date (body.date or today)
+  let targetDate = now;
+  const isBackfill = !!body.date;
+  if (body.date) {
+    const parsed = new Date(body.date);
+    if (isNaN(parsed.getTime())) {
+      return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+    }
+    parsed.setHours(0, 0, 0, 0);
+    // Enforce max 3 days back
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    if (parsed < threeDaysAgo || parsed > now) {
+      return NextResponse.json({ error: "Date must be within the last 3 days" }, { status: 400 });
+    }
+    targetDate = parsed;
+  }
+
+  // Check for existing check-in on the target date
+  const dayAfter = new Date(targetDate);
+  dayAfter.setDate(dayAfter.getDate() + 1);
 
   const existing = await prisma.checkIn.findFirst({
     where: {
       userId,
-      date: { gte: today, lt: tomorrow },
+      date: { gte: targetDate, lt: dayAfter },
     },
   });
 
   if (existing) {
     return NextResponse.json(
-      { error: "Already checked in today" },
+      { error: "Already checked in for this day" },
       { status: 409 }
     );
   }
@@ -70,7 +88,7 @@ export async function POST(req: Request) {
   const checkIn = await prisma.checkIn.create({
     data: {
       userId,
-      date: today,
+      date: targetDate,
       initiated: body.initiated ?? false,
       focusLevel: body.focusLevel || null,
       decayPoint: body.decayPoint || null,

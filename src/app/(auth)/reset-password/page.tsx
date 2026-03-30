@@ -61,7 +61,7 @@ function ResetPasswordForm() {
     return (
       <div className="space-y-4 text-center">
         <p className="text-red-400 text-sm">Invalid reset link.</p>
-        <Link href="/forgot-password" className="text-[#38bdf8] hover:underline text-sm">
+        <Link href="/forgot-password" className="text-primary hover:underline text-sm">
           Request a new one
         </Link>
       </div>
@@ -74,7 +74,7 @@ function ResetPasswordForm() {
         <p className="text-[#4ade80] text-sm">
           Password reset successfully! Redirecting to login...
         </p>
-        <Link href="/login" className="text-[#38bdf8] hover:underline text-sm">
+        <Link href="/login" className="text-primary hover:underline text-sm">
           Go to login
         </Link>
       </div>
@@ -115,7 +115,7 @@ function ResetPasswordForm() {
       <Button
         type="submit"
         disabled={loading}
-        className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
+        className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
       >
         {loading ? "Resetting..." : "Reset Password"}
       </Button>

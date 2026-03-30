@@ -18,8 +18,8 @@ export function ActivePlanCard({ skillName, skillDescription, weekPhase, challen
   const weekConfig: Record<number, { label: string; color: string; border: string; instruction: string }> = {
     1: {
       label: t("skills.week1Label"),
-      color: "text-[#38bdf8]",
-      border: "border-[#38bdf8]/40",
+      color: "text-primary",
+      border: "border-primary/40",
       instruction: t("plan.week1Instruction"),
     },
     2: {
@@ -78,7 +78,7 @@ export function ActivePlanCard({ skillName, skillDescription, weekPhase, challen
         <div className="bg-surface-inset rounded-lg p-3 mb-3 border border-dashed border-border">
           <p className="text-muted-foreground/60 text-sm">
             {t("dashboard.noTaskDefined")} —{" "}
-            <Link href="/skills" className="text-[#38bdf8] hover:underline">
+            <Link href="/skills" className="text-primary hover:underline">
               {t("dashboard.setTaskInSkillPage")}
             </Link>
           </p>

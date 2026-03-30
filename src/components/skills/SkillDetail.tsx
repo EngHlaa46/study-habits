@@ -55,7 +55,7 @@ export function SkillDetail({
   const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
     locked: { label: t("skills.locked"), color: "text-muted-foreground border-muted-foreground/30", icon: <Lock size={16} /> },
     available: { label: t("skills.available"), color: "text-muted-foreground border-border", icon: <Target size={16} /> },
-    active: { label: t("skills.active"), color: "text-[#38bdf8] border-[#38bdf8]", icon: <Zap size={16} /> },
+    active: { label: t("skills.active"), color: "text-primary border-primary", icon: <Zap size={16} /> },
     stable: { label: t("skills.stable"), color: "text-[#4ade80] border-[#4ade80]", icon: <CheckCircle2 size={16} /> },
     mastered: { label: t("skills.mastered"), color: "text-[#fbbf24] border-[#fbbf24]", icon: <CheckCircle2 size={16} /> },
   };
@@ -157,9 +157,9 @@ export function SkillDetail({
 
       {/* Active skill training section */}
       {status === "active" && progress && (
-        <Card className="bg-card border-[#38bdf8]/30">
+        <Card className="bg-card border-primary/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-[#38bdf8] text-lg">
+            <CardTitle className="text-primary text-lg">
               {t("skills.trainingProgress")}
             </CardTitle>
           </CardHeader>
@@ -188,7 +188,7 @@ export function SkillDetail({
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.checkIns")}</p>
               </div>
               <div className="bg-surface-inset rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-[#38bdf8]">
+                <p className="text-xl font-bold text-primary">
                   {initiatedDays}
                 </p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.daysStudied")}</p>
@@ -250,7 +250,7 @@ export function SkillDetail({
                 <Button
                   onClick={handleSetTask}
                   disabled={loading || !userTask.trim()}
-                  className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black"
+                  className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
                 >
                   {loading ? t("skills.saving") : t("skills.setTask")}
                 </Button>
@@ -276,7 +276,7 @@ export function SkillDetail({
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.totalCheckIns")}</p>
               </div>
               <div className="bg-surface-inset rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-[#38bdf8]">
+                <p className="text-xl font-bold text-primary">
                   {focusedDays}
                 </p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.focusedDays")}</p>
@@ -297,7 +297,7 @@ export function SkillDetail({
         <Button
           onClick={handleActivate}
           disabled={loading}
-          className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold py-6"
+          className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-6"
         >
           {loading ? t("skills.activating") : t("skills.activateSkill")}
         </Button>
@@ -355,7 +355,7 @@ export function SkillDetail({
                 <Link
                   key={p.slug}
                   href={`/skills/${p.slug}`}
-                  className="block text-muted-foreground hover:text-[#38bdf8] text-sm transition-colors"
+                  className="block text-muted-foreground hover:text-primary text-sm transition-colors"
                 >
                   {p.name}
                 </Link>
@@ -373,7 +373,7 @@ export function SkillDetail({
                 <Link
                   key={s.slug}
                   href={`/skills/${s.slug}`}
-                  className="block text-muted-foreground hover:text-[#38bdf8] text-sm transition-colors"
+                  className="block text-muted-foreground hover:text-primary text-sm transition-colors"
                 >
                   {s.name}
                 </Link>

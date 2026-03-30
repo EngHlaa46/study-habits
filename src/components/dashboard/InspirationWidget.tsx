@@ -59,7 +59,7 @@ export function InspirationWidget() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && saveAffirmation()}
-              placeholder="Your personal statement…"
+              placeholder={t("dashboard.personalStatementPlaceholder")}
               maxLength={300}
               className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
             />

@@ -282,6 +282,68 @@ const translations: Record<Lang, Record<string, string>> = {
     "auth.backToLogin": "Back to login",
     "auth.invalidCredentials": "Invalid email or password",
 
+    // onboarding.*
+    "onboarding.studyGoalTitle": "What are you working toward?",
+    "onboarding.studyGoalLabel": "Your study goal",
+    "onboarding.studyGoalPlaceholder": "e.g., Pass organic chemistry, improve GPA...",
+    "onboarding.hoursLabel": "How many hours do you typically study per day?",
+    "onboarding.hoursPlaceholder": "e.g., 2",
+    "onboarding.challengesTitle": "What trips you up most?",
+    "onboarding.challengesSubtitle": "Select all that apply.",
+    "onboarding.challengePlaceholder": "Describe your challenge...",
+    "onboarding.timeTitle": "When do you usually study?",
+    "onboarding.eventTitle": "Upcoming academic event",
+    "onboarding.eventSubtitle": "Add an exam, quiz, or deadline to anchor your training.",
+    "onboarding.eventNameLabel": "Event name",
+    "onboarding.eventNamePlaceholder": "e.g., Midterm Exam",
+    "onboarding.eventDateLabel": "Date",
+    "onboarding.eventTypeLabel": "Type",
+    "onboarding.startObservation": "Start Observation Phase",
+    "onboarding.settingUp": "Setting up...",
+    "onboarding.skipEvent": "Skip event for now",
+    "onboarding.back": "Back",
+    "onboarding.challenge.starting": "Starting is the hardest part",
+    "onboarding.challenge.distracted": "I get distracted easily",
+    "onboarding.challenge.nothingSticks": "I study but nothing sticks",
+    "onboarding.challenge.cantFocus": "I can't focus for long",
+    "onboarding.challenge.procrastinate": "I procrastinate until the last minute",
+    "onboarding.challenge.dontKnowWhat": "I don't know what to study first",
+    "onboarding.challenge.other": "Other",
+    "onboarding.time.earlyMorning": "Early morning",
+    "onboarding.time.lateMorning": "Late morning",
+    "onboarding.time.afternoon": "Afternoon",
+    "onboarding.time.evening": "Evening",
+    "onboarding.time.lateNight": "Late night",
+    "onboarding.time.varies": "Varies day to day",
+
+    // dashboard extra strings
+    "dashboard.observationText": "Study as you normally would and log your daily check-ins. After 5+ check-ins we'll unlock your first skill.\nIf you're noticing patterns — distractions, low energy, trouble starting — talk to your coach about them now.",
+    "dashboard.completeCheckins": "Complete your daily check-ins. After 5+ check-ins in 7 days, you'll unlock your first skill.",
+    "dashboard.visitSkillsPage": "Visit the Skills page to activate a skill.",
+
+    // chat errors
+    "chat.errorSend": "Failed to send message",
+    "chat.errorFallback": "Sorry, something went wrong. Please try again.",
+
+    // notifications
+    "notifications.title": "Notifications",
+    "notifications.allCaughtUp": "All caught up",
+
+    // banner
+    "dashboard.addBannerPhoto": "Add a banner photo",
+    "dashboard.bannerUrlPlaceholder": "Paste image URL...",
+    "dashboard.removeBanner": "Remove",
+    "dashboard.personalStatementPlaceholder": "Your personal statement…",
+
+    // backfill
+    "checkin.differentDay": "Different day?",
+    "checkin.checkingInFor": "Checking in for:",
+    "checkin.today": "Today",
+    "checkin.yesterday": "Yesterday",
+    "checkin.twoDaysAgo": "2 days ago",
+    "checkin.threeDaysAgo": "3 days ago",
+    "checkin.alreadyCheckedIn": "You've already checked in for this day.",
+
     // plan card instructions
     "plan.week1Instruction": "Focus only on showing up consistently. Don't push for perfection — build the routine first.",
     "plan.week2Instruction": "You've shown up. Now pay attention to quality. Try small tweaks to how you apply the skill.",
@@ -566,6 +628,68 @@ const translations: Record<Lang, Record<string, string>> = {
     "auth.resendEmail": "إعادة إرسال البريد",
     "auth.backToLogin": "العودة إلى تسجيل الدخول",
     "auth.invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+
+    // onboarding.*
+    "onboarding.studyGoalTitle": "ما الذي تسعى إليه؟",
+    "onboarding.studyGoalLabel": "هدفك الدراسي",
+    "onboarding.studyGoalPlaceholder": "مثال: اجتياز الكيمياء العضوية، تحسين المعدل...",
+    "onboarding.hoursLabel": "كم ساعة تدرس عادةً في اليوم؟",
+    "onboarding.hoursPlaceholder": "مثال: 2",
+    "onboarding.challengesTitle": "ما الذي يعيقك أكثر؟",
+    "onboarding.challengesSubtitle": "اختر كل ما ينطبق.",
+    "onboarding.challengePlaceholder": "صف تحديك...",
+    "onboarding.timeTitle": "متى تدرس عادةً؟",
+    "onboarding.eventTitle": "حدث أكاديمي قادم",
+    "onboarding.eventSubtitle": "أضف امتحاناً أو اختباراً أو موعداً نهائياً لتأطير تدريبك.",
+    "onboarding.eventNameLabel": "اسم الحدث",
+    "onboarding.eventNamePlaceholder": "مثال: امتحان منتصف الفصل",
+    "onboarding.eventDateLabel": "التاريخ",
+    "onboarding.eventTypeLabel": "النوع",
+    "onboarding.startObservation": "بدء مرحلة المراقبة",
+    "onboarding.settingUp": "جاري الإعداد...",
+    "onboarding.skipEvent": "تخطي الحدث الآن",
+    "onboarding.back": "رجوع",
+    "onboarding.challenge.starting": "البدء هو الأصعب",
+    "onboarding.challenge.distracted": "أتشتت بسهولة",
+    "onboarding.challenge.nothingSticks": "أدرس لكن لا شيء يترسخ",
+    "onboarding.challenge.cantFocus": "لا أستطيع التركيز طويلاً",
+    "onboarding.challenge.procrastinate": "أؤجل حتى اللحظة الأخيرة",
+    "onboarding.challenge.dontKnowWhat": "لا أعرف من أين أبدأ",
+    "onboarding.challenge.other": "أخرى",
+    "onboarding.time.earlyMorning": "الصباح الباكر",
+    "onboarding.time.lateMorning": "منتصف الصباح",
+    "onboarding.time.afternoon": "بعد الظهر",
+    "onboarding.time.evening": "المساء",
+    "onboarding.time.lateNight": "آخر الليل",
+    "onboarding.time.varies": "يتفاوت من يوم لآخر",
+
+    // dashboard extra strings
+    "dashboard.observationText": "ادرس كما تفعل عادةً وسجّل تسجيلاتك اليومية. بعد 5 تسجيلات أو أكثر سنفتح لك مهارتك الأولى.\nإذا لاحظت أنماطاً — تشتت، طاقة منخفضة، صعوبة في البدء — تحدث مع مدربك عنها الآن.",
+    "dashboard.completeCheckins": "أكمل تسجيلاتك اليومية. بعد 5 تسجيلات في 7 أيام ستفتح مهارتك الأولى.",
+    "dashboard.visitSkillsPage": "زر صفحة المهارات لتفعيل مهارة.",
+
+    // chat errors
+    "chat.errorSend": "فشل إرسال الرسالة",
+    "chat.errorFallback": "عذراً، حدث خطأ ما. يرجى المحاولة مجدداً.",
+
+    // notifications
+    "notifications.title": "الإشعارات",
+    "notifications.allCaughtUp": "أنت على اطلاع بكل شيء",
+
+    // banner
+    "dashboard.addBannerPhoto": "أضف صورة غلاف",
+    "dashboard.bannerUrlPlaceholder": "الصق رابط الصورة...",
+    "dashboard.removeBanner": "إزالة",
+    "dashboard.personalStatementPlaceholder": "تأكيدك الشخصي…",
+
+    // backfill
+    "checkin.differentDay": "يوم مختلف؟",
+    "checkin.checkingInFor": "تسجيل ليوم:",
+    "checkin.today": "اليوم",
+    "checkin.yesterday": "أمس",
+    "checkin.twoDaysAgo": "منذ يومين",
+    "checkin.threeDaysAgo": "منذ 3 أيام",
+    "checkin.alreadyCheckedIn": "لقد سجّلت بالفعل لهذا اليوم.",
 
     // plan card instructions
     "plan.week1Instruction": "ركّز فقط على الحضور المنتظم. لا تسعَ للكمال — ابنِ الروتين أولاً.",
