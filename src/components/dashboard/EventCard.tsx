@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarDays } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 interface EventCardProps {
   events: {
@@ -14,14 +15,16 @@ interface EventCardProps {
 }
 
 export function EventCard({ events }: EventCardProps) {
+  const { t } = useLanguage();
+
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="text-foreground text-lg">Upcoming Events</CardTitle>
+        <CardTitle className="text-foreground text-lg">{t("dashboard.upcomingEvents")}</CardTitle>
       </CardHeader>
       <CardContent>
         {events.length === 0 ? (
-          <p className="text-muted-foreground/70 text-sm">No upcoming events</p>
+          <p className="text-muted-foreground/70 text-sm">{t("dashboard.noUpcomingEvents")}</p>
         ) : (
           <div className="space-y-3">
             {events.map((event) => (

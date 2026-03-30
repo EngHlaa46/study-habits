@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 interface Message {
   id: string;
@@ -16,6 +17,7 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -120,10 +122,9 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       <div className="flex-1 overflow-y-auto space-y-4 pb-4">
         {messages.length === 0 && (
           <div className="text-center text-muted-foreground/70 mt-20">
-            <p className="text-lg mb-2">Your AI study coach</p>
+            <p className="text-lg mb-2">{t("chat.aiStudyCoach")}</p>
             <p className="text-sm">
-              Ask about your progress, get advice on your active skill, or just
-              talk about how studying is going.
+              {t("chat.coachDescription")}
             </p>
           </div>
         )}
@@ -154,7 +155,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask your study coach..."
+            placeholder={t("chat.askCoach")}
             className="bg-card border-border text-foreground resize-none min-h-[44px] max-h-[120px]"
             rows={1}
           />

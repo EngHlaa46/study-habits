@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/lib/language";
 
 interface PhaseBannerProps {
   phase: string;
@@ -9,24 +10,26 @@ interface PhaseBannerProps {
   weekPhase?: number;
 }
 
-const phaseLabels: Record<string, string> = {
-  onboarding: "Onboarding",
-  observation: "Observation Phase",
-  skill_training: "Skill Training",
-};
-
-const weekLabels: Record<number, string> = {
-  1: "Week 1 — Stabilize",
-  2: "Week 2 — Express",
-  3: "Week 3 — Probe",
-};
-
 export function PhaseBanner({
   phase,
   dayCount,
   activeSkillName,
   weekPhase,
 }: PhaseBannerProps) {
+  const { t } = useLanguage();
+
+  const phaseLabels: Record<string, string> = {
+    onboarding: t("phase.onboarding"),
+    observation: t("phase.observation"),
+    skill_training: t("phase.skill_training"),
+  };
+
+  const weekLabels: Record<number, string> = {
+    1: t("skills.week1Label"),
+    2: t("skills.week2Label"),
+    3: t("skills.week3Label"),
+  };
+
   const label = phaseLabels[phase] || phase;
 
   return (
@@ -41,7 +44,7 @@ export function PhaseBanner({
           </Badge>
           {activeSkillName && (
             <span className="text-foreground/80 text-sm">
-              Active: <span className="text-[#38bdf8]">{activeSkillName}</span>
+              {t("phase.activeLabel")} <span className="text-[#38bdf8]">{activeSkillName}</span>
             </span>
           )}
           {weekPhase && weekPhase > 0 && (
@@ -53,7 +56,7 @@ export function PhaseBanner({
             </Badge>
           )}
         </div>
-        <span className="text-muted-foreground/70 text-sm">Day {dayCount}</span>
+        <span className="text-muted-foreground/70 text-sm">{t("phase.day")} {dayCount}</span>
       </div>
     </div>
   );

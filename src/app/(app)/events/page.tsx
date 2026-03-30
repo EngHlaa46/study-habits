@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 interface Event {
   id: string;
@@ -17,6 +18,7 @@ interface Event {
 }
 
 export default function EventsPage() {
+  const { t } = useLanguage();
   const [events, setEvents] = useState<Event[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -57,19 +59,19 @@ export default function EventsPage() {
   const passed = events.filter((e) => e.status === "passed");
 
   if (loading) {
-    return <div className="text-muted-foreground">Loading events...</div>;
+    return <div className="text-muted-foreground">{t("events.loadingEvents")}</div>;
   }
 
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Events</h1>
+        <h1 className="text-2xl font-bold text-foreground">{t("events.title")}</h1>
         <Button
           onClick={() => setShowForm(!showForm)}
           className="bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black"
         >
           <Plus size={16} className="mr-2" />
-          Add Event
+          {t("events.addEvent")}
         </Button>
       </div>
 
@@ -77,16 +79,16 @@ export default function EventsPage() {
         <Card className="bg-card border-border mb-6">
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
-              <Label className="text-foreground/80">Event name</Label>
+              <Label className="text-foreground/80">{t("events.eventName")}</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Final Exam"
+                placeholder={t("events.namePlaceholder")}
                 className="bg-surface-inset border-border text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/80">Date</Label>
+              <Label className="text-foreground/80">{t("events.date")}</Label>
               <Input
                 type="date"
                 value={date}
@@ -95,21 +97,21 @@ export default function EventsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/80">Type</Label>
+              <Label className="text-foreground/80">{t("events.type")}</Label>
               <div className="flex flex-wrap gap-2">
-                {["exam", "quiz", "deadline", "project", "other"].map((t) => (
+                {["exam", "quiz", "deadline", "project", "other"].map((v) => (
                   <Button
-                    key={t}
+                    key={v}
                     variant="outline"
                     size="sm"
-                    onClick={() => setType(t)}
+                    onClick={() => setType(v)}
                     className={`capitalize ${
-                      type === t
+                      type === v
                         ? "border-[#38bdf8] text-[#38bdf8] bg-[#38bdf8]/10"
                         : "border-border text-muted-foreground"
                     }`}
                   >
-                    {t}
+                    {v}
                   </Button>
                 ))}
               </div>
@@ -119,14 +121,14 @@ export default function EventsPage() {
                 onClick={handleAdd}
                 className="bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black"
               >
-                Add
+                {t("events.add")}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setShowForm(false)}
                 className="text-muted-foreground"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
             </div>
           </CardContent>
@@ -134,9 +136,9 @@ export default function EventsPage() {
       )}
 
       {/* Upcoming events */}
-      <h2 className="text-foreground text-lg font-semibold mb-3">Upcoming</h2>
+      <h2 className="text-foreground text-lg font-semibold mb-3">{t("events.upcoming")}</h2>
       {upcoming.length === 0 ? (
-        <p className="text-muted-foreground/70 text-sm mb-6">No upcoming events</p>
+        <p className="text-muted-foreground/70 text-sm mb-6">{t("events.noUpcoming")}</p>
       ) : (
         <div className="space-y-2 mb-6">
           {upcoming.map((event) => {
@@ -191,7 +193,7 @@ export default function EventsPage() {
       {/* Passed events */}
       {passed.length > 0 && (
         <>
-          <h2 className="text-foreground text-lg font-semibold mb-3">Passed</h2>
+          <h2 className="text-foreground text-lg font-semibold mb-3">{t("events.passed")}</h2>
           <div className="space-y-2 opacity-60">
             {passed.map((event) => (
               <Card

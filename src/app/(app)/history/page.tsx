@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/session";
 import { prisma } from "@/lib/db/prisma";
 import { CalendarGrid } from "@/components/history/CalendarGrid";
+import { HistoryHeader } from "@/components/history/HistoryHeader";
 
 export default async function HistoryPage() {
   const session = await requireAuth();
@@ -34,27 +35,11 @@ export default async function HistoryPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-foreground mb-2">Check-In History</h1>
-      <p className="text-muted-foreground text-sm mb-6">
-        Track your study patterns over time.
-      </p>
-
-      {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-foreground">{totalCheckIns}</p>
-          <p className="text-muted-foreground/70 text-xs mt-1">Check-ins (30d)</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-[#38bdf8]">{studiedDays}</p>
-          <p className="text-muted-foreground/70 text-xs mt-1">Days studied</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-[#4ade80]">{focusedDays}</p>
-          <p className="text-muted-foreground/70 text-xs mt-1">Focused+ days</p>
-        </div>
-      </div>
-
+      <HistoryHeader
+        totalCheckIns={totalCheckIns}
+        studiedDays={studiedDays}
+        focusedDays={focusedDays}
+      />
       <CalendarGrid checkIns={serialized} />
     </div>
   );

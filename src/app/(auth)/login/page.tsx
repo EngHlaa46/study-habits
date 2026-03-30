@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/lib/language";
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -30,7 +32,7 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password");
+      setError(t("auth.invalidCredentials"));
       setLoading(false);
     } else {
       router.push("/dashboard");
@@ -41,16 +43,16 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-foreground">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl text-foreground">{t("auth.welcomeBack")}</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Sign in to continue your study journey
+            {t("auth.continueJourney")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground/80">
-                Email
+                {t("auth.email")}
               </Label>
               <Input
                 id="email"
@@ -63,7 +65,7 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-foreground/80">
-                Password
+                {t("auth.password")}
               </Label>
               <Input
                 id="password"
@@ -82,13 +84,13 @@ export default function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 rounded border-border bg-surface-inset accent-[#38bdf8]"
                 />
-                <span className="text-sm text-muted-foreground">Remember me</span>
+                <span className="text-sm text-muted-foreground">{t("auth.rememberMe")}</span>
               </label>
               <Link
                 href="/forgot-password"
                 className="text-sm text-[#38bdf8] hover:underline"
               >
-                Forgot password?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
             {error && (
@@ -99,13 +101,13 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? t("auth.signingIn") : t("auth.signIn")}
             </Button>
           </form>
           <p className="text-center text-muted-foreground text-sm mt-4">
-            No account?{" "}
+            {t("auth.noAccount")}{" "}
             <Link href="/register" className="text-[#38bdf8] hover:underline">
-              Register
+              {t("auth.register")}
             </Link>
           </p>
         </CardContent>

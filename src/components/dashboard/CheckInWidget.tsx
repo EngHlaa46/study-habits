@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, X } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/lib/language";
 
 interface CheckInWidgetProps {
   todayCompleted: boolean;
@@ -25,27 +26,29 @@ export function CheckInWidget({
   todayCompleted,
   recentCheckIns,
 }: CheckInWidgetProps) {
+  const { t } = useLanguage();
+
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="text-foreground text-lg">Daily Check-In</CardTitle>
+        <CardTitle className="text-foreground text-lg">{t("dashboard.dailyCheckIn")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {todayCompleted ? (
           <div className="flex items-center gap-2 text-[#4ade80]">
             <CheckSquare size={18} />
-            <span className="text-sm">Completed today</span>
+            <span className="text-sm">{t("dashboard.completedToday")}</span>
           </div>
         ) : (
           <Link href="/check-in">
             <Button className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold">
-              Start Check-In
+              {t("dashboard.startCheckIn")}
             </Button>
           </Link>
         )}
 
         <div>
-          <p className="text-xs text-muted-foreground/70 mb-2">Last 7 days</p>
+          <p className="text-xs text-muted-foreground/70 mb-2">{t("dashboard.last7days")}</p>
           <div className="flex gap-1">
             {Array.from({ length: 7 }).map((_, i) => {
               const checkIn = recentCheckIns[6 - i];
@@ -72,8 +75,8 @@ export function CheckInWidget({
             })}
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground/60 mt-1">
-            <span>7d ago</span>
-            <span>Today</span>
+            <span>{t("dashboard.7dAgo")}</span>
+            <span>{t("dashboard.today")}</span>
           </div>
         </div>
       </CardContent>

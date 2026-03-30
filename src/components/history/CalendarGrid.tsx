@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 interface CheckInEntry {
   id: string;
@@ -31,6 +32,7 @@ const focusColors: Record<string, string> = {
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function CalendarGrid({ checkIns }: CalendarGridProps) {
+  const { t } = useLanguage();
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -139,19 +141,19 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
           <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-border">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-gray-700" />
-              <span className="text-muted-foreground/70 text-xs">No focus</span>
+              <span className="text-muted-foreground/70 text-xs">{t("history.noFocus")}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-yellow-500" />
-              <span className="text-muted-foreground/70 text-xs">Brief</span>
+              <span className="text-muted-foreground/70 text-xs">{t("history.brief")}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-[#38bdf8]" />
-              <span className="text-muted-foreground/70 text-xs">Focused</span>
+              <span className="text-muted-foreground/70 text-xs">{t("history.focused")}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-[#4ade80]" />
-              <span className="text-muted-foreground/70 text-xs">Deep</span>
+              <span className="text-muted-foreground/70 text-xs">{t("history.deep")}</span>
             </div>
           </div>
         </CardContent>
@@ -170,14 +172,14 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground/70">Studied</span>
+                <span className="text-muted-foreground/70">{t("history.studied")}</span>
                 <span className="text-foreground/80">
-                  {selectedDay.initiated ? "Yes" : "No"}
+                  {selectedDay.initiated ? t("common.yes") : t("common.no")}
                 </span>
               </div>
               {selectedDay.focusLevel && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground/70">Focus Level</span>
+                  <span className="text-muted-foreground/70">{t("history.focusLevel")}</span>
                   <span className="text-foreground/80 capitalize">
                     {selectedDay.focusLevel}
                   </span>
@@ -185,37 +187,37 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
               )}
               {selectedDay.decayPoint && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground/70">Focus Decay</span>
+                  <span className="text-muted-foreground/70">{t("history.focusDecay")}</span>
                   <span className="text-foreground/80">{selectedDay.decayPoint}</span>
                 </div>
               )}
               {selectedDay.energy && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground/70">Energy</span>
+                  <span className="text-muted-foreground/70">{t("history.energy")}</span>
                   <span className="text-foreground/80">{selectedDay.energy}/5</span>
                 </div>
               )}
               {selectedDay.mood && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground/70">Mood</span>
+                  <span className="text-muted-foreground/70">{t("history.mood")}</span>
                   <span className="text-foreground/80">{selectedDay.mood}/5</span>
                 </div>
               )}
               {selectedDay.contextNote && (
                 <div className="pt-2 border-t border-border">
-                  <p className="text-muted-foreground/70 text-xs mb-1">Note</p>
+                  <p className="text-muted-foreground/70 text-xs mb-1">{t("history.note")}</p>
                   <p className="text-foreground/80">{selectedDay.contextNote}</p>
                 </div>
               )}
               <div className="flex gap-2 pt-1">
                 {selectedDay.atypical && (
                   <span className="text-xs bg-[#fbbf24]/10 text-[#fbbf24] px-2 py-0.5 rounded">
-                    Atypical
+                    {t("history.atypical")}
                   </span>
                 )}
                 {selectedDay.backfilled && (
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
-                    Backfilled
+                    {t("history.backfilled")}
                   </span>
                 )}
               </div>

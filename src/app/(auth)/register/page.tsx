@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/lib/language";
 
 export default function RegisterPage() {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,16 +61,16 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-foreground">Create Account</CardTitle>
+          <CardTitle className="text-2xl text-foreground">{t("auth.createAccount")}</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Start building better study habits
+            {t("auth.startHabits")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-foreground/80">
-                Name
+                {t("auth.name")}
               </Label>
               <Input
                 id="name"
@@ -79,7 +81,7 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground/80">
-                Email
+                {t("auth.email")}
               </Label>
               <Input
                 id="email"
@@ -92,7 +94,7 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-foreground/80">
-                Password
+                {t("auth.password")}
               </Label>
               <Input
                 id="password"
@@ -112,13 +114,13 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black font-semibold"
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
             </Button>
           </form>
           <p className="text-center text-muted-foreground text-sm mt-4">
-            Already have an account?{" "}
+            {t("auth.alreadyHaveAccountQ")}{" "}
             <Link href="/login" className="text-[#38bdf8] hover:underline">
-              Sign in
+              {t("auth.signInLink")}
             </Link>
           </p>
         </CardContent>

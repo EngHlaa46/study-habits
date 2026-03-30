@@ -4,8 +4,12 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PhaseBanner } from "@/components/dashboard/PhaseBanner";
 import { ActiveSkillCard } from "@/components/dashboard/ActiveSkillCard";
+import { ActivePlanCard } from "@/components/dashboard/ActivePlanCard";
 import { CheckInWidget } from "@/components/dashboard/CheckInWidget";
 import { EventCard } from "@/components/dashboard/EventCard";
+import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
+import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
+import { MiniChatWidget } from "@/components/dashboard/MiniChatWidget";
 import dynamic from "next/dynamic";
 
 const WeeklyTrendChart = dynamic(
@@ -29,7 +33,7 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  const [activePhase, skillProgresses, recentCheckIns, upcomingEvents] =
+  const [activePhase, skillProgresses, recentCheckIns, upcomingEvents, recentChatMessages] =
     await Promise.all([
       prisma.activePhase.findUnique({ where: { userId } }),
       prisma.skillProgress.findMany({
@@ -44,6 +48,11 @@ export default async function DashboardPage() {
       prisma.event.findMany({
         where: { userId, status: "upcoming" },
         orderBy: { date: "asc" },
+        take: 3,
+      }),
+      prisma.chatMessage.findMany({
+        where: { userId, role: { in: ["user", "assistant"] } },
+        orderBy: { createdAt: "desc" },
         take: 3,
       }),
     ]);
@@ -79,6 +88,10 @@ export default async function DashboardPage() {
     focusLevel: ci.focusLevel,
   }));
 
+  const initialChatMessages = recentChatMessages
+    .reverse()
+    .map((m) => ({ id: m.id, role: m.role as "user" | "assistant", content: m.content }));
+
   const formattedEvents = upcomingEvents.map((e) => ({
     id: e.id,
     name: e.name,
@@ -99,12 +112,6 @@ export default async function DashboardPage() {
       challenges = [profile.biggestChallenge];
     }
   }
-
-  const weekPhaseLabels: Record<number, { label: string; description: string }> = {
-    1: { label: "Week 1 — Stabilize", description: "Getting comfortable. The habit stays easy. Just show up." },
-    2: { label: "Week 2 — Express", description: "Skill is taking shape. Small adjustments are allowed." },
-    3: { label: "Week 3 — Probe", description: "Testing your limits. Data collected for the next skill unlock." },
-  };
 
   const radarSkills = skillProgresses
     .sort((a, b) => a.skill.tier - b.skill.tier)
@@ -157,37 +164,15 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Plan card — visible when skill training is active */}
+      {/* Active plan card — always visible during skill training */}
       {phase === "skill_training" && activeSkillProgress && (
-        <div className="mb-6 bg-card border border-border rounded-xl p-6">
-          <h3 className="text-foreground font-semibold mb-3">Your Plan</h3>
-          <div className="space-y-3 text-sm">
-            {challenges.length > 0 && (
-              <div>
-                <span className="text-muted-foreground">Identified challenges: </span>
-                <span className="text-foreground">{challenges.join(", ")}</span>
-              </div>
-            )}
-            <div>
-              <span className="text-muted-foreground">Working on: </span>
-              <span className="text-[#38bdf8] font-medium">{activeSkillProgress.skill.name}</span>
-              <span className="text-muted-foreground"> — {activeSkillProgress.skill.description}</span>
-            </div>
-            {activeSkillProgress.weekPhase > 0 && weekPhaseLabels[activeSkillProgress.weekPhase] && (
-              <div className="bg-surface-inset rounded-lg p-3">
-                <p className="text-foreground font-medium text-xs mb-1">
-                  {weekPhaseLabels[activeSkillProgress.weekPhase].label}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {weekPhaseLabels[activeSkillProgress.weekPhase].description}
-                </p>
-              </div>
-            )}
-            <div className="text-muted-foreground/70 text-xs border-t border-border pt-3">
-              If you fall off: log it, note why, and keep going. One missed day doesn&apos;t reset your progress.
-            </div>
-          </div>
-        </div>
+        <ActivePlanCard
+          skillName={activeSkillProgress.skill.name}
+          skillDescription={activeSkillProgress.skill.description}
+          weekPhase={activeSkillProgress.weekPhase}
+          challenges={challenges}
+          userTask={activeSkillProgress.userTask ?? null}
+        />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -228,6 +213,15 @@ export default async function DashboardPage() {
           <SkillRadarChart skills={radarSkills} />
         </div>
       )}
+
+      {/* AI widgets row */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <InspirationWidget />
+        <AssessmentWidget />
+      </div>
+
+      {/* Mini chat widget */}
+      <MiniChatWidget initialMessages={initialChatMessages} />
 
       {/* Weekly trend chart */}
       <div className="mt-6">

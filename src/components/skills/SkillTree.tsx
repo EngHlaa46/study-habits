@@ -24,6 +24,7 @@ import {
   Lock,
   CheckCircle2,
 } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 interface SkillNode {
   id: string;
@@ -90,6 +91,7 @@ function getCardStyle(status: string, tier: number) {
 
 export function SkillTree({ skills, canActivate }: SkillTreeProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [selected, setSelected] = useState<SkillNode | null>(null);
   const [userTask, setUserTask] = useState("");
   const [loading, setLoading] = useState(false);
@@ -126,6 +128,16 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "available": return t("skills.ready");
+      case "active": return t("skills.active");
+      case "stable": return t("skills.stable");
+      case "mastered": return t("skills.mastered");
+      default: return status;
+    }
+  };
+
   return (
     <>
       <div>
@@ -143,7 +155,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                   className="text-[11px] font-bold uppercase tracking-widest"
                   style={{ color: tc.color + "bb" }}
                 >
-                  Tier {tier} — {tc.label}
+                  {t("skills.tier")} {tier} — {tc.label}
                 </span>
               </div>
 
@@ -183,13 +195,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                           className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                           style={{ color: s.textColor, backgroundColor: s.borderColor + "25" }}
                         >
-                          {skill.currentStatus === "available"
-                            ? "Ready"
-                            : skill.currentStatus === "active"
-                            ? "Active"
-                            : skill.currentStatus === "stable"
-                            ? "Stable"
-                            : "Mastered"}
+                          {getStatusLabel(skill.currentStatus)}
                         </span>
                       )}
 
@@ -219,8 +225,8 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                             />
                           </div>
                           <p className="text-[10px] mt-1" style={{ color: tc.color + "99" }}>
-                            Week {skill.progress.weekPhase}/3 ·{" "}
-                            {(skill.progress.stabilityScore * 100).toFixed(0)}% stable
+                            {t("skills.week")} {skill.progress.weekPhase}/3 ·{" "}
+                            {(skill.progress.stabilityScore * 100).toFixed(0)}% {t("skills.stable").toLowerCase()}
                           </p>
                         </div>
                       )}
@@ -240,7 +246,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                           className="text-[10px] mt-1.5"
                           style={{ color: "rgba(150,150,160,0.45)" }}
                         >
-                          ← needs Planning first
+                          {t("skills.needsPlanning")}
                         </p>
                       )}
                     </button>
@@ -297,36 +303,36 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                 <div className="space-y-4">
                   <p className="text-muted-foreground text-sm">{selected.description}</p>
                   <div className="bg-surface-inset rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground/70 mb-1">Why this skill?</p>
+                    <p className="text-xs text-muted-foreground/70 mb-1">{t("skills.whyThisSkillLabel")}</p>
                     <p className="text-foreground/80 text-sm">{selected.purpose}</p>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground/70">Status</span>
+                    <span className="text-muted-foreground/70">{t("skills.status")}</span>
                     <span className="capitalize text-foreground/80">{selected.currentStatus}</span>
                   </div>
 
                   {selected.progress && selected.currentStatus === "active" && (
                     <>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground/70">Week</span>
+                        <span className="text-muted-foreground/70">{t("skills.week")}</span>
                         <span className="text-foreground/80">{selected.progress.weekPhase}/3</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground/70">Stability</span>
+                        <span className="text-muted-foreground/70">{t("skills.stability")}</span>
                         <span className="text-[#4ade80]">
                           {(selected.progress.stabilityScore * 100).toFixed(0)}%
                         </span>
                       </div>
                       {selected.progress.userTask ? (
                         <div className="bg-surface-inset rounded-lg p-3">
-                          <p className="text-xs text-muted-foreground/70 mb-1">Your task</p>
+                          <p className="text-xs text-muted-foreground/70 mb-1">{t("skills.yourTask")}</p>
                           <p className="text-foreground/80 text-sm">{selected.progress.userTask}</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
                           <Label className="text-foreground/80 text-sm">
-                            Define your task (time/place/action)
+                            {t("skills.defineTask")}
                           </Label>
                           <Input
                             value={userTask}
@@ -340,7 +346,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                             className="w-full text-black"
                             style={{ backgroundColor: tc.color }}
                           >
-                            {loading ? "Saving..." : "Set Task"}
+                            {loading ? t("skills.saving") : t("skills.setTask")}
                           </Button>
                         </div>
                       )}
@@ -354,7 +360,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                       className="w-full font-semibold text-black"
                       style={{ backgroundColor: tc.color }}
                     >
-                      {loading ? "Activating..." : "Activate This Skill"}
+                      {loading ? t("skills.activating") : t("skills.activateSkill")}
                     </Button>
                   )}
 
@@ -363,7 +369,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                       {selected.prerequisites.length > 0 && (
                         <div className="bg-surface-inset rounded-lg p-3 space-y-2">
                           <p className="text-xs text-muted-foreground/70 font-medium">
-                            Required to unlock
+                            {t("skills.requiredToUnlock")}
                           </p>
                           {selected.prerequisites.map((p) => (
                             <div key={p.slug} className="flex items-center gap-2 text-sm">
@@ -380,14 +386,14 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                                 {p.name}
                               </span>
                               {p.met && (
-                                <span className="text-[#4ade80] text-xs">Stable</span>
+                                <span className="text-[#4ade80] text-xs">{t("skills.stable")}</span>
                               )}
                             </div>
                           ))}
                         </div>
                       )}
                       <p className="text-muted-foreground/60 text-xs text-center">
-                        Prerequisites must reach Stable (3-week cycle complete) to unlock.
+                        {t("skills.prerequisiteNote")}
                       </p>
                     </div>
                   )}
@@ -396,7 +402,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                     href={`/skills/${selected.slug}`}
                     className="block text-center text-muted-foreground hover:text-[#38bdf8] text-sm mt-2 transition-colors"
                   >
-                    View full details
+                    {t("skills.viewFullDetails")}
                   </Link>
                 </div>
               </>

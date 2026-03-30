@@ -42,6 +42,9 @@ export async function POST(req: Request) {
   if (body.mood !== undefined && body.mood !== null && (body.mood < 1 || body.mood > 5)) {
     return NextResponse.json({ error: "Mood must be 1–5" }, { status: 400 });
   }
+  if (body.aiResponses !== undefined && body.aiResponses !== null && typeof body.aiResponses !== "string") {
+    return NextResponse.json({ error: "Invalid aiResponses" }, { status: 400 });
+  }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -78,6 +81,7 @@ export async function POST(req: Request) {
       backfilled: body.backfilled ?? false,
       missReason: body.missReason || null,
       studyMethod: body.studyMethod?.length > 0 ? JSON.stringify(body.studyMethod) : null,
+      aiResponses: body.aiResponses || null,
     },
   });
 

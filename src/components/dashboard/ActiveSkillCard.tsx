@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/lib/language";
 
 interface ActiveSkillCardProps {
   skillName: string;
@@ -12,13 +13,6 @@ interface ActiveSkillCardProps {
   stabilityScore: number;
 }
 
-const weekInfo: Record<number, { label: string; color: string }> = {
-  0: { label: "Not Started", color: "text-muted-foreground" },
-  1: { label: "Stabilize", color: "text-[#38bdf8]" },
-  2: { label: "Express", color: "text-[#fbbf24]" },
-  3: { label: "Probe", color: "text-[#4ade80]" },
-};
-
 export function ActiveSkillCard({
   skillName,
   skillDescription,
@@ -26,6 +20,15 @@ export function ActiveSkillCard({
   userTask,
   stabilityScore,
 }: ActiveSkillCardProps) {
+  const { t } = useLanguage();
+
+  const weekInfo: Record<number, { label: string; color: string }> = {
+    0: { label: t("skills.notStarted"), color: "text-muted-foreground" },
+    1: { label: t("skills.week1Short"), color: "text-[#38bdf8]" },
+    2: { label: t("skills.week2Short"), color: "text-[#fbbf24]" },
+    3: { label: t("skills.week3Short"), color: "text-[#4ade80]" },
+  };
+
   const week = weekInfo[weekPhase] || weekInfo[0];
   const progressPercent = ((weekPhase) / 3) * 100;
 
@@ -44,21 +47,21 @@ export function ActiveSkillCard({
 
         <div>
           <div className="flex justify-between text-xs text-muted-foreground/70 mb-1">
-            <span>Cycle Progress</span>
-            <span>Week {weekPhase}/3</span>
+            <span>{t("skills.cycleProgress")}</span>
+            <span>{t("skills.week")} {weekPhase}/3</span>
           </div>
           <Progress value={progressPercent} className="h-2 bg-secondary" />
         </div>
 
         {userTask && (
           <div className="bg-surface-inset rounded-lg p-3">
-            <p className="text-xs text-muted-foreground/70 mb-1">Your task</p>
+            <p className="text-xs text-muted-foreground/70 mb-1">{t("skills.yourTask")}</p>
             <p className="text-foreground/80 text-sm">{userTask}</p>
           </div>
         )}
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground/70">Stability Score</span>
+          <span className="text-xs text-muted-foreground/70">{t("skills.stabilityScore")}</span>
           <span className="text-sm text-[#4ade80] font-mono">
             {(stabilityScore * 100).toFixed(0)}%
           </span>
