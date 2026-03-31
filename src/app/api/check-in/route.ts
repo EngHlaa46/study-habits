@@ -52,7 +52,6 @@ export async function POST(req: Request) {
 
   // Determine the target date (body.date or today)
   let targetDate = now;
- // const isBackfill = !!body.date;
   if (body.date) {
     const parsed = new Date(body.date);
     if (isNaN(parsed.getTime())) {
