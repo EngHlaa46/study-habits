@@ -22,11 +22,13 @@ interface SkillDetailProps {
     purpose: string;
   };
   progress: {
+    id: string;
     status: string;
     weekPhase: number;
     stabilityScore: number;
     userTask: string | null;
     weekPhaseStart: string | null;
+    completionNarrative: string | null;
   } | null;
   checkIns: {
     date: string;
@@ -51,6 +53,32 @@ export function SkillDetail({
   const { t } = useLanguage();
   const [userTask, setUserTask] = useState("");
   const [loading, setLoading] = useState(false);
+  const [narrative, setNarrative] = useState(progress?.completionNarrative ?? null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
+  const [narrativeError, setNarrativeError] = useState("");
+
+  const handleGenerateNarrative = async () => {
+    if (!progress?.id) return;
+    setNarrativeLoading(true);
+    setNarrativeError("");
+    try {
+      const res = await fetch("/api/skills/narrative", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skillProgressId: progress.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNarrativeError(t("skills.narrativeError"));
+      } else {
+        setNarrative(data.narrative);
+      }
+    } catch {
+      setNarrativeError(t("skills.narrativeError"));
+    } finally {
+      setNarrativeLoading(false);
+    }
+  };
 
   const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
     locked: { label: t("skills.locked"), color: "text-muted-foreground border-muted-foreground/30", icon: <Lock size={16} /> },
@@ -264,6 +292,24 @@ export function SkillDetail({
       {(status === "stable" || status === "mastered") && progress && (
         <Card className="bg-card border-[#4ade80]/30">
           <CardContent className="pt-6">
+            {/* Growth narrative */}
+            {narrative ? (
+              <div className="bg-surface-inset rounded-lg p-4 mb-4 border border-[#4ade80]/20">
+                <p className="text-foreground/80 text-sm leading-relaxed">{narrative}</p>
+              </div>
+            ) : (
+              <div className="mb-4">
+                <Button
+                  variant="outline"
+                  onClick={handleGenerateNarrative}
+                  disabled={narrativeLoading}
+                  className="w-full border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/10 text-sm"
+                >
+                  {narrativeLoading ? t("skills.narrativeGenerating") : t("skills.generateNarrative")}
+                </Button>
+                {narrativeError && <p className="text-red-400 text-xs mt-2">{narrativeError}</p>}
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-surface-inset rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-[#4ade80]">

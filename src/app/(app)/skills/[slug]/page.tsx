@@ -85,11 +85,13 @@ export default async function SkillDetailPage({
         progress={
           progress
             ? {
+                id: progress.id,
                 status: progress.status,
                 weekPhase: progress.weekPhase,
                 stabilityScore: progress.stabilityScore,
                 userTask: progress.userTask,
                 weekPhaseStart: progress.weekPhaseStart?.toISOString() || null,
+                completionNarrative: (progress as { completionNarrative?: string | null }).completionNarrative ?? null,
               }
             : null
         }
