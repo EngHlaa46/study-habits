@@ -60,6 +60,30 @@ export async function buildUserContext(userId: string): Promise<string> {
     lines.push(`  - ${sp.skill.name} (Tier ${sp.skill.tier}): ${sp.status}`);
   }
 
+  // Dimension profile summary
+  const dimGroups: Record<string, { scores: number[]; statuses: string[] }> = {};
+  for (const sp of skillProgresses) {
+    const dim = (sp.skill as { dimension?: string | null }).dimension;
+    if (!dim) continue;
+    if (!dimGroups[dim]) dimGroups[dim] = { scores: [], statuses: [] };
+    dimGroups[dim].statuses.push(sp.status);
+    if (sp.status === "active" || sp.status === "stable" || sp.status === "mastered") {
+      dimGroups[dim].scores.push(sp.stabilityScore);
+    }
+  }
+  const dimSummary = Object.entries(dimGroups).map(([dim, { scores, statuses }]) => {
+    const allLocked = statuses.every((s) => s === "locked");
+    if (allLocked) return `${dim}=locked`;
+    const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : "0.00";
+    const hasActive = statuses.includes("active");
+    const hasStable = statuses.includes("stable") || statuses.includes("mastered");
+    const label = hasStable ? "strong" : hasActive ? "developing" : "early";
+    return `${dim}=${label}(${avg})`;
+  });
+  if (dimSummary.length > 0) {
+    lines.push(`Dimension profile: ${dimSummary.join(", ")}`);
+  }
+
   // Recent check-ins
   if (recentCheckIns.length > 0) {
     lines.push(`\nLast ${recentCheckIns.length} check-ins:`);
@@ -80,6 +104,7 @@ export async function buildUserContext(userId: string): Promise<string> {
         ci.energy ? `energy=${ci.energy}/5` : null,
         ci.mood ? `mood=${ci.mood}/5` : null,
         (ci as { missReason?: string | null }).missReason ? `missed_because=${(ci as { missReason?: string | null }).missReason}` : null,
+        (ci as { sessionIntention?: string | null }).sessionIntention ? `intention="${(ci as { sessionIntention?: string | null }).sessionIntention}"` : null,
       ].filter(Boolean);
       lines.push(`  ${parts.join(", ")}`);
     }
@@ -91,6 +116,26 @@ export async function buildUserContext(userId: string): Promise<string> {
       (c) => c.focusLevel === "focused" || c.focusLevel === "deep"
     ).length;
     lines.push(`\n7-day summary: ${initiated}/7 initiated, ${focused}/7 focused+`);
+
+    // Procrastination pattern analysis (all 14 check-ins)
+    const emotionalReasons = new Set(["Felt overwhelmed", "Wasn't in the mood"]);
+    const missReasonCount: Record<string, number> = {};
+    for (const ci of recentCheckIns) {
+      const reason = (ci as { missReason?: string | null }).missReason;
+      if (reason) {
+        missReasonCount[reason] = (missReasonCount[reason] ?? 0) + 1;
+      }
+    }
+    const repeatedReasons = Object.entries(missReasonCount).filter(([, count]) => count >= 3);
+    if (repeatedReasons.length > 0) {
+      const pattern = repeatedReasons
+        .map(([reason, count]) => {
+          const type = emotionalReasons.has(reason) ? "emotional" : "logistical";
+          return `"${reason}" (${count}/${recentCheckIns.length} days, ${type})`;
+        })
+        .join(", ");
+      lines.push(`Procrastination pattern: ${pattern}`);
+    }
 
     // Method → focus correlation
     const methodFocusMap: Record<string, { total: number; focused: number }> = {};

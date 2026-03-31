@@ -66,6 +66,7 @@ model Skill {
   description  String
   purpose      String
   icon         String?
+  dimension    String?           // behavioral, cognitive, metacognitive
   dependsOn    SkillDependency[] @relation("DependentSkill")
   requiredFor  SkillDependency[] @relation("PrerequisiteSkill")
   progresses   SkillProgress[]
@@ -91,10 +92,12 @@ model SkillProgress {
   weekPhase      Int      @default(0) // 0=not started, 1=stabilize, 2=express, 3=probe
   weekPhaseStart DateTime?
   stabilityScore Float    @default(0)
-  userTask       String?  // user-defined task: time/place/action
-  notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  userTask              String?   // user-defined task: time/place/action
+  notes                 String?
+  completionNarrative   String?   // AI-generated growth summary on skill completion
+  completionNarrativeAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@unique([userId, skillId])
 }
@@ -124,10 +127,11 @@ model CheckIn {
   atypical     Boolean  @default(false)
   energy       Int?     // 1-5
   mood         Int?     // 1-5
-  backfilled    Boolean  @default(false)
-  missReason    String?
-  studyMethod   String?  // JSON array of method keys
-  aiResponses   String?  // JSON: { questions: string[], answers: string[] }
+  backfilled        Boolean  @default(false)
+  sessionIntention  String?  // pre-session plan (what the user intends to study)
+  missReason        String?
+  studyMethod       String?  // JSON array of method keys
+  aiResponses       String?  // JSON: { questions: string[], answers: string[] }
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -158,5 +162,6 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   content   String
   read      Boolean  @default(false)
+  type      String   @default("daily") // daily, weekly
   createdAt DateTime @default(now())
 }

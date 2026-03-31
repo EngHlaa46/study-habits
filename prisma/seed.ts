@@ -7,6 +7,7 @@ const skills = [
     slug: "task-clarity",
     name: "Task Clarity",
     tier: 1,
+    dimension: "behavioral",
     description:
       "Define exactly what you will study before you begin. Convert vague intentions into concrete tasks.",
     purpose:
@@ -17,6 +18,7 @@ const skills = [
     slug: "initiation",
     name: "Initiation",
     tier: 1,
+    dimension: "behavioral",
     description:
       "Start studying within 5 minutes of your planned time. The goal is simply to begin, not to sustain.",
     purpose:
@@ -27,6 +29,7 @@ const skills = [
     slug: "focus-containment",
     name: "Focus Containment",
     tier: 2,
+    dimension: "cognitive",
     description:
       "Maintain focused attention for a defined short block (15-25 minutes) without switching tasks.",
     purpose:
@@ -37,6 +40,7 @@ const skills = [
     slug: "environment-control",
     name: "Environment Control",
     tier: 2,
+    dimension: "cognitive",
     description:
       "Set up your study space to minimize distractions before you begin. Phone away, tabs closed, materials ready.",
     purpose:
@@ -47,6 +51,7 @@ const skills = [
     slug: "focus-endurance",
     name: "Focus Endurance",
     tier: 3,
+    dimension: "cognitive",
     description:
       "Extend focused study beyond the initial block. Work through the natural urge to stop at 25-30 minutes.",
     purpose:
@@ -57,6 +62,7 @@ const skills = [
     slug: "cognitive-recovery",
     name: "Cognitive Recovery",
     tier: 3,
+    dimension: "cognitive",
     description:
       "Take effective breaks that actually restore focus. Learn the difference between rest and distraction.",
     purpose:
@@ -67,6 +73,7 @@ const skills = [
     slug: "planning-sequencing",
     name: "Planning & Sequencing",
     tier: 4,
+    dimension: "metacognitive",
     description:
       "Organize multiple study tasks across a session or week. Prioritize by difficulty, deadline, and energy.",
     purpose:
@@ -77,6 +84,7 @@ const skills = [
     slug: "deadline-calibration",
     name: "Deadline Calibration",
     tier: 4,
+    dimension: "metacognitive",
     description:
       "Accurately estimate how long tasks will take and work backward from deadlines to create realistic schedules.",
     purpose:

@@ -97,6 +97,9 @@ export async function POST(req: Request) {
       energy: body.energy || null,
       mood: body.mood || null,
       backfilled: body.backfilled ?? false,
+      sessionIntention: typeof body.sessionIntention === "string" && body.sessionIntention.trim()
+        ? body.sessionIntention.trim().slice(0, 300)
+        : null,
       missReason: body.missReason || null,
       studyMethod: body.studyMethod?.length > 0 ? JSON.stringify(body.studyMethod) : null,
       aiResponses: body.aiResponses || null,

@@ -10,6 +10,7 @@ import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
 import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
 import { MiniChatWidget } from "@/components/dashboard/MiniChatWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
+import { DimensionProfileCard } from "@/components/dashboard/DimensionProfileCard";
 import { ObservationNudge } from "@/components/dashboard/ObservationNudge";
 import { NoSkillCard } from "@/components/dashboard/NoSkillCard";
 import { SkillOverviewSection } from "@/components/dashboard/SkillOverviewSection";
@@ -124,6 +125,12 @@ export default async function DashboardPage() {
       stabilityScore: sp.stabilityScore,
     }));
 
+  const dimensionSkills = skillProgresses.map((sp) => ({
+    dimension: sp.skill.dimension ?? null,
+    status: sp.status,
+    stabilityScore: sp.stabilityScore,
+  }));
+
   return (
     <div className="max-w-6xl mx-auto">
       <DashboardBanner />
@@ -171,10 +178,11 @@ export default async function DashboardPage() {
         <EventCard events={formattedEvents} />
       </div>
 
-      {/* Skill Radar Chart */}
+      {/* Skill Radar + Dimension Profile */}
       {radarSkills.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <SkillRadarChart skills={radarSkills} />
+          <DimensionProfileCard skills={dimensionSkills} />
         </div>
       )}
 

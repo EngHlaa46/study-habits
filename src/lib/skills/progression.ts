@@ -327,10 +327,13 @@ export function calculateStabilityScore(
   if (relevant.length === 0) return 0;
 
   const initiatedRate = relevant.filter((c) => c.initiated).length / relevant.length;
-  const focusRate =
-    relevant.filter(
-      (c) => c.focusLevel === "focused" || c.focusLevel === "deep"
-    ).length / relevant.length;
+  // brief counts as 0.5 — it signals initiation (the hardest act) even without sustained focus
+  const focusScore = relevant.reduce((sum, c) => {
+    if (c.focusLevel === "focused" || c.focusLevel === "deep") return sum + 1;
+    if (c.focusLevel === "brief") return sum + 0.5;
+    return sum;
+  }, 0);
+  const focusRate = focusScore / relevant.length;
 
   return Math.round((initiatedRate * 0.4 + focusRate * 0.6) * 100) / 100;
 }

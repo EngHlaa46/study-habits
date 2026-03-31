@@ -329,6 +329,17 @@ const translations: Record<Lang, Record<string, string>> = {
     "notifications.title": "Notifications",
     "notifications.allCaughtUp": "All caught up",
 
+    // dimension profile
+    "dimension.profileTitle": "Skill Dimensions",
+    "dimension.behavioral": "Behavioral",
+    "dimension.cognitive": "Cognitive",
+    "dimension.metacognitive": "Metacognitive",
+    "dimension.notYet": "Not yet trained",
+    "dimension.early": "Just started",
+    "dimension.developing": "Developing",
+    "dimension.strong": "Strong",
+    "dimension.mastered": "Mastered",
+
     // banner
     "dashboard.addBannerPhoto": "Add a banner photo",
     "dashboard.bannerUrlPlaceholder": "Paste image URL...",
@@ -343,6 +354,11 @@ const translations: Record<Lang, Record<string, string>> = {
     "checkin.twoDaysAgo": "2 days ago",
     "checkin.threeDaysAgo": "3 days ago",
     "checkin.alreadyCheckedIn": "You've already checked in for this day.",
+    "checkin.fullSession": "Yes, full session",
+    "checkin.briefly": "Briefly (< 15 min)",
+    "checkin.intentionLabel": "What do you plan to study?",
+    "checkin.intentionPlaceholder": "e.g. Chapter 3 summary, 30 min...",
+    "checkin.intentionSkip": "Skip",
 
     // plan card instructions
     "plan.week1Instruction": "Focus only on showing up consistently. Don't push for perfection — build the routine first.",
@@ -676,6 +692,17 @@ const translations: Record<Lang, Record<string, string>> = {
     "notifications.title": "الإشعارات",
     "notifications.allCaughtUp": "أنت على اطلاع بكل شيء",
 
+    // dimension profile
+    "dimension.profileTitle": "أبعاد المهارات",
+    "dimension.behavioral": "السلوكي",
+    "dimension.cognitive": "المعرفي",
+    "dimension.metacognitive": "ما وراء المعرفة",
+    "dimension.notYet": "لم يبدأ بعد",
+    "dimension.early": "بداية",
+    "dimension.developing": "في تطور",
+    "dimension.strong": "قوي",
+    "dimension.mastered": "متقن",
+
     // banner
     "dashboard.addBannerPhoto": "أضف صورة غلاف",
     "dashboard.bannerUrlPlaceholder": "الصق رابط الصورة...",
@@ -690,6 +717,11 @@ const translations: Record<Lang, Record<string, string>> = {
     "checkin.twoDaysAgo": "منذ يومين",
     "checkin.threeDaysAgo": "منذ 3 أيام",
     "checkin.alreadyCheckedIn": "لقد سجّلت بالفعل لهذا اليوم.",
+    "checkin.fullSession": "نعم، جلسة كاملة",
+    "checkin.briefly": "لفترة قصيرة (أقل من 15 دقيقة)",
+    "checkin.intentionLabel": "ماذا تخطط للدراسة؟",
+    "checkin.intentionPlaceholder": "مثال: ملخص الفصل الثالث، 30 دقيقة...",
+    "checkin.intentionSkip": "تخطي",
 
     // plan card instructions
     "plan.week1Instruction": "ركّز فقط على الحضور المنتظم. لا تسعَ للكمال — ابنِ الروتين أولاً.",

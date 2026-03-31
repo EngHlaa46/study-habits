@@ -27,6 +27,8 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
   const [step, setStep] = useState(0);
   const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = today
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [sessionType, setSessionType] = useState<"full" | "brief" | "no" | null>(null);
+  const [sessionIntention, setSessionIntention] = useState("");
   const [initiated, setInitiated] = useState<boolean | null>(null);
   const [focusLevel, setFocusLevel] = useState<string | null>(null);
   const [decayPoint, setDecayPoint] = useState<string | null>(null);
@@ -110,6 +112,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
           studyMethod: selectedMethods.length > 0 ? selectedMethods : null,
           aiResponses,
           ...(selectedDate ? { date: selectedDate, backfilled: true } : {}),
+          ...(sessionIntention.trim() ? { sessionIntention: sessionIntention.trim() } : {}),
         }),
       });
 
@@ -141,6 +144,28 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-foreground">{t("checkin.title")}</h1>
+
+      {/* Pre-session intention (optional) */}
+      <Card className="bg-card border-border">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-foreground text-sm font-medium">{t("checkin.intentionLabel")}</label>
+            <button
+              onClick={() => setSessionIntention("")}
+              className="text-muted-foreground/50 text-xs hover:text-muted-foreground"
+            >
+              {t("checkin.intentionSkip")}
+            </button>
+          </div>
+          <Input
+            value={sessionIntention}
+            onChange={(e) => setSessionIntention(e.target.value)}
+            placeholder={t("checkin.intentionPlaceholder")}
+            className="bg-surface-inset border-border text-foreground text-sm"
+            maxLength={300}
+          />
+        </CardContent>
+      </Card>
 
       {/* Date selector */}
       <Card className="bg-card border-border">
@@ -188,21 +213,35 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
       <Card className="bg-card border-border">
         <CardContent className="pt-6">
           <h3 className="text-foreground text-lg mb-4">{t("checkin.didYouStudy")}</h3>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             {[
-              { value: true, label: t("common.yes") },
-              { value: false, label: t("common.no") },
+              { type: "full" as const, label: t("checkin.fullSession") },
+              { type: "brief" as const, label: t("checkin.briefly") },
+              { type: "no" as const, label: t("common.no") },
             ].map((opt) => (
               <Button
-                key={String(opt.value)}
+                key={opt.type}
                 variant="outline"
                 onClick={() => {
-                  setInitiated(opt.value);
-                  setStep(opt.value ? 1 : 2);
-                  setSelectedMethods([]);
+                  setSessionType(opt.type);
+                  if (opt.type === "full") {
+                    setInitiated(true);
+                    setFocusLevel(null);
+                    setStep(1);
+                    setSelectedMethods([]);
+                  } else if (opt.type === "brief") {
+                    setInitiated(true);
+                    setFocusLevel("brief");
+                    setStep(3);
+                    setSelectedMethods([]);
+                  } else {
+                    setInitiated(false);
+                    setStep(2);
+                    setSelectedMethods([]);
+                  }
                 }}
-                className={`flex-1 py-6 ${
-                  initiated === opt.value
+                className={`flex-1 py-5 text-sm h-auto ${
+                  sessionType === opt.type
                     ? "border-primary text-primary bg-primary/10"
                     : "border-border text-muted-foreground hover:border-muted-foreground"
                 }`}
@@ -257,8 +296,8 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
         </Card>
       )}
 
-      {/* Step 2: Focus level (only when studied) */}
-      {step >= 1 && initiated === true && (
+      {/* Step 2: Focus level (only when full session) */}
+      {step >= 1 && sessionType === "full" && (
         <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <h3 className="text-foreground text-lg mb-4">{t("checkin.howWasFocus")}</h3>
