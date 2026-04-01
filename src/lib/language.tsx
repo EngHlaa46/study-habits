@@ -342,6 +342,10 @@ const translations: Record<Lang, Record<string, string>> = {
     "dimension.developing": "Developing",
     "dimension.strong": "Strong",
     "dimension.mastered": "Mastered",
+    "dimension.whatAreThese": "What are these?",
+    "dimension.behavioralDesc": "Whether you show up. Skills: Task Clarity, Initiation.",
+    "dimension.cognitiveDesc": "What happens during a session — focus depth and environment management. Skills: Focus Containment, Environment Control, Focus Endurance, Cognitive Recovery.",
+    "dimension.metacognitiveDesc": "How you plan before and reflect after. Skills: Planning & Sequencing, Deadline Calibration.",
 
     // banner
     "dashboard.addBannerPhoto": "Add a banner photo",
@@ -708,6 +712,10 @@ const translations: Record<Lang, Record<string, string>> = {
     "dimension.developing": "في تطور",
     "dimension.strong": "قوي",
     "dimension.mastered": "متقن",
+    "dimension.whatAreThese": "ما هذه؟",
+    "dimension.behavioralDesc": "مدى التزامك بالحضور. المهارات: وضوح المهمة، البدء.",
+    "dimension.cognitiveDesc": "ما يحدث خلال الجلسة — عمق التركيز وإدارة البيئة. المهارات: احتواء التركيز، التحكم في البيئة، تحمل التركيز، التعافي المعرفي.",
+    "dimension.metacognitiveDesc": "كيف تخطط قبل الجلسة وتراجع بعدها. المهارات: التخطيط والتسلسل، معايرة المواعيد.",
 
     // banner
     "dashboard.addBannerPhoto": "أضف صورة غلاف",

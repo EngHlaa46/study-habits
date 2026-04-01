@@ -180,14 +180,16 @@ export default async function DashboardPage() {
 
       {/* Skill Radar + Dimension Profile + Today's note */}
       {radarSkills.length > 0 ? (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          <div className="space-y-6">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+          <div className="flex flex-col gap-6">
             <SkillRadarChart skills={radarSkills} />
             <AssessmentWidget />
           </div>
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <DimensionProfileCard skills={dimensionSkills} />
-            <InspirationWidget />
+            <div className="flex-1">
+              <InspirationWidget />
+            </div>
           </div>
         </div>
       ) : (

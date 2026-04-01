@@ -38,18 +38,20 @@ export function InspirationWidget() {
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5">
+    <div className="bg-card border border-border rounded-xl p-5 h-full flex flex-col">
       <p className="text-xs text-muted-foreground/60 uppercase tracking-widest mb-3">
         {t("dashboard.todayNote")}
       </p>
 
-      {phrase ? (
-        <blockquote className="text-foreground/90 text-sm leading-relaxed italic border-l-2 border-primary pl-3 mb-4">
-          {phrase}
-        </blockquote>
-      ) : (
-        <div className="h-10 bg-secondary rounded animate-pulse mb-4" />
-      )}
+      <div className="flex-1">
+        {phrase ? (
+          <blockquote className="text-foreground/90 text-sm leading-relaxed italic border-l-2 border-primary pl-3 mb-4">
+            {phrase}
+          </blockquote>
+        ) : (
+          <div className="h-10 bg-secondary rounded animate-pulse mb-4" />
+        )}
+      </div>
 
       <div className="border-t border-border pt-3">
         {editing ? (

@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { ChevronDown } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 interface SkillEntry {
@@ -50,19 +52,56 @@ function scoreLabelColor(score: number): string {
 
 export function DimensionProfileCard({ skills }: DimensionProfileCardProps) {
   const { t } = useLanguage();
+  const [expanded, setExpanded] = useState(false);
 
   const dimensions = [
-    { key: "behavioral", label: t("dimension.behavioral") },
-    { key: "cognitive", label: t("dimension.cognitive") },
-    { key: "metacognitive", label: t("dimension.metacognitive") },
+    {
+      key: "behavioral",
+      label: t("dimension.behavioral"),
+      desc: t("dimension.behavioralDesc"),
+    },
+    {
+      key: "cognitive",
+      label: t("dimension.cognitive"),
+      desc: t("dimension.cognitiveDesc"),
+    },
+    {
+      key: "metacognitive",
+      label: t("dimension.metacognitive"),
+      desc: t("dimension.metacognitiveDesc"),
+    },
   ];
 
   return (
     <Card className="bg-card border-border">
       <CardContent className="pt-5 pb-5">
-        <h3 className="text-foreground text-sm font-semibold mb-4 uppercase tracking-wide opacity-60">
-          {t("dimension.profileTitle")}
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-foreground text-sm font-semibold uppercase tracking-wide opacity-60">
+            {t("dimension.profileTitle")}
+          </h3>
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          >
+            {t("dimension.whatAreThese")}
+            <ChevronDown
+              size={13}
+              className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+
+        {expanded && (
+          <div className="mb-4 space-y-2 border border-border rounded-lg p-3 bg-surface-inset">
+            {dimensions.map(({ key, label, desc }) => (
+              <div key={key}>
+                <p className="text-xs font-medium text-foreground/70">{label}</p>
+                <p className="text-xs text-muted-foreground/60 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-4">
           {dimensions.map(({ key, label }) => {
             const score = dimensionScore(skills, key);
