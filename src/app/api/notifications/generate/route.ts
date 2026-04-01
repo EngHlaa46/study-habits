@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import Groq from "groq-sdk";
-import webpush from "web-push";
+import * as webpush from "web-push";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
