@@ -178,19 +178,24 @@ export default async function DashboardPage() {
         <EventCard events={formattedEvents} />
       </div>
 
-      {/* Skill Radar + Dimension Profile */}
-      {radarSkills.length > 0 && (
+      {/* Skill Radar + Dimension Profile + Today's note */}
+      {radarSkills.length > 0 ? (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          <SkillRadarChart skills={radarSkills} />
-          <DimensionProfileCard skills={dimensionSkills} />
+          <div className="space-y-6">
+            <SkillRadarChart skills={radarSkills} />
+            <AssessmentWidget />
+          </div>
+          <div className="space-y-6">
+            <DimensionProfileCard skills={dimensionSkills} />
+            <InspirationWidget />
+          </div>
+        </div>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <InspirationWidget />
+          <AssessmentWidget />
         </div>
       )}
-
-      {/* AI widgets row */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <InspirationWidget />
-        <AssessmentWidget />
-      </div>
 
       {/* Mini chat widget */}
       <MiniChatWidget initialMessages={initialChatMessages} />
