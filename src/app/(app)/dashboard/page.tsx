@@ -187,7 +187,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex flex-col gap-6">
             <DimensionProfileCard skills={dimensionSkills} />
-            <div className="flex-1">
+            <div className="flex-1 min-h-0">
               <InspirationWidget />
             </div>
           </div>

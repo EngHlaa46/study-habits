@@ -66,7 +66,7 @@ export function SkillRadarChart({ skills }: SkillRadarChartProps) {
   }));
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6 mb-6">
+    <div className="bg-card border border-border rounded-xl p-6">
       <h2 className="text-foreground text-lg font-semibold mb-4">
         Skill Radar
       </h2>
