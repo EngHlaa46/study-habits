@@ -1,72 +1,206 @@
-# Study Habits
+# Study Habits — AI-Guided Study Skill Builder
 
-AI-guided web app that helps students build real study skills through a structured progression system. One skill at a time, one habit that sticks — no streaks, no points, just progress.
+An AI-powered web application that helps students build real, lasting study skills through structured behavioral progression. Built on cognitive-behavioral research, it trains one skill at a time with a 3-week deployment cycle — no gamification, no streaks, just measurable habit change.
+
+---
+
+## The Problem
+
+Most students know they need to study better — they just don't know how to change. Generic productivity advice doesn't stick because it ignores the underlying behavioral and cognitive barriers: failure to initiate, poor focus quality, lack of planning, and emotional resistance. This app applies a research-backed framework to systematically close those gaps.
+
+---
+
+## Research Foundation
+
+The system is grounded in the paper *"Developing Study Skills and Cognitive Behavior Using AI: Study Skill Builder Platform"*, which defines:
+
+**Three Dimensions of Study Skills:**
+| Dimension | What It Trains |
+|-----------|---------------|
+| **Behavioral** | Showing up — initiation, task clarity, consistency |
+| **Cognitive** | Session quality — focus depth, environment, recovery |
+| **Metacognitive** | Planning — sequencing, deadline calibration, reflection |
+
+**Cognitive-Behavioral Model:** perception → emotion → behavior. The AI uses this chain to interpret why a student acts the way they do, not just what they did.
+
+**Growth vs. Fixed Mindset:** Absolute language ("I always procrastinate", "I can't focus") is detected and reframed using the student's own check-in data. The AI never lectures — it uses behavioral evidence to challenge fixed-mindset framing.
+
+---
 
 ## How It Works
 
-1. **Onboarding** — Set your study goals and pick your biggest challenges
-2. **Observation Phase** — 7 days of daily check-ins to establish your baseline
-3. **Skill Training** — Work through 8 skills across 4 tiers in a 3-week cycle per skill:
-   - **Week 1: Stabilize** — Build consistency with a specific time/place/action routine
-   - **Week 2: Express** — Adapt the skill to fit your real schedule
-   - **Week 3: Probe** — Stress-test and generalize the skill
-4. **AI Coaching** — Chat with an AI coach that sees your full context and gives personalized guidance
+### 1. Onboarding
+Student sets their study goal, identifies their biggest challenges (multi-select + free text), and enters the system.
+
+### 2. Observation Phase (~7 days)
+No skill training yet. The student does daily check-ins to establish a behavioral baseline. After 5+ check-ins, they can advance to skill training. The AI observes and patterns — procrastination patterns, focus correlations, miss reasons — are computed and fed into every AI conversation.
+
+### 3. Skill Training
+Students work through 8 skills across 4 tiers. Each skill follows a **3-week deployment cycle**:
+- **Week 1 — Stabilize:** Build the habit at a fixed time, place, and action
+- **Week 2 — Express:** Adapt the skill to fit real-world schedule variation
+- **Week 3 — Probe:** Stress-test and generalize the skill under pressure
+
+A skill advances when it reaches a **stability score ≥ 0.70** — computed from check-in data (initiation rate, focus rate, atypical day handling). Brief sessions (under 15 min) count as 0.5 toward focus rate, because the hardest behavioral act is starting.
+
+### 4. Skill Progression Tree
+Skills unlock in dependency order:
+
+```
+Tier 1: Task Clarity ──→ Initiation
+              ↓                ↓
+Tier 2: Focus Containment ──→ Environment Control
+              ↓                        ↓
+Tier 3: Focus Endurance ──→ Cognitive Recovery
+              ↓                      ↓
+Tier 4: Planning & Sequencing ──→ Deadline Calibration
+```
+
+### 5. AI Coaching
+The AI coach (Groq Llama 3.3 70B) receives the student's full context before every message:
+- Current phase and skill
+- Last 14 check-ins (with focus level, methods, miss reasons, session intentions)
+- Procrastination pattern analysis (repeated miss reasons flagged)
+- Dimension profile (Behavioral / Cognitive / Metacognitive scores)
+- Upcoming events and deadlines
+- Study method → focus correlations (e.g. `qa: 3/4 focused`)
+
+---
 
 ## Features
 
-- **Dashboard** with weekly trend charts, current progress, and plan card
-- **Daily Check-in** (< 2 min) tracking focus, energy, mood, miss reasons, and study methods
-- **Skill Tree** — visual tier-based tree with dependency graph and color-coded progression
-- **AI Chat** powered by Groq (Llama 3.3 70B) with full context awareness
-- **Event Tracking** for exams, deadlines, and projects
-- **Check-in History** with detailed logs
-- **Password Reset** via email
-- **Arabic / English** language toggle with RTL support
+### Core
+- **Daily Check-in** (< 2 min) — session type (full / brief / no), focus level, energy, mood, study methods, miss reason, pre-session intention
+- **Skill Tree** — visual tier-based graph with SVG dependency lines, color-coded status, stability bars
+- **Skill Detail** — training timeline, stats, user-defined task (time + place + action), growth narrative
+- **AI Chat** — context-aware coaching with mindset detection and procrastination pattern interpretation
+- **Event Tracking** — exams, deadlines, projects with days-until countdown
+- **Check-in History** — full log with filtering
+
+### Dashboard
+- **Phase banner** — shows current phase and day count
+- **Active Plan Card** — skill, week phase, challenge summary, recovery tip
+- **Skill Radar Chart** — visual skill status across all 8 skills
+- **Dimension Profile Card** — Behavioral / Cognitive / Metacognitive progress bars with expandable explanations
+- **Weekly Trend Chart** — 14-day check-in heatmap
+- **Today's Note** — AI-generated daily inspiration + personal affirmation field
+- **Check-in Widget** — quick status and 14-day calendar dots
+- **Assessment Widget** — periodic self-assessment prompt
+- **Mini Chat Widget** — quick AI access from dashboard
+
+### Notifications
+- **Daily notifications** — AI-generated personalized motivation sent at 8am via cron
+- **Weekly insights** — richer cognitive-behavioral analysis every 7 days covering dimension progress, procrastination patterns, and one actionable recommendation
+- **Push notifications** — PWA web push to phone (Android Chrome + iOS Safari 16.4+ via Home Screen)
+
+### PWA
+- Installable on iOS and Android as a standalone app
+- Service worker for push notification delivery
+- Tap notifications to open the app directly
+
+### Personalization
+- **Banner photo** — custom dashboard banner with drag-to-reposition (Pointer Events API, works on touch)
+- **Accent color** — full theme customization
+- **Arabic / English** toggle with RTL support, persisted in localStorage
+
+### Admin & Communication
+- **Feedback system** — users can submit feedback from the sidebar; admin views all submissions at `/admin/feedback`
+- **Cron endpoint** — POST `/api/notifications/generate` (secured with CRON_SECRET) for daily/weekly notification generation
+
+---
+
+## AI Behavior Design
+
+The system prompt enforces strict behavioral guidelines:
+
+- **Never moralizes** — missed sessions are data, not failure
+- **Mindset detection** — detects "I always fail", "I can't help it", "nothing works" → reframes once using the student's own check-in evidence
+- **Procrastination interpretation** — emotional miss reasons (overwhelmed, not in mood) = cognitive structure signal; logistical reasons = scheduling friction
+- **Dimension-aware advice** — behavioral weak → initiation framing; cognitive weak → session quality; metacognitive locked → no planning-level advice
+- **Brief session reinforcement** — a 7-minute session that started counts as a behavioral win, especially in Tier 1
+- **One recommendation at a time** — never floods with advice
+- **Context overrides** — atypical days marked by user; AI adjusts without penalizing
+
+---
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (App Router, TypeScript)
-- **Database:** PostgreSQL (Supabase) + Prisma ORM
-- **Auth:** NextAuth.js v4 (JWT + Credentials, bcryptjs)
-- **AI:** Groq API (Llama 3.3 70B)
-- **Email:** Resend (optional locally — falls back to console)
-- **UI:** Tailwind CSS + shadcn/ui + Recharts
-- **Deployment:** Render + Supabase
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router, TypeScript) |
+| Database | PostgreSQL (Supabase) + Prisma ORM |
+| Auth | NextAuth.js v4 — JWT + Credentials (bcryptjs) |
+| AI | Groq API — Llama 3.3 70B Versatile |
+| Email | Resend (password reset; requires verified domain in production) |
+| UI | Tailwind CSS + shadcn/ui components |
+| Charts | Recharts (lazy-loaded via next/dynamic) |
+| Push | Web Push API + web-push (VAPID) |
+| Deployment | Render (Node.js) + Supabase (PostgreSQL) |
+| Cron | cron-job.org calling `/api/notifications/generate` daily |
+| Uptime | UptimeRobot pinging app every 5 min |
+
+---
+
+## Database Schema
+
+Key models:
+
+| Model | Purpose |
+|-------|---------|
+| `User` | Auth identity |
+| `UserProfile` | Goals, challenges, theme, banner, onboarding state |
+| `ActivePhase` | Current phase (observation / skill_training) + start date |
+| `Skill` | 8 skills with tier, dimension, slug, dependencies |
+| `SkillProgress` | Per-user skill status, stability score, week phase, user task, completion narrative |
+| `CheckIn` | Daily check-in data — initiated, focus, energy, mood, methods, miss reason, session intention |
+| `ChatMessage` | AI conversation history |
+| `Event` | Upcoming exams/deadlines |
+| `Notification` | Daily and weekly AI-generated notifications |
+| `PushSubscription` | Web push endpoint + VAPID keys per device |
+| `Feedback` | User-submitted feedback messages |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
-
 - Node.js 18+
-- A Supabase project (PostgreSQL) **or** use local SQLite for dev
+- A Supabase project (PostgreSQL) — or use local SQLite for dev
 
-### Setup
+### Local Setup
 
 ```bash
-git clone https://github.com/HlaaDukhan/study-habits.git
+git clone https://github.com/EngHlaa46/study-habits.git
 cd study-habits
 npm install
 ```
 
-Create a `.env` file:
+Create `.env`:
 
 ```env
-# Local dev (SQLite)
+# Local dev uses SQLite
 DATABASE_URL="file:./prisma/dev.db"
 
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-here"
+NEXTAUTH_SECRET="generate-a-random-string"
 GROQ_API_KEY="your-groq-api-key"
 RESEND_API_KEY="your-resend-api-key"   # optional locally
+CRON_SECRET="any-secret-string"
+
+# PWA push notifications (optional locally)
+VAPID_PUBLIC_KEY="..."
+VAPID_PRIVATE_KEY="..."
+VAPID_SUBJECT="mailto:you@email.com"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."     # same as VAPID_PUBLIC_KEY
 ```
 
-First-time local setup (push schema + seed skills):
+First-time setup (push SQLite schema + seed 8 skills):
 
 ```bash
 npm run db:setup
 ```
 
-Run the dev server:
+Start dev server:
 
 ```bash
 npm run dev
@@ -74,43 +208,106 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Generating VAPID Keys (for push notifications)
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Add both values to your `.env` and Render environment variables.
+
 ### Production (Render + Supabase)
 
-Set these environment variables in Render:
+**Render environment variables:**
 
 ```env
-DATABASE_URL="postgresql://..."   # Supabase Transaction pooler (port 6543, ?pgbouncer=true)
-NEXTAUTH_URL="https://your-render-app.onrender.com"
+DATABASE_URL="postgresql://...@pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
+NEXTAUTH_URL="https://your-app.onrender.com"
 NEXTAUTH_SECRET="..."
 GROQ_API_KEY="..."
 RESEND_API_KEY="..."
+CRON_SECRET="..."
+VAPID_PUBLIC_KEY="..."
+VAPID_PRIVATE_KEY="..."
+VAPID_SUBJECT="mailto:you@email.com"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."
 ```
 
-Push schema to Supabase before first deploy:
+**Push schema to Supabase** (run after any schema change):
 
 ```bash
-npx prisma db push --schema=prisma/schema.prisma
+DATABASE_URL="postgresql://...6543/postgres?pgbouncer=true&connection_limit=1" npx prisma db push --schema=prisma/schema.prisma
 ```
+
+**Set up daily cron** (cron-job.org or similar):
+```
+POST https://your-app.onrender.com/api/notifications/generate
+Authorization: Bearer <CRON_SECRET>
+Schedule: 8:00 AM daily
+```
+
+---
 
 ## Project Structure
 
 ```
 prisma/
-  schema.prisma          — PostgreSQL schema (production)
+  schema.prisma          — PostgreSQL schema (production/Supabase)
   schema.dev.prisma      — SQLite schema (local dev)
-  seed.ts                — 8 skills + dependency edges
+  seed.ts                — 8 skills with tiers, dimensions, dependency edges
+
+public/
+  manifest.json          — PWA manifest (installable app)
+  sw.js                  — Service worker (handles push events + notification clicks)
 
 src/
   app/
-    (auth)/              — login, register, forgot/reset password
-    (app)/               — authenticated pages (dashboard, check-in, skills, chat, events, history, settings, onboarding)
-    api/                 — route handlers
-  components/            — React components organized by feature
+    (auth)/              — login, register, forgot-password, reset-password
+    (app)/               — authenticated pages:
+      dashboard/         — main dashboard
+      check-in/          — daily check-in flow
+      skills/            — skill tree + skill detail pages
+      chat/              — full AI chat
+      events/            — exam/deadline tracker
+      history/           — check-in history log
+      settings/          — theme, accent color, account settings
+      onboarding/        — first-time setup flow
+    admin/
+      feedback/          — admin-only feedback viewer
+    api/                 — all route handlers
+  components/
+    dashboard/           — all dashboard widgets
+    skills/              — skill tree and detail components
+    check-in/            — check-in form
+    layout/              — sidebar, notification bell, feedback button
+    providers/           — session, theme, push, language providers
+    ui/                  — shadcn/ui primitives
   lib/
-    ai/                  — system prompt + context builder
-    db/                  — Prisma client singleton
-    skills/              — progression logic and thresholds
+    ai/
+      systemPrompt.ts    — single source of truth for all AI behavior rules
+      buildContext.ts    — assembles full student state before each AI call
+    skills/
+      progression.ts     — stability score formula and unlock thresholds
+    auth.ts              — NextAuth configuration
+    db/prisma.ts         — Prisma client singleton
+    language.tsx         — Arabic/English context with RTL support
+    session.ts           — session helpers
 ```
+
+---
+
+## Dual Schema Setup
+
+The project maintains two Prisma schemas:
+
+| Schema | Provider | Used by |
+|--------|----------|---------|
+| `prisma/schema.dev.prisma` | SQLite | `npm run dev` (local) |
+| `prisma/schema.prisma` | PostgreSQL | Render build + Supabase |
+
+This allows local development without a cloud database while keeping production on PostgreSQL.
+
+---
 
 ## License
 
