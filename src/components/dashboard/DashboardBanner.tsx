@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pencil, X, Check, Move } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
@@ -14,12 +14,17 @@ export function DashboardBanner() {
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Drag state (refs to avoid stale closures in listeners)
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-  const dragStartMouse = useRef({ x: 0, y: 0 });
-  const dragStartPos = useRef({ x: 50, y: 50 });
+  const dragStart = useRef({ x: 0, y: 0 });
+  const posStart = useRef({ x: 50, y: 50 });
   const pendingPosition = useRef("50% 50%");
+  const repositioningRef = useRef(false);
+
+  // Keep ref in sync with state so event listeners always see current value
+  useEffect(() => {
+    repositioningRef.current = repositioning;
+  }, [repositioning]);
 
   useEffect(() => {
     fetch("/api/user/banner")
@@ -38,6 +43,60 @@ export function DashboardBanner() {
       inputRef.current?.focus();
     }
   }, [editing, bannerUrl]);
+
+  const parsePos = (pos: string) => {
+    const parts = pos.match(/(\d+)%\s+(\d+)%/);
+    return parts ? { x: parseInt(parts[1]), y: parseInt(parts[2]) } : { x: 50, y: 50 };
+  };
+
+  const applyDrag = (clientX: number, clientY: number) => {
+    if (!dragging.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const dx = clientX - dragStart.current.x;
+    const dy = clientY - dragStart.current.y;
+    const newX = Math.round(Math.max(0, Math.min(100, posStart.current.x - (dx / rect.width) * 100)));
+    const newY = Math.round(Math.max(0, Math.min(100, posStart.current.y - (dy / rect.height) * 100)));
+    const pos = `${newX}% ${newY}%`;
+    pendingPosition.current = pos;
+    containerRef.current.style.backgroundPosition = pos;
+  };
+
+  // Attach drag listeners directly to the element so we can use passive:false on touchstart
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (!repositioningRef.current) return;
+      e.preventDefault();
+      dragging.current = true;
+      dragStart.current = { x: e.clientX, y: e.clientY };
+      posStart.current = parsePos(pendingPosition.current);
+      el.setPointerCapture(e.pointerId);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging.current) return;
+      e.preventDefault();
+      applyDrag(e.clientX, e.clientY);
+    };
+
+    const onPointerUp = () => {
+      dragging.current = false;
+    };
+
+    el.addEventListener("pointerdown", onPointerDown, { passive: false });
+    el.addEventListener("pointermove", onPointerMove, { passive: false });
+    el.addEventListener("pointerup", onPointerUp);
+    el.addEventListener("pointercancel", onPointerUp);
+
+    return () => {
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerup", onPointerUp);
+      el.removeEventListener("pointercancel", onPointerUp);
+    };
+  }, []); // attach once — reads repositioningRef for current state
 
   const save = async () => {
     const url = draft.trim() || null;
@@ -77,69 +136,10 @@ export function DashboardBanner() {
   };
 
   const cancelReposition = () => {
-    setPosition(pendingPosition.current = position);
+    pendingPosition.current = position;
+    if (containerRef.current) containerRef.current.style.backgroundPosition = position;
     setRepositioning(false);
   };
-
-  const parsePos = (pos: string): { x: number; y: number } => {
-    const parts = pos.match(/(\d+)%\s+(\d+)%/);
-    return parts ? { x: parseInt(parts[1]), y: parseInt(parts[2]) } : { x: 50, y: 50 };
-  };
-
-  const startDrag = useCallback((clientX: number, clientY: number) => {
-    dragging.current = true;
-    dragStartMouse.current = { x: clientX, y: clientY };
-    dragStartPos.current = parsePos(pendingPosition.current);
-  }, []);
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!repositioning) return;
-    e.preventDefault();
-    startDrag(e.clientX, e.clientY);
-  }, [repositioning, startDrag]);
-
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!repositioning) return;
-    const touch = e.touches[0];
-    startDrag(touch.clientX, touch.clientY);
-  }, [repositioning, startDrag]);
-
-  useEffect(() => {
-    if (!repositioning) return;
-
-    const applyDrag = (clientX: number, clientY: number) => {
-      if (!dragging.current || !containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const dx = clientX - dragStartMouse.current.x;
-      const dy = clientY - dragStartMouse.current.y;
-      const newX = Math.round(Math.max(0, Math.min(100, dragStartPos.current.x - (dx / rect.width) * 100)));
-      const newY = Math.round(Math.max(0, Math.min(100, dragStartPos.current.y - (dy / rect.height) * 100)));
-      const pos = `${newX}% ${newY}%`;
-      pendingPosition.current = pos;
-      if (containerRef.current) {
-        (containerRef.current as HTMLDivElement).style.backgroundPosition = pos;
-      }
-    };
-
-    const onMouseMove = (e: MouseEvent) => applyDrag(e.clientX, e.clientY);
-    const onMouseUp = () => { dragging.current = false; };
-    const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault();
-      applyDrag(e.touches[0].clientX, e.touches[0].clientY);
-    };
-    const onTouchEnd = () => { dragging.current = false; };
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [repositioning]);
 
   if (!bannerUrl && !editing) {
     return (
@@ -158,16 +158,14 @@ export function DashboardBanner() {
       {bannerUrl && (
         <div
           ref={containerRef}
-          className={`w-full h-48 rounded-xl overflow-hidden relative select-none ${repositioning ? "cursor-grab active:cursor-grabbing" : ""}`}
+          className={`w-full h-48 rounded-xl overflow-hidden relative select-none touch-none ${repositioning ? "cursor-grab active:cursor-grabbing" : ""}`}
           style={{ backgroundImage: `url(${bannerUrl})`, backgroundSize: "cover", backgroundPosition: position }}
-          onMouseDown={onMouseDown}
-          onTouchStart={onTouchStart}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
 
           {repositioning ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-white/70 text-xs bg-black/40 rounded-lg px-3 py-1.5 select-none pointer-events-none">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <p className="text-white/70 text-xs bg-black/40 rounded-lg px-3 py-1.5 select-none">
                 {t("dashboard.dragToReposition")}
               </p>
             </div>
