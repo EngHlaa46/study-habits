@@ -351,6 +351,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "dashboard.addBannerPhoto": "Add a banner photo",
     "dashboard.bannerUrlPlaceholder": "Paste image URL...",
     "dashboard.removeBanner": "Remove",
+    "dashboard.repositionBanner": "Reposition photo",
+    "dashboard.dragToReposition": "Drag to reposition",
+    "dashboard.savePosition": "Save position",
     "dashboard.personalStatementPlaceholder": "Your personal statement…",
 
     // backfill
@@ -721,6 +724,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "dashboard.addBannerPhoto": "أضف صورة غلاف",
     "dashboard.bannerUrlPlaceholder": "الصق رابط الصورة...",
     "dashboard.removeBanner": "إزالة",
+    "dashboard.repositionBanner": "إعادة تحديد موضع الصورة",
+    "dashboard.dragToReposition": "اسحب لإعادة الضبط",
+    "dashboard.savePosition": "حفظ الموضع",
     "dashboard.personalStatementPlaceholder": "تأكيدك الشخصي…",
 
     // backfill
