@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LanguageProvider } from "@/lib/language";
+import { PushProvider } from "@/components/providers/PushProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -19,6 +20,7 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Study Habits",
   description: "AI-guided study habit refinement system",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -33,7 +35,10 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <LanguageProvider>
-            <SessionProvider>{children}</SessionProvider>
+            <SessionProvider>
+              <PushProvider />
+              {children}
+            </SessionProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

@@ -331,6 +331,10 @@ const translations: Record<Lang, Record<string, string>> = {
     // notifications
     "notifications.title": "Notifications",
     "notifications.allCaughtUp": "All caught up",
+    "notifications.pushEnable": "Enable push notifications",
+    "notifications.pushDisable": "Disable push notifications",
+    "notifications.pushDenied": "Push notifications blocked in browser settings",
+    "notifications.pushLoading": "Updating…",
 
     // dimension profile
     "dimension.profileTitle": "Skill Dimensions",
@@ -704,6 +708,10 @@ const translations: Record<Lang, Record<string, string>> = {
     // notifications
     "notifications.title": "الإشعارات",
     "notifications.allCaughtUp": "أنت على اطلاع بكل شيء",
+    "notifications.pushEnable": "تفعيل الإشعارات",
+    "notifications.pushDisable": "إيقاف الإشعارات",
+    "notifications.pushDenied": "الإشعارات محظورة في إعدادات المتصفح",
+    "notifications.pushLoading": "جارٍ التحديث…",
 
     // dimension profile
     "dimension.profileTitle": "أبعاد المهارات",

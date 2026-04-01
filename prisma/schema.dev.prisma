@@ -21,6 +21,7 @@ model User {
   checkIns       CheckIn[]
   chatMessages   ChatMessage[]
   notifications  Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model UserProfile {
@@ -164,5 +165,15 @@ model Notification {
   content   String
   read      Boolean  @default(false)
   type      String   @default("daily") // daily, weekly
+  createdAt DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
   createdAt DateTime @default(now())
 }

@@ -1,8 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import Groq from "groq-sdk";
+import webpush from "web-push";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || "mailto:admin@studyhabits.app",
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
+
+async function sendPushToUser(userId: string, title: string, body: string) {
+  if (!process.env.VAPID_PUBLIC_KEY) return;
+  const subs = await prisma.pushSubscription.findMany({ where: { userId } });
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        JSON.stringify({ title, body, url: "/dashboard" })
+      );
+    } catch {
+      // Subscription expired — remove it
+      await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
+    }
+  }
+}
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -127,6 +152,7 @@ export async function POST(req: NextRequest) {
         await prisma.notification.create({
           data: { userId: user.id, content, type: "weekly" },
         });
+        await sendPushToUser(user.id, "Weekly insight", content);
         created++;
       } catch {
         // Fall through to daily notification on error
@@ -161,8 +187,9 @@ export async function POST(req: NextRequest) {
         if (!content) continue;
 
         await prisma.notification.create({
-          data: { userId: user.id, content },
+          data: { userId: user.id, content, type: "daily" },
         });
+        await sendPushToUser(user.id, "Study Habits", content);
         created++;
       } catch {
         // Skip this user on error; don't abort the whole batch

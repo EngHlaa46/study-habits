@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, X, Smartphone } from "lucide-react";
 import { useLanguage } from "@/lib/language";
+import { subscribeToPush, unsubscribeFromPush, getPushState } from "@/components/providers/PushProvider";
 
 interface Notification {
   id: string;
@@ -14,6 +15,8 @@ export function NotificationBell() {
   const { t } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [pushState, setPushState] = useState<"unsupported" | "denied" | "subscribed" | "unsubscribed">("unsubscribed");
+  const [pushLoading, setPushLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
@@ -29,7 +32,27 @@ export function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
+    getPushState().then(setPushState);
   }, []);
+
+  // Refresh whenever the popover opens
+  useEffect(() => {
+    if (open) {
+      fetchNotifications();
+      getPushState().then(setPushState);
+    }
+  }, [open]);
+
+  const togglePush = async () => {
+    setPushLoading(true);
+    if (pushState === "subscribed") {
+      await unsubscribeFromPush();
+    } else {
+      await subscribeToPush();
+    }
+    setPushState(await getPushState());
+    setPushLoading(false);
+  };
 
   // Close popover on outside click
   useEffect(() => {
@@ -74,7 +97,7 @@ export function NotificationBell() {
               {t("notifications.allCaughtUp")}
             </p>
           ) : (
-            <ul className="max-h-72 overflow-y-auto divide-y divide-border">
+            <ul className="max-h-60 overflow-y-auto divide-y divide-border">
               {notifications.map((n) => (
                 <li key={n.id} className="flex items-start gap-3 px-4 py-3">
                   <p className="text-sm text-foreground/80 flex-1 leading-snug">
@@ -89,6 +112,26 @@ export function NotificationBell() {
                 </li>
               ))}
             </ul>
+          )}
+          {pushState !== "unsupported" && (
+            <div className="px-4 py-3 border-t border-border">
+              {pushState === "denied" ? (
+                <p className="text-xs text-muted-foreground/50">{t("notifications.pushDenied")}</p>
+              ) : (
+                <button
+                  onClick={togglePush}
+                  disabled={pushLoading}
+                  className="flex items-center gap-2 text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors w-full"
+                >
+                  <Smartphone size={13} className={pushState === "subscribed" ? "text-primary" : ""} />
+                  {pushLoading
+                    ? t("notifications.pushLoading")
+                    : pushState === "subscribed"
+                    ? t("notifications.pushDisable")
+                    : t("notifications.pushEnable")}
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
