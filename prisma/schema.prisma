@@ -22,6 +22,7 @@ model User {
   chatMessages   ChatMessage[]
   notifications  Notification[]
   pushSubscriptions PushSubscription[]
+  feedbacks         Feedback[]
 }
 
 model UserProfile {
@@ -165,6 +166,14 @@ model Notification {
   content   String
   read      Boolean  @default(false)
   type      String   @default("daily") // daily, weekly
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
   createdAt DateTime @default(now())
 }
 

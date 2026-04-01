@@ -19,6 +19,7 @@ import {
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
 import { NotificationBell } from "./NotificationBell";
+import { FeedbackButton } from "./FeedbackButton";
 import { useLanguage } from "@/lib/language";
 
 export function Sidebar() {
@@ -61,6 +62,7 @@ export function Sidebar() {
 
       <div className="p-3 border-t border-border">
         <NotificationBell />
+        <FeedbackButton />
         <ThemeToggle />
         <LanguageToggle />
         <button
