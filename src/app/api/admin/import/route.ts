@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { exec } from "child_process";
+import { promisify } from "util";
 
+const execAsync = promisify(exec);
 const IMPORT_SECRET = process.env.CRON_SECRET;
 
 // Ordered to respect foreign key constraints
@@ -24,6 +27,18 @@ export async function POST(req: NextRequest) {
   const auth = req.headers.get("x-import-secret");
   if (auth !== IMPORT_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Push schema first
+  let schemaPush = "";
+  try {
+    const { stdout, stderr } = await execAsync(
+      "npx prisma db push --schema=prisma/schema.prisma --skip-generate --accept-data-loss",
+      { timeout: 60000 }
+    );
+    schemaPush = stdout + stderr;
+  } catch (err) {
+    return NextResponse.json({ error: "Schema push failed", detail: String(err) }, { status: 500 });
   }
 
   const data = await req.json();
@@ -52,5 +67,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, results });
+  return NextResponse.json({ ok: true, schemaPush: schemaPush.substring(0, 500), results });
 }
