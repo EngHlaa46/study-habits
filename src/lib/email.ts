@@ -13,7 +13,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
-    from: "Study Habits <onboarding@resend.dev>",
+    from: "Study Skills Builder <noreply@studyskillsbuilder.com>",
     to: email,
     subject: "Reset your password",
     html: `
