@@ -310,6 +310,24 @@ This allows local development without a cloud database while keeping production 
 
 ---
 
+## Reference Documents
+
+These files live outside the repo at `/home/milkyway/Study habit refirement system/` and should be kept in sync with the codebase:
+
+| File | Purpose | Editable |
+|------|---------|---------|
+| `SSB_Features_Roadmap.md` | Feature roadmap — v1 live, v2 DCS shipped, post-hack backlog | Yes (Markdown) |
+| `SSB_Features_Roadmap.docx` | Original Word version of the roadmap | No (binary) |
+| `ssb-map.html` | English mind map of the full system | Yes (HTML) |
+| `ssb-map-ar.html` | Arabic mind map of the full system | Yes (HTML) |
+| `SSB.pdf` | Research paper the system is based on | No (binary) |
+| `Requirements.md` | Original requirements document | Yes (Markdown) |
+| `System Prompt.md` | Reference system prompt draft | Yes (Markdown) |
+
+When updating features, keep `SSB_Features_Roadmap.md` and `EDITS.md` in sync.
+
+---
+
 ## License
 
 MIT
