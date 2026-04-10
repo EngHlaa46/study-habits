@@ -128,16 +128,16 @@ The system prompt enforces strict behavioral guidelines:
 | Layer | Technology |
 |-------|-----------|
 | Framework | Next.js 14 (App Router, TypeScript) |
-| Database | PostgreSQL (Supabase) + Prisma ORM |
+| Database | PostgreSQL (Railway) + Prisma ORM |
 | Auth | NextAuth.js v4 — JWT + Credentials (bcryptjs) |
 | AI | Groq API — Llama 3.3 70B Versatile |
 | Email | Resend (password reset; requires verified domain in production) |
 | UI | Tailwind CSS + shadcn/ui components |
 | Charts | Recharts (lazy-loaded via next/dynamic) |
 | Push | Web Push API + web-push (VAPID) |
-| Deployment | Render (Node.js) + Supabase (PostgreSQL) |
-| Cron | cron-job.org calling `/api/notifications/generate` daily |
-| Uptime | UptimeRobot pinging app every 5 min |
+| Deployment | Railway (Node.js + PostgreSQL) + Cloudflare Worker (reverse proxy) |
+| Domain | studyskillsbuilder.com (Cloudflare DNS + Worker routing to Railway) |
+| Cron | Railway cron service calling `/api/notifications/generate` daily at 8am |
 
 ---
 
@@ -165,7 +165,7 @@ Key models:
 
 ### Prerequisites
 - Node.js 18+
-- A Supabase project (PostgreSQL) — or use local SQLite for dev
+- A PostgreSQL database (Railway or local) — or use local SQLite for dev
 
 ### Local Setup
 
@@ -214,15 +214,17 @@ Open [http://localhost:3000](http://localhost:3000).
 npx web-push generate-vapid-keys
 ```
 
-Add both values to your `.env` and Render environment variables.
+Add both values to your `.env` and Railway environment variables.
 
-### Production (Render + Supabase)
+### Production (Railway)
 
-**Render environment variables:**
+The app is deployed on Railway with a PostgreSQL database. Traffic is routed through a Cloudflare Worker to the Railway service URL, exposing it at **studyskillsbuilder.com**.
+
+**Railway environment variables:**
 
 ```env
-DATABASE_URL="postgresql://...@pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
-NEXTAUTH_URL="https://your-app.onrender.com"
+DATABASE_URL="postgresql://postgres:password@postgres.railway.internal:5432/railway"
+NEXTAUTH_URL="https://studyskillsbuilder.com"
 NEXTAUTH_SECRET="..."
 GROQ_API_KEY="..."
 RESEND_API_KEY="..."
@@ -233,17 +235,16 @@ VAPID_SUBJECT="mailto:you@email.com"
 NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."
 ```
 
-**Push schema to Supabase** (run after any schema change):
+**Push schema to Railway** (run after any schema change, using the public proxy URL):
 
 ```bash
-DATABASE_URL="postgresql://...6543/postgres?pgbouncer=true&connection_limit=1" npx prisma db push --schema=prisma/schema.prisma
+DATABASE_URL='postgresql://postgres:password@centerbeam.proxy.rlwy.net:33356/railway' npx prisma db push --schema=prisma/schema.prisma
 ```
 
-**Set up daily cron** (cron-job.org or similar):
+**Daily cron** — handled by a Railway cron service (`cron/Dockerfile`) that runs at 8am and calls:
 ```
-POST https://your-app.onrender.com/api/notifications/generate
-Authorization: Bearer <CRON_SECRET>
-Schedule: 8:00 AM daily
+POST https://studyskillsbuilder.com/api/notifications/generate
+x-cron-secret: <CRON_SECRET>
 ```
 
 ---
@@ -303,7 +304,7 @@ The project maintains two Prisma schemas:
 | Schema | Provider | Used by |
 |--------|----------|---------|
 | `prisma/schema.dev.prisma` | SQLite | `npm run dev` (local) |
-| `prisma/schema.prisma` | PostgreSQL | Render build + Supabase |
+| `prisma/schema.prisma` | PostgreSQL | Railway build + Railway PostgreSQL |
 
 This allows local development without a cloud database while keeping production on PostgreSQL.
 

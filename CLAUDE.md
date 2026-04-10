@@ -8,23 +8,29 @@ AI-guided web app that helps students improve study efficiency by refining one c
 - **Prisma ORM** with **SQLite** (`prisma/dev.db`) for local dev, **PostgreSQL** (Supabase) for production
 - **NextAuth.js v4** — email/password auth (bcryptjs hashing)
 - **Groq API** (llama-3.3-70b-versatile) for AI chat — NOT Anthropic
-- **Resend** for transactional email (password reset). Requires `RESEND_API_KEY`. Falls back to console.log locally when key is missing.
+- **Resend** for transactional email (password reset). Requires `RESEND_API_KEY`. Sends from `noreply@studyskillsbuilder.com` (verified domain). Falls back to console.log locally when key is missing.
 - **Tailwind CSS + shadcn/ui** for styling (dark theme only, `#0d0d14` bg)
 - **Recharts** for data visualization (dashboard weekly trend — lazy-loaded via next/dynamic)
-- **Deployment:** Render (Node.js server) + Supabase (PostgreSQL)
+- **Deployment:** Railway (Node.js) + Railway PostgreSQL, routed via Cloudflare Worker proxy
 
 ## Environment Variables (`.env`)
 ```
 # Local dev — SQLite
 DATABASE_URL="file:./prisma/dev.db"
 
-# Production — Supabase Transaction pooler (port 6543, pgbouncer=true required for serverless)
-# DATABASE_URL="postgresql://postgres.xxx:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+# Production — Railway PostgreSQL (internal URL used during build/start)
+# DATABASE_URL="postgresql://postgres:password@postgres.railway.internal:5432/railway"
+# For schema pushes from outside Railway, use the public proxy URL:
+# DATABASE_URL="postgresql://postgres:password@centerbeam.proxy.rlwy.net:33356/railway"
 
 NEXTAUTH_SECRET="..."
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="https://studyskillsbuilder.com"   # production; http://localhost:3000 locally
 GROQ_API_KEY="..."
 RESEND_API_KEY="..."   # optional locally — resets logged to console if missing
+CRON_SECRET="..."
+VAPID_PUBLIC_KEY="..."
+VAPID_PRIVATE_KEY="..."
+VAPID_SUBJECT="mailto:you@email.com"
 ```
 
 ## Directory Structure
@@ -84,8 +90,8 @@ src/
 npm run dev              # generates sqlite client + starts dev server
 npm run db:setup         # first-time setup: push schema + seed skills (SQLite)
 
-# Production schema push (run once when schema changes, with Supabase DATABASE_URL active in .env)
-npx prisma db push --schema=prisma/schema.prisma
+# Production schema push (run once when schema changes, using Railway public proxy URL)
+DATABASE_URL='postgresql://postgres:password@centerbeam.proxy.rlwy.net:33356/railway' npx prisma db push --schema=prisma/schema.prisma
 
 # Build
 npm run build            # generates pg client + builds
@@ -93,8 +99,11 @@ npm run build            # generates pg client + builds
 
 ## Local vs Production Schema
 - `prisma/schema.dev.prisma` → SQLite, used by `npm run dev` and `npm run db:setup`
-- `prisma/schema.prisma` → PostgreSQL, used by Render build
-- To push schema changes to Supabase: temporarily swap DATABASE_URL in `.env` to Supabase connection string, run `npx prisma db push --schema=prisma/schema.prisma`, then swap back
+- `prisma/schema.prisma` → PostgreSQL, used by Railway build
+- To push schema changes: use the Railway public proxy URL (centerbeam.proxy.rlwy.net:33356), not the internal URL
+
+## Render Redirect
+The old Render URL (`study-skills-builder.onrender.com`) redirects 301 to `studyskillsbuilder.com` via a host-based rule in `next.config.mjs`. This works because the same codebase is deployed on both — Next.js checks the `Host` header and redirects only when it matches the Render hostname.
 
 ## Important Rules
 - Dark theme only (`#0d0d14` background, `#38bdf8` cyan accent, `#4ade80` green, `#fbbf24` amber, `#a855f7` purple, `#f97316` orange)

@@ -184,10 +184,14 @@ Every AI behavior rule, skill categorization, and context-building decision was 
 | Decision | Why |
 |----------|-----|
 | Switched from Anthropic API → Groq | Free tier with Llama 3.3 70B — sufficient quality for coaching context |
-| Switched Railway → Vercel → Render | Render supports long-running Node.js servers; Vercel had cold start issues with Prisma |
+| Switched Railway → Vercel → Render → Railway | Full circle: finally on Railway with native PostgreSQL, no cold starts, no connection pool issues |
+| Migrated Supabase → Railway PostgreSQL | Node.js pg client exported data to JSON, imported via internal API route (postgres.railway.internal accessible only from inside Railway) |
+| Cloudflare Worker for custom domain routing | Railway's Fastly CDN (151.101.2.15) doesn't handle custom domains correctly; edge servers never activated. Cloudflare Worker proxies all requests with Host header override — transparent to the app |
+| Render → Railway redirect via next.config.mjs | Old Render URL (study-skills-builder.onrender.com) redirects 301 to studyskillsbuilder.com using Next.js host-based redirect rule — preserves paths, no separate service needed |
+| Cloudflare DNS (migrated from Namecheap) | Namecheap couldn't delete conflicting A records; Cloudflare gave full DNS control + free Workers + auto SSL via Let's Encrypt |
+| Railway native cron service | Replaced cron-job.org with a Railway cron service (Docker container running curl) — keeps infrastructure consolidated |
 | Dual Prisma schemas | Allows SQLite locally (zero setup) and PostgreSQL in production without branching |
 | `next start` only in start script | Running `prisma db push` in start caused a 3-hour 503 outage when Supabase was briefly unreachable on Render wake-up |
-| Supabase port 6543 (Transaction mode) | Session mode (5432) limited connections cause crashes under concurrent load |
 | Generate-once pattern for AI content | Inspiration text, assessment text, skill narratives are generated once and cached in DB to avoid redundant API calls |
 | Recharts lazy-loaded via `next/dynamic` | Recharts adds ~218kB to first load; dynamic import with `ssr: false` keeps the initial bundle small |
 | Pointer Events API for banner drag | Single unified API for mouse and touch — avoids maintaining two separate event handler sets and works correctly on iOS Safari |
@@ -213,7 +217,7 @@ All schema changes were additive (nullable fields, new models) to avoid breaking
 
 ## Pending / Known Limitations
 
-- **Email (Resend)** — password reset emails only work with a verified domain. Currently falls back to console.log locally. Needs a custom domain or switch to Brevo/Postmark.
+- **Email (Resend)** — ~~needs a verified domain~~ **resolved**: `studyskillsbuilder.com` verified in Resend via Cloudflare auto-configure. Sends from `noreply@studyskillsbuilder.com`. Still falls back to console.log locally when `RESEND_API_KEY` is missing.
 - **Push on iOS** — requires iOS 16.4+ and the app must be added to the Home Screen. Regular Safari tabs cannot receive push.
 - **Phone usage integration** — schema has `phoneDataConsent` field; UI not yet built.
 - **AI proactive surfacing** — AI currently waits for user to ask about patterns rather than proactively raising them during observation.
