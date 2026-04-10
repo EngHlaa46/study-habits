@@ -21,6 +21,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -41,6 +42,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setStreaming(true);
+    setPipelineStep("Initializing DCS pipeline...");
 
     const assistantMsg: Message = {
       id: (Date.now() + 1).toString(),
@@ -80,15 +82,20 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
             if (data === "[DONE]") continue;
             try {
               const parsed = JSON.parse(data);
-              accumulated += parsed.text;
-              setMessages((prev) => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last.role === "assistant") {
-                  last.content = accumulated;
-                }
-                return updated;
-              });
+              if (parsed.step && parsed.label) {
+                setPipelineStep(parsed.label);
+              } else if (parsed.text) {
+                setPipelineStep(null);
+                accumulated += parsed.text;
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === "assistant") {
+                    last.content = accumulated;
+                  }
+                  return updated;
+                });
+              }
             } catch {
               // skip invalid JSON
             }
@@ -106,6 +113,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       });
     } finally {
       setStreaming(false);
+      setPipelineStep(null);
     }
   };
 
@@ -146,6 +154,14 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* DCS pipeline status */}
+      {pipelineStep && (
+        <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground/60">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
+          {pipelineStep}
+        </div>
+      )}
 
       {/* Input */}
       <div className="border-t border-border pt-4">

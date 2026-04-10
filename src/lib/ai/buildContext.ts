@@ -1,6 +1,16 @@
 import { prisma } from "@/lib/db/prisma";
+import type { ActivePhase, CheckIn, Event, SkillProgress, Skill, UserProfile } from "@prisma/client";
 
-export async function buildUserContext(userId: string): Promise<string> {
+export interface UserData {
+  userName: string | null;
+  activePhase: ActivePhase | null;
+  recentCheckIns: CheckIn[];
+  skillProgresses: (SkillProgress & { skill: Skill })[];
+  upcomingEvents: Event[];
+  profile: UserProfile | null;
+}
+
+export async function fetchUserData(userId: string): Promise<UserData> {
   const [user, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile] =
     await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
@@ -22,14 +32,24 @@ export async function buildUserContext(userId: string): Promise<string> {
       prisma.userProfile.findUnique({ where: { userId } }),
     ]);
 
+  return {
+    userName: user?.name ?? null,
+    activePhase,
+    recentCheckIns,
+    skillProgresses: skillProgresses as (SkillProgress & { skill: Skill })[],
+    upcomingEvents,
+    profile,
+  };
+}
+
+export function buildContextFromData(data: UserData): string {
+  const { userName, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile } = data;
   const lines: string[] = [];
 
-  // User info
-  if (user?.name) {
-    lines.push(`Student name: ${user.name}`);
+  if (userName) {
+    lines.push(`Student name: ${userName}`);
   }
 
-  // Phase
   if (activePhase) {
     const daysSincePhaseStart = Math.ceil(
       (Date.now() - activePhase.phaseStart.getTime()) / (1000 * 60 * 60 * 24)
@@ -37,46 +57,39 @@ export async function buildUserContext(userId: string): Promise<string> {
     lines.push(`Current phase: ${activePhase.phase} (day ${daysSincePhaseStart})`);
   }
 
-  // Active skill
   const activeSkill = skillProgresses.find((sp) => sp.status === "active");
   if (activeSkill) {
-    const weekLabels: Record<number, string> = {
-      1: "Stabilize",
-      2: "Express",
-      3: "Probe",
-    };
+    const weekLabels: Record<number, string> = { 1: "Stabilize", 2: "Express", 3: "Probe" };
     lines.push(
       `Active skill: ${activeSkill.skill.name} — Week ${activeSkill.weekPhase} (${weekLabels[activeSkill.weekPhase] || "Not started"})`
     );
-    if (activeSkill.userTask) {
-      lines.push(`User-defined task: ${activeSkill.userTask}`);
-    }
+    if (activeSkill.userTask) lines.push(`User-defined task: ${activeSkill.userTask}`);
     lines.push(`Stability score: ${activeSkill.stabilityScore}`);
   }
 
-  // All skill levels
   lines.push("\nSkill statuses:");
   for (const sp of skillProgresses) {
     lines.push(`  - ${sp.skill.name} (Tier ${sp.skill.tier}): ${sp.status}`);
   }
 
-  // Dimension profile summary
   const dimGroups: Record<string, { scores: number[]; statuses: string[] }> = {};
   for (const sp of skillProgresses) {
-    const dim = (sp.skill as { dimension?: string | null }).dimension;
+    const dim = (sp.skill as unknown as { dimension?: string | null }).dimension;
     if (!dim) continue;
     if (!dimGroups[dim]) dimGroups[dim] = { scores: [], statuses: [] };
     dimGroups[dim].statuses.push(sp.status);
-    if (sp.status === "active" || sp.status === "stable" || sp.status === "mastered") {
+    if (["active", "stable", "mastered"].includes(sp.status)) {
       dimGroups[dim].scores.push(sp.stabilityScore);
     }
   }
   const dimSummary = Object.entries(dimGroups).map(([dim, { scores, statuses }]) => {
     const allLocked = statuses.every((s) => s === "locked");
     if (allLocked) return `${dim}=locked`;
-    const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : "0.00";
-    const hasActive = statuses.includes("active");
+    const avg = scores.length > 0
+      ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)
+      : "0.00";
     const hasStable = statuses.includes("stable") || statuses.includes("mastered");
+    const hasActive = statuses.includes("active");
     const label = hasStable ? "strong" : hasActive ? "developing" : "early";
     return `${dim}=${label}(${avg})`;
   });
@@ -84,15 +97,13 @@ export async function buildUserContext(userId: string): Promise<string> {
     lines.push(`Dimension profile: ${dimSummary.join(", ")}`);
   }
 
-  // Recent check-ins
   if (recentCheckIns.length > 0) {
     lines.push(`\nLast ${recentCheckIns.length} check-ins:`);
     for (const ci of recentCheckIns.slice(0, 7)) {
       const dateStr = ci.date.toISOString().split("T")[0];
       let methods: string[] = [];
       try {
-        const raw = (ci as { studyMethod?: string | null }).studyMethod;
-        if (raw) methods = JSON.parse(raw);
+        if (ci.studyMethod) methods = JSON.parse(ci.studyMethod);
       } catch { /* ignore */ }
       const parts = [
         `date=${dateStr}`,
@@ -103,27 +114,22 @@ export async function buildUserContext(userId: string): Promise<string> {
         ci.atypical ? "ATYPICAL" : null,
         ci.energy ? `energy=${ci.energy}/5` : null,
         ci.mood ? `mood=${ci.mood}/5` : null,
-        (ci as { missReason?: string | null }).missReason ? `missed_because=${(ci as { missReason?: string | null }).missReason}` : null,
-        (ci as { sessionIntention?: string | null }).sessionIntention ? `intention="${(ci as { sessionIntention?: string | null }).sessionIntention}"` : null,
+        ci.missReason ? `missed_because=${ci.missReason}` : null,
+        ci.sessionIntention ? `intention="${ci.sessionIntention}"` : null,
       ].filter(Boolean);
       lines.push(`  ${parts.join(", ")}`);
     }
 
-    // Summary stats
     const last7 = recentCheckIns.slice(0, 7);
     const initiated = last7.filter((c) => c.initiated).length;
-    const focused = last7.filter(
-      (c) => c.focusLevel === "focused" || c.focusLevel === "deep"
-    ).length;
+    const focused = last7.filter((c) => c.focusLevel === "focused" || c.focusLevel === "deep").length;
     lines.push(`\n7-day summary: ${initiated}/7 initiated, ${focused}/7 focused+`);
 
-    // Procrastination pattern analysis (all 14 check-ins)
     const emotionalReasons = new Set(["Felt overwhelmed", "Wasn't in the mood"]);
     const missReasonCount: Record<string, number> = {};
     for (const ci of recentCheckIns) {
-      const reason = (ci as { missReason?: string | null }).missReason;
-      if (reason) {
-        missReasonCount[reason] = (missReasonCount[reason] ?? 0) + 1;
+      if (ci.missReason) {
+        missReasonCount[ci.missReason] = (missReasonCount[ci.missReason] ?? 0) + 1;
       }
     }
     const repeatedReasons = Object.entries(missReasonCount).filter(([, count]) => count >= 3);
@@ -137,13 +143,11 @@ export async function buildUserContext(userId: string): Promise<string> {
       lines.push(`Procrastination pattern: ${pattern}`);
     }
 
-    // Method → focus correlation
     const methodFocusMap: Record<string, { total: number; focused: number }> = {};
     for (const ci of last7) {
       let methods: string[] = [];
       try {
-        const raw = (ci as { studyMethod?: string | null }).studyMethod;
-        if (raw) methods = JSON.parse(raw);
+        if (ci.studyMethod) methods = JSON.parse(ci.studyMethod);
       } catch { /* ignore */ }
       for (const m of methods) {
         if (!methodFocusMap[m]) methodFocusMap[m] = { total: 0, focused: 0 };
@@ -162,18 +166,14 @@ export async function buildUserContext(userId: string): Promise<string> {
     }
   }
 
-  // Events
   if (upcomingEvents.length > 0) {
     lines.push("\nUpcoming events:");
     for (const event of upcomingEvents) {
-      const daysUntil = Math.ceil(
-        (event.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
+      const daysUntil = Math.ceil((event.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       lines.push(`  - ${event.name} (${event.type}) in ${daysUntil} days`);
     }
   }
 
-  // Self-assessment
   if (profile?.selfAssessment) {
     try {
       const sa = JSON.parse(profile.selfAssessment);
@@ -192,10 +192,14 @@ export async function buildUserContext(userId: string): Promise<string> {
         }
       }
       if (sa.preferredTime) lines.push(`  Preferred study time: ${sa.preferredTime}`);
-    } catch {
-      // ignore parse errors
-    }
+    } catch { /* ignore */ }
   }
 
   return lines.join("\n");
+}
+
+// Backward-compatible wrapper used by notifications and other callers
+export async function buildUserContext(userId: string): Promise<string> {
+  const data = await fetchUserData(userId);
+  return buildContextFromData(data);
 }
