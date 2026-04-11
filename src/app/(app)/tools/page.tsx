@@ -108,6 +108,7 @@ export default async function ToolsPage() {
               href={tool.url}
               target="_blank"
               rel="noopener noreferrer"
+              style={{ textDecoration: "none" }}
               className={`block rounded-xl border p-5 transition-all hover:border-primary/40 hover:bg-card/80 ${
                 isRecommended
                   ? "border-primary/30 bg-primary/5"

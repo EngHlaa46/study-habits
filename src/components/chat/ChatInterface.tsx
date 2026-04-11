@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, BookOpen, Brain } from "lucide-react";
+import { Send, BookOpen, Brain, Mic, MicOff } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 interface Message {
@@ -23,6 +23,37 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [streaming, setStreaming] = useState(false);
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState<"study" | "training">("study");
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+
+  const toggleVoice = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition: any = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (e: { results: { [key: number]: { [key: number]: { transcript: string } } } }) => {
+      const transcript = e.results[0]?.[0]?.transcript ?? "";
+      if (transcript) setInput((prev) => prev ? prev + " " + transcript : transcript);
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  }, [listening]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -128,32 +159,34 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)]">
       {/* Mode toggle */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-start gap-3 mb-4 p-3 rounded-xl bg-secondary/40 border border-border">
         <button
           onClick={() => setChatMode("study")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shrink-0 ${
             chatMode === "study"
-              ? "bg-primary/20 text-primary border border-primary/30"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              ? "bg-primary/20 text-primary border-primary/40"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
           }`}
         >
           <BookOpen size={13} />
-          Study Mode
+          Study
         </button>
         <button
           onClick={() => setChatMode("training")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shrink-0 ${
             chatMode === "training"
-              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
           }`}
         >
           <Brain size={13} />
-          Training Mode
+          Training
         </button>
-        <span className="text-xs text-muted-foreground/50 ml-1">
-          {chatMode === "study" ? "Coach gives direct help" : "Coach uses Socratic questioning"}
-        </span>
+        <p className="text-xs text-muted-foreground/70 leading-relaxed pt-0.5">
+          {chatMode === "study"
+            ? "Ask anything — subject questions, planning help, concept explanations. Coach answers directly and suggests tools."
+            : "Coach never gives the answer. Asks you questions so you think it through yourself. Use this to prepare for exams."}
+        </p>
       </div>
 
       {/* Messages */}
@@ -174,7 +207,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
             <div
               className={`max-w-[80%] rounded-xl px-4 py-3 ${
                 msg.role === "user"
-                  ? "bg-[#38bdf8] text-black"
+                  ? "bg-primary text-primary-foreground"
                   : "bg-card text-foreground/80 border border-border"
               }`}
             >
@@ -205,10 +238,21 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
             className="bg-card border-border text-foreground resize-none min-h-[44px] max-h-[120px]"
             rows={1}
           />
+          <button
+            onClick={toggleVoice}
+            title={listening ? "Stop recording" : "Voice input"}
+            className={`px-3 rounded-lg border transition-colors ${
+              listening
+                ? "border-red-500/50 text-red-400 bg-red-500/10 animate-pulse"
+                : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            {listening ? <MicOff size={18} /> : <Mic size={18} />}
+          </button>
           <Button
             onClick={sendMessage}
             disabled={streaming || !input.trim()}
-            className="bg-[#38bdf8] hover:bg-[#38bdf8]/80 text-black px-4"
+            className="bg-primary hover:bg-primary/80 text-primary-foreground px-4"
           >
             <Send size={18} />
           </Button>

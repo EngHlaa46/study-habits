@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLanguage } from "@/lib/language";
 
 export function NoSkillCard({ phase }: { phase: string }) {
@@ -11,11 +12,19 @@ export function NoSkillCard({ phase }: { phase: string }) {
           ? t("dashboard.observationInProgress")
           : t("dashboard.noActiveSkill")}
       </h3>
-      <p className="text-muted-foreground text-sm">
+      <p className="text-muted-foreground text-sm mb-3">
         {phase === "observation"
           ? t("dashboard.completeCheckins")
           : t("dashboard.visitSkillsPage")}
       </p>
+      {phase !== "observation" && (
+        <Link
+          href="/skills"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/20 text-primary border border-primary/30 text-sm font-medium hover:bg-primary/30 transition-colors"
+        >
+          Go to Skills →
+        </Link>
+      )}
     </div>
   );
 }

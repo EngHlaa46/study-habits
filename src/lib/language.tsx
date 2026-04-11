@@ -330,7 +330,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // dashboard extra strings
     "dashboard.observationText": "Study as you normally would and log your daily check-ins. After 5+ check-ins we'll unlock your first skill.\nIf you're noticing patterns — distractions, low energy, trouble starting — talk to your coach about them now.",
     "dashboard.completeCheckins": "Complete your daily check-ins. After 5+ check-ins in 7 days, you'll unlock your first skill.",
-    "dashboard.visitSkillsPage": "Visit the Skills page to activate a skill.",
+    "dashboard.visitSkillsPage": "You haven't activated a skill yet. Head to the Skills page, pick one, and activate it to start training.",
 
     // chat errors
     "chat.errorSend": "Failed to send message",
@@ -715,7 +715,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // dashboard extra strings
     "dashboard.observationText": "ادرس كما تفعل عادةً وسجّل تسجيلاتك اليومية. بعد 5 تسجيلات أو أكثر سنفتح لك مهارتك الأولى.\nإذا لاحظت أنماطاً — تشتت، طاقة منخفضة، صعوبة في البدء — تحدث مع مدربك عنها الآن.",
     "dashboard.completeCheckins": "أكمل تسجيلاتك اليومية. بعد 5 تسجيلات في 7 أيام ستفتح مهارتك الأولى.",
-    "dashboard.visitSkillsPage": "زر صفحة المهارات لتفعيل مهارة.",
+    "dashboard.visitSkillsPage": "لم تفعّل مهارة بعد. اذهب إلى صفحة المهارات، اختر مهارة وفعّلها لتبدأ التدريب.",
 
     // chat errors
     "chat.errorSend": "فشل إرسال الرسالة",
