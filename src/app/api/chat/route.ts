@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   }));
 
   try {
-    const mode = chatMode === "training" ? "training" : "study";
+    const mode = ["training", "study", "skills"].includes(chatMode) ? chatMode : "skills";
     const stream = await runDCSPipeline(userId, message, history, mode);
 
     return new Response(stream, {

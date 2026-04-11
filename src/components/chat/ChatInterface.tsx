@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, BookOpen, Brain, Mic, MicOff } from "lucide-react";
+import { Send, BookOpen, Brain, Mic, MicOff, Sparkles } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 interface Message {
@@ -22,7 +22,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
-  const [chatMode, setChatMode] = useState<"study" | "training">("study");
+  const [chatMode, setChatMode] = useState<"skills" | "study" | "training">("skills");
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
 
@@ -159,33 +159,52 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)]">
       {/* Mode toggle */}
-      <div className="flex items-start gap-3 mb-4 p-3 rounded-xl bg-secondary/40 border border-border">
-        <button
-          onClick={() => setChatMode("study")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shrink-0 ${
-            chatMode === "study"
-              ? "bg-primary/20 text-primary border-primary/40"
-              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
-          }`}
-        >
-          <BookOpen size={13} />
-          Study
-        </button>
-        <button
-          onClick={() => setChatMode("training")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shrink-0 ${
-            chatMode === "training"
-              ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
-          }`}
-        >
-          <Brain size={13} />
-          Training
-        </button>
-        <p className="text-xs text-muted-foreground/70 leading-relaxed pt-0.5">
-          {chatMode === "study"
-            ? "Ask anything — subject questions, planning help, concept explanations. Coach answers directly and suggests tools."
-            : "Coach never gives the answer. Asks you questions so you think it through yourself. Use this to prepare for exams."}
+      <div className="mb-4 p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
+        <div className="flex items-center gap-2">
+          {/* Skills Coach — primary/default */}
+          <button
+            onClick={() => setChatMode("skills")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${
+              chatMode === "skills"
+                ? "bg-primary/20 text-primary border-primary/40"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            <Sparkles size={14} />
+            Skills Coach
+          </button>
+
+          <span className="text-muted-foreground/30 text-xs">|</span>
+
+          {/* Study & Training — secondary */}
+          <button
+            onClick={() => setChatMode("study")}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              chatMode === "study"
+                ? "bg-[#4ade80]/20 text-[#4ade80] border-[#4ade80]/40"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            <BookOpen size={12} />
+            Study
+          </button>
+          <button
+            onClick={() => setChatMode("training")}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              chatMode === "training"
+                ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            <Brain size={12} />
+            Training
+          </button>
+        </div>
+
+        <p className="text-xs text-muted-foreground/60 leading-relaxed">
+          {chatMode === "skills" && "Skill building, habit coaching, check-in reviews, and planning. This is the core of the app."}
+          {chatMode === "study" && "Ask subject questions — math, science, history, anything. Coach answers directly and suggests tools."}
+          {chatMode === "training" && "Socratic exam prep. Coach never gives the answer — asks you questions until you work it out yourself."}
         </p>
       </div>
 
