@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { Send, BookOpen, Brain } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 interface Message {
@@ -22,6 +22,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<"study" | "training">("study");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -55,7 +56,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, chatMode }),
       });
 
       if (!res.ok) {
@@ -126,6 +127,35 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)]">
+      {/* Mode toggle */}
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          onClick={() => setChatMode("study")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            chatMode === "study"
+              ? "bg-primary/20 text-primary border border-primary/30"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+          }`}
+        >
+          <BookOpen size={13} />
+          Study Mode
+        </button>
+        <button
+          onClick={() => setChatMode("training")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            chatMode === "training"
+              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+          }`}
+        >
+          <Brain size={13} />
+          Training Mode
+        </button>
+        <span className="text-xs text-muted-foreground/50 ml-1">
+          {chatMode === "study" ? "Coach gives direct help" : "Coach uses Socratic questioning"}
+        </span>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pb-4">
         {messages.length === 0 && (

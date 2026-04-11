@@ -44,6 +44,9 @@ model UserProfile {
   themePrefs          String?   // JSON: { accentColor: string }
   bannerImageUrl      String?
   bannerPosition      String?   @default("50% 50%")
+  coachingStyle       String?   @default("direct")
+  motivationalFrame   String?   @default("intrinsic")
+  phoneUsageHours     Float?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }

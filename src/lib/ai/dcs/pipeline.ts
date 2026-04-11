@@ -7,7 +7,7 @@ import type { CoachOutputs } from "./types";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
-function buildOrchestratorSystem(context: string, coaches: CoachOutputs): string {
+function buildOrchestratorSystem(context: string, coaches: CoachOutputs, chatMode: string): string {
   const coachBlock = [
     coaches.behavioral ? `[BehavioralCoach]\n${coaches.behavioral}` : null,
     coaches.cognitive ? `[CognitiveCoach]\n${coaches.cognitive}` : null,
@@ -17,7 +17,12 @@ function buildOrchestratorSystem(context: string, coaches: CoachOutputs): string
     .filter(Boolean)
     .join("\n\n");
 
+  const modeInstruction = chatMode === "training"
+    ? `\n## ACTIVE MODE: TRAINING\nDo NOT give direct answers or solutions. Use Socratic questioning, interleaved retrieval challenges, and desirable difficulties. Withhold explanations — ask the student to produce their own first. Only confirm or redirect after they try.`
+    : `\n## ACTIVE MODE: STUDY\nProvide supportive scaffolding. Give direct feedback, hints, and explanations as needed. Prioritise clarity and actionability.`;
+
   return `${SYSTEM_PROMPT}
+${modeInstruction}
 
 ---
 
@@ -39,7 +44,8 @@ function sseEvent(data: Record<string, string>): Uint8Array {
 export async function runDCSPipeline(
   userId: string,
   message: string,
-  history: { role: "user" | "assistant"; content: string }[]
+  history: { role: "user" | "assistant"; content: string }[],
+  chatMode: string = "study"
 ): Promise<ReadableStream> {
   return new ReadableStream({
     async start(controller) {
@@ -58,7 +64,7 @@ export async function runDCSPipeline(
         // Step 3: Stream orchestrator response
         controller.enqueue(sseEvent({ step: "orchestrating", label: "Synthesizing response..." }));
 
-        const systemMessage = buildOrchestratorSystem(context, coachOutputs);
+        const systemMessage = buildOrchestratorSystem(context, coachOutputs, chatMode);
         const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
           { role: "system", content: systemMessage },
           ...history,

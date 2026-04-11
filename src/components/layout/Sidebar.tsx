@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Wrench,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
@@ -32,6 +33,7 @@ export function Sidebar() {
     { href: "/check-in", labelKey: "checkIn", icon: CheckSquare },
     { href: "/skills", labelKey: "skills", icon: GitBranch },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
+    { href: "/tools", labelKey: "tools", icon: Wrench },
     { href: "/events", labelKey: "events", icon: CalendarDays },
     { href: "/history", labelKey: "history", icon: History },
     { href: "/settings", labelKey: "settings", icon: Settings },

@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { message } = await req.json();
+  const { message, chatMode } = await req.json();
   if (!message || typeof message !== "string") {
     return NextResponse.json({ error: "Message required" }, { status: 400 });
   }
@@ -38,7 +38,8 @@ export async function POST(req: Request) {
   }));
 
   try {
-    const stream = await runDCSPipeline(userId, message, history);
+    const mode = chatMode === "training" ? "training" : "study";
+    const stream = await runDCSPipeline(userId, message, history, mode);
 
     return new Response(stream, {
       headers: {

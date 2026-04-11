@@ -195,6 +195,18 @@ export function buildContextFromData(data: UserData): string {
     } catch { /* ignore */ }
   }
 
+  // Coaching preferences
+  const coachingStyle = (profile as unknown as { coachingStyle?: string | null })?.coachingStyle;
+  const motivationalFrame = (profile as unknown as { motivationalFrame?: string | null })?.motivationalFrame;
+  const phoneUsageHours = (profile as unknown as { phoneUsageHours?: number | null })?.phoneUsageHours;
+
+  if (coachingStyle || motivationalFrame || phoneUsageHours != null) {
+    lines.push("\nCoaching preferences:");
+    if (coachingStyle) lines.push(`  Style: ${coachingStyle === "socratic" ? "Socratic (ask questions, withhold answers)" : "Direct (clear feedback and suggestions)"}`);
+    if (motivationalFrame) lines.push(`  Motivation frame: ${motivationalFrame === "exam" ? "Exam-focused (grades and performance)" : "Intrinsic (genuine understanding and growth)"}`);
+    if (phoneUsageHours != null) lines.push(`  Avg daily phone screen time: ${phoneUsageHours}h`);
+  }
+
   return lines.join("\n");
 }
 
