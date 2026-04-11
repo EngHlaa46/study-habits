@@ -23,6 +23,7 @@ model User {
   notifications  Notification[]
   pushSubscriptions PushSubscription[]
   feedbacks         Feedback[]
+  knowledgeProfile  KnowledgeEntry[]
 }
 
 model UserProfile {
@@ -188,4 +189,18 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+}
+
+model KnowledgeEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  topic     String
+  status    String   // struggling, developing, mastered
+  notes     String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([userId, subject, topic])
 }

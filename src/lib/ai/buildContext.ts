@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import type { ActivePhase, CheckIn, Event, SkillProgress, Skill, UserProfile } from "@prisma/client";
+import type { ActivePhase, CheckIn, Event, SkillProgress, Skill, UserProfile, KnowledgeEntry } from "@prisma/client";
 
 export interface UserData {
   userName: string | null;
@@ -8,10 +8,11 @@ export interface UserData {
   skillProgresses: (SkillProgress & { skill: Skill })[];
   upcomingEvents: Event[];
   profile: UserProfile | null;
+  knowledgeProfile: KnowledgeEntry[];
 }
 
 export async function fetchUserData(userId: string): Promise<UserData> {
-  const [user, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile] =
+  const [user, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile, knowledgeProfile] =
     await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
       prisma.activePhase.findUnique({ where: { userId } }),
@@ -30,6 +31,11 @@ export async function fetchUserData(userId: string): Promise<UserData> {
         take: 3,
       }),
       prisma.userProfile.findUnique({ where: { userId } }),
+      (prisma.knowledgeEntry as { findMany: (args: object) => Promise<KnowledgeEntry[]> }).findMany({
+        where: { userId },
+        orderBy: { updatedAt: "desc" },
+        take: 30,
+      }),
     ]);
 
   return {
@@ -39,11 +45,12 @@ export async function fetchUserData(userId: string): Promise<UserData> {
     skillProgresses: skillProgresses as (SkillProgress & { skill: Skill })[],
     upcomingEvents,
     profile,
+    knowledgeProfile: knowledgeProfile ?? [],
   };
 }
 
 export function buildContextFromData(data: UserData): string {
-  const { userName, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile } = data;
+  const { userName, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile, knowledgeProfile } = data;
   const lines: string[] = [];
 
   if (userName) {
@@ -193,6 +200,22 @@ export function buildContextFromData(data: UserData): string {
       }
       if (sa.preferredTime) lines.push(`  Preferred study time: ${sa.preferredTime}`);
     } catch { /* ignore */ }
+  }
+
+  // Knowledge profile
+  if (knowledgeProfile.length > 0) {
+    lines.push("\nKnowledge profile (from past sessions):");
+    const bySubject: Record<string, KnowledgeEntry[]> = {};
+    for (const e of knowledgeProfile) {
+      if (!bySubject[e.subject]) bySubject[e.subject] = [];
+      bySubject[e.subject].push(e);
+    }
+    for (const [subject, entries] of Object.entries(bySubject)) {
+      for (const e of entries) {
+        const note = e.notes ? ` — ${e.notes}` : "";
+        lines.push(`  - ${subject} / ${e.topic}: ${e.status}${note}`);
+      }
+    }
   }
 
   // Coaching preferences

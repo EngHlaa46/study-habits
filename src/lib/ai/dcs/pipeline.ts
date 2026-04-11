@@ -2,6 +2,7 @@ import Groq from "groq-sdk";
 import { fetchUserData, buildContextFromData } from "@/lib/ai/buildContext";
 import { runSentinels, detectFixedMindset } from "./sentinels";
 import { runCoaches } from "./coaches";
+import { analyzeAndUpdateKnowledge } from "./knowledgeAnalyzer";
 import { SYSTEM_PROMPT } from "@/lib/ai/systemPrompt";
 import type { CoachOutputs } from "./types";
 
@@ -108,6 +109,14 @@ export async function runDCSPipeline(
         await prisma.chatMessage.create({
           data: { userId, role: "assistant", content: fullResponse },
         });
+
+        // Fire-and-forget: analyze exchange for knowledge profile updates
+        const exchangeForAnalysis = [
+          ...history.slice(-4),
+          { role: "user", content: message },
+          { role: "assistant", content: fullResponse },
+        ];
+        analyzeAndUpdateKnowledge(groq, userId, exchangeForAnalysis).catch(() => {});
 
         controller.close();
       } catch (error) {
