@@ -56,14 +56,22 @@ Tier 3: Focus Endurance ──→ Cognitive Recovery
 Tier 4: Planning & Sequencing ──→ Deadline Calibration
 ```
 
-### 5. AI Coaching
-The AI coach (Groq Llama 3.3 70B) receives the student's full context before every message:
+### 5. AI Coaching (DCS v2 — Multi-Agent Pipeline)
+The chat runs a **Distributed Cognitive Scaffolding (DCS)** pipeline before each response:
+
+1. **Sentinel agents** (rule-based, no LLM) extract behavioral, cognitive, and metacognitive signals from check-in data
+2. **Dimension coaches** (3× llama-3.1-8b-instant in parallel) produce internal specialist notes — never shown to student
+3. **InterventionOrchestrator** (llama-3.3-70b-versatile, streaming) synthesises all signals into one calibrated response
+
+The orchestrator receives the student's full context before every message:
 - Current phase and skill
 - Last 14 check-ins (with focus level, methods, miss reasons, session intentions)
 - Procrastination pattern analysis (repeated miss reasons flagged)
 - Dimension profile (Behavioral / Cognitive / Metacognitive scores)
 - Upcoming events and deadlines
 - Study method → focus correlations (e.g. `qa: 3/4 focused`)
+- **Knowledge profile** — subjects and topics the student struggled with or mastered across all past sessions
+- **Coaching preferences** — style (direct/Socratic), motivation frame, phone screen time
 
 ---
 
@@ -73,7 +81,12 @@ The AI coach (Groq Llama 3.3 70B) receives the student's full context before eve
 - **Daily Check-in** (< 2 min) — session type (full / brief / no), focus level, energy, mood, study methods, miss reason, pre-session intention
 - **Skill Tree** — visual tier-based graph with SVG dependency lines, color-coded status, stability bars
 - **Skill Detail** — training timeline, stats, user-defined task (time + place + action), growth narrative
-- **AI Chat** — context-aware coaching with mindset detection and procrastination pattern interpretation
+- **AI Chat** — three-mode DCS pipeline:
+  - *Skills Coach* (default) — habit coaching, check-in review, planning; AI can update your skill task directly
+  - *Study* — direct subject-matter answers with tool recommendations
+  - *Training* — Socratic exam prep, never gives answers
+  - Voice-to-text input, AI autocomplete suggestions (Tab to accept)
+- **AI Tools** — curated study tools page (StudyFetch, NotebookLM, Napkin, Consensus, Magic School) with dimension-aware highlights
 - **Event Tracking** — exams, deadlines, projects with days-until countdown
 - **Check-in History** — full log with filtering
 
@@ -100,8 +113,9 @@ The AI coach (Groq Llama 3.3 70B) receives the student's full context before eve
 
 ### Personalization
 - **Banner photo** — custom dashboard banner with drag-to-reposition (Pointer Events API, works on touch)
-- **Accent color** — full theme customization
+- **Accent color** — full theme customization (applied to chat bubbles and UI accents)
 - **Arabic / English** toggle with RTL support, persisted in localStorage
+- **Coaching preferences** — style (direct/Socratic), motivation frame (intrinsic/exam), phone screen time; all fed to AI context
 
 ### Admin & Communication
 - **Feedback system** — users can submit feedback from the sidebar; admin views all submissions at `/admin/feedback`
@@ -158,6 +172,7 @@ Key models:
 | `Notification` | Daily and weekly AI-generated notifications |
 | `PushSubscription` | Web push endpoint + VAPID keys per device |
 | `Feedback` | User-submitted feedback messages |
+| `KnowledgeEntry` | Persistent subject/topic knowledge profile (struggling / improving / strong) |
 
 ---
 
@@ -280,6 +295,7 @@ src/
     dashboard/           — all dashboard widgets
     skills/              — skill tree and detail components
     check-in/            — check-in form
+    chat/                — ChatInterface (modes, voice, autocomplete, tool call toasts)
     layout/              — sidebar, notification bell, feedback button
     providers/           — session, theme, push, language providers
     ui/                  — shadcn/ui primitives
@@ -287,6 +303,12 @@ src/
     ai/
       systemPrompt.ts    — single source of truth for all AI behavior rules
       buildContext.ts    — assembles full student state before each AI call
+      dcs/
+        pipeline.ts      — DCS pipeline (sentinels → coaches → orchestrator → tool calls)
+        sentinels.ts     — rule-based signal extraction (no LLM)
+        coaches.ts       — parallel dimension coach LLM calls
+        knowledgeAnalyzer.ts — fire-and-forget knowledge profile updater
+        types.ts         — shared signal and output types
     skills/
       progression.ts     — stability score formula and unlock thresholds
     auth.ts              — NextAuth configuration

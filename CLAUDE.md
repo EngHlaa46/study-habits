@@ -115,9 +115,23 @@ The old Render URL (`study-skills-builder.onrender.com`) redirects 301 to `study
 - Never commit `.env`, `prisma/dev.db`, or any `*.db` files
 
 ## What Is NOT Yet Implemented
-- Phone usage data integration (FR-10) — schema has `phoneDataConsent` field, UI not built
+- Phone usage data integration (full) — `phoneUsageHours` self-report exists; CSV/JSON upload from iOS Screen Time / Android Digital Wellbeing not built
 - Voice notes in check-in
 - Minimum 5–7 day event distance enforcement (events page exists, validation not enforced)
 - Brevo email (currently using Resend — only works with verified domain, not arbitrary emails)
 - AI proactively surfacing bad habits during observation (waits for user to ask)
 - Motivation & Stories section
+- SkillProgressionAgent / ProgressNarratorAgent (Layer 4 longitudinal intelligence — architecture defined, not built)
+
+## DCS Pipeline (src/lib/ai/dcs/)
+- `pipeline.ts` — main pipeline: sentinels → parallel coaches → streaming orchestrator + Groq tool calling (`update_skill_task`)
+- `sentinels.ts` — rule-based signal extraction (no LLM); `detectFixedMindset` regex
+- `coaches.ts` — 3 parallel llama-3.1-8b-instant calls + optional MindsetInterventionAgent
+- `knowledgeAnalyzer.ts` — fire-and-forget knowledge profile updater (llama-3.1-8b-instant, upserts KnowledgeEntry)
+- `types.ts` — shared types (Signals, CoachOutputs)
+
+## Chat Modes
+Three modes selectable via toggle in ChatInterface:
+- `skills` — default; includes `update_skill_task` tool; orchestrator prompt includes skills coach instructions
+- `study` — direct subject answers + tool recommendations
+- `training` — Socratic only, never gives answers

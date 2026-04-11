@@ -67,7 +67,31 @@ Every AI behavior rule, skill categorization, and context-building decision was 
 - [x] NoSkillCard — contextual prompt when no active skill
 - [x] SkillOverviewSection — all skills summary at bottom of dashboard
 
-### AI Coaching
+### AI Coaching (DCS v2)
+- [x] **DCS Multi-Agent Pipeline** — Distributed Cognitive Scaffolding architecture (Agenticthon submission)
+  - Layer 1: Rule-based sentinel agents (BehaviorSentinel, CognitiveSentinel, MetacognitiveSentinel) — no LLM, instant
+  - Layer 2: Three parallel llama-3.1-8b-instant calls (BehavioralCoach, CognitiveCoach, MetacognitiveCoach) + optional MindsetInterventionAgent
+  - Layer 3: llama-3.3-70b-versatile InterventionOrchestrator — streaming, MEI-enforced single response
+  - SSE pipeline step indicators in UI (animated dot with label per stage)
+- [x] **Chat mode system** — three-mode toggle with clear visual hierarchy:
+  - **Skills Coach** (default/primary, Sparkles icon) — habit coaching, check-in review, planning
+  - **Study** (secondary, BookOpen) — direct academic subject answers + tool recommendations
+  - **Training** (secondary, Brain) — Socratic exam prep, never gives answers, retrieval practice
+  - Mode instruction injected into orchestrator system prompt per selection
+  - Description text below toggle explaining each mode
+- [x] **Persistent knowledge profile** — AI remembers subjects/topics across sessions
+  - `KnowledgeEntry` model with `@@unique([userId, subject, topic])`, status + notes
+  - `knowledgeAnalyzer` (llama-3.1-8b-instant, fire-and-forget) upserts entries after each exchange
+  - Included in every AI context string — coach builds on academic history
+- [x] **AI tool calling — update_skill_task** — coach can directly update `SkillProgress.userTask`
+  - Groq function calling with `update_skill_task` tool (Skills Coach mode only)
+  - DB update via `prisma.skillProgress.update` on active skill
+  - SSE `{ action: "task_updated" }` event → green confirmation toast in ChatInterface
+  - Follow-up confirmation text streamed from a second LLM call
+- [x] **AI autocomplete suggestions** — debounced (900ms) completion in chat textarea
+  - `/api/chat/suggest` endpoint (llama-3.1-8b-instant), 2–8 word completions
+  - Chip shown below textarea — Tab key or click to accept
+  - Uses last 6 messages as context; fires only after 3+ words typed
 - [x] Groq API integration (Llama 3.3 70B Versatile) — switched from Anthropic due to free tier
 - [x] Full context builder — phase, active skill, last 14 check-ins, upcoming events, challenges, skill statuses, study method correlations
 - [x] **Mindset detection and reframing** — detects absolute/trait/hopeless language, reframes once per conversation using student's own data, prohibits positivity overload
@@ -111,6 +135,20 @@ Every AI behavior rule, skill categorization, and context-building decision was 
 - [x] Accent color picker in settings — full theme customization
 - [x] Arabic / English language toggle with RTL support, persisted in localStorage
 - [x] Personal affirmation field on Today's Note widget
+- [x] **Coaching preferences** — settings card with three options:
+  - Coaching style (Direct vs. Socratic)
+  - Motivation frame (Intrinsic vs. Exam-focused)
+  - Average daily phone screen time (self-reported hours)
+  - Stored on `UserProfile`, included in AI context, `/api/user/coaching-prefs` GET/PATCH route
+- [x] **Voice-to-text input** — Web Speech API in chat textarea
+  - Continuous recognition, interim results shown in real-time while speaking
+  - Final transcript appended to any existing typed text
+  - Mic/MicOff toggle button with pulsing red indicator when active
+- [x] **User message accent color** — chat bubbles use `bg-primary` (user's chosen accent)
+
+### Navigation & Tools
+- [x] **AI Tools page** (`/tools`) — 5 tools (StudyFetch, NotebookLM, Napkin, Consensus, Magic School) with dimension-aware highlighting based on weakest dimension score
+- [x] **NoSkillCard** updated — added "Go to Skills →" link so students understand how to activate a skill
 
 ### Communication
 - [x] **Feedback system** — "Send Feedback" button in sidebar opens modal with textarea
@@ -210,8 +248,12 @@ All schema changes were additive (nullable fields, new models) to avoid breaking
 | `CheckIn.sessionIntention` | Pre-session planning (metacognitive loop) |
 | `Notification.type` | Distinguish daily vs. weekly notifications |
 | `UserProfile.bannerPosition` | Persist drag-to-reposition value |
+| `UserProfile.coachingStyle` | Coaching preference (direct/socratic) |
+| `UserProfile.motivationalFrame` | Motivation frame (exam/intrinsic) |
+| `UserProfile.phoneUsageHours` | Self-reported daily screen time |
 | `PushSubscription` (model) | Web push notification subscriptions |
 | `Feedback` (model) | User feedback submissions |
+| `KnowledgeEntry` (model) | Persistent knowledge profile across sessions |
 
 ---
 
