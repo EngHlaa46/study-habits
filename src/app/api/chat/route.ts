@@ -20,22 +20,22 @@ export async function POST(req: Request) {
 
   const userId = session.user.id;
 
-  // Save user message
-  await prisma.chatMessage.create({
-    data: { userId, role: "user", content: message },
-  });
-
-  // Get recent conversation history (exclude the message we just saved)
+  // Fetch history BEFORE saving so the current message isn't duplicated
   const historyRows = await prisma.chatMessage.findMany({
     where: { userId },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" }, // most recent first
     take: 20,
   });
-  // Last row is the user message we just saved — include all as history for the pipeline
-  const history = historyRows.map((msg) => ({
+  // Reverse to restore chronological order for the LLM
+  const history = historyRows.reverse().map((msg) => ({
     role: msg.role as "user" | "assistant",
     content: msg.content,
   }));
+
+  // Save user message after fetching history
+  await prisma.chatMessage.create({
+    data: { userId, role: "user", content: message },
+  });
 
   try {
     const mode = ["training", "study", "skills"].includes(chatMode) ? chatMode : "skills";
