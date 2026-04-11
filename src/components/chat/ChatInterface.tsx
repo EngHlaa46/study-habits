@@ -25,6 +25,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [chatMode, setChatMode] = useState<"skills" | "study" | "training">("skills");
   const [listening, setListening] = useState(false);
   const [suggestion, setSuggestion] = useState("");
+  const [taskToast, setTaskToast] = useState<string | null>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const inputBeforeVoiceRef = useRef("");
   const suggestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -154,7 +155,10 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
             if (data === "[DONE]") continue;
             try {
               const parsed = JSON.parse(data);
-              if (parsed.step && parsed.label) {
+              if (parsed.action === "task_updated" && parsed.task) {
+                setTaskToast(parsed.task as string);
+                setTimeout(() => setTaskToast(null), 5000);
+              } else if (parsed.step && parsed.label) {
                 setPipelineStep(parsed.label);
               } else if (parsed.text) {
                 setPipelineStep(null);
@@ -276,6 +280,14 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Task updated toast */}
+      {taskToast && (
+        <div className="flex items-center gap-2 py-2 px-3 mb-1 rounded-lg bg-[#4ade80]/10 border border-[#4ade80]/30 text-xs text-[#4ade80]">
+          <span>✓</span>
+          <span>Task updated: <span className="font-medium">{taskToast}</span></span>
+        </div>
+      )}
 
       {/* DCS pipeline status */}
       {pipelineStep && (

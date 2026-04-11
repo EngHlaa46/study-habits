@@ -6,6 +6,28 @@ import { analyzeAndUpdateKnowledge } from "./knowledgeAnalyzer";
 import { SYSTEM_PROMPT } from "@/lib/ai/systemPrompt";
 import type { CoachOutputs } from "./types";
 
+const SKILL_TOOLS: Groq.Chat.Completions.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "update_skill_task",
+      description:
+        "Set or update the student's personal task/habit for their active skill. Only call when the student explicitly asks to set, change, or update their study task, goal, or habit commitment.",
+      parameters: {
+        type: "object",
+        properties: {
+          task: {
+            type: "string",
+            description:
+              "The complete task commitment: when (time), where (place), what action. E.g. 'Study at 8pm in my room for 30 minutes'.",
+          },
+        },
+        required: ["task"],
+      },
+    },
+  },
+];
+
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
 function buildOrchestratorSystem(context: string, coaches: CoachOutputs, chatMode: string): string {
@@ -34,7 +56,10 @@ RULES:
 - Explain step by step. Use examples. Break down complexity.
 - When relevant, suggest tools by name: StudyFetch (flashcards/quizzes), NotebookLM (summaries/mind maps), Napkin (visual diagrams), Consensus (research answers).
 - Keep responses clear and actionable.`
-    : ""; // "skills" mode — no override, core system prompt handles everything
+    : `\n## ACTIVE MODE: SKILLS COACH
+- Your primary role is helping the student build their active skill through habit coaching and check-in review.
+- You have access to the update_skill_task tool. Use it when the student explicitly asks to set, change, or update their task/goal/habit commitment for their active skill.
+- When using the tool, confirm what you saved in your response text.`;
 
   return `${SYSTEM_PROMPT}
 ${modeInstruction}
@@ -91,14 +116,84 @@ export async function runDCSPipeline(
           messages,
           max_tokens: 1024,
           stream: true,
+          ...(chatMode === "skills" ? { tools: SKILL_TOOLS, tool_choice: "auto" as const } : {}),
         });
 
         let fullResponse = "";
+        // Accumulate tool call
+        let toolCallId = "";
+        let toolCallName = "";
+        let toolCallArgs = "";
+
         for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content || "";
+          const delta = chunk.choices[0]?.delta;
+          if (!delta) continue;
+
+          // Tool call deltas
+          const tc = delta.tool_calls?.[0];
+          if (tc) {
+            if (tc.id) toolCallId = tc.id;
+            if (tc.function?.name) toolCallName = tc.function.name;
+            if (tc.function?.arguments) toolCallArgs += tc.function.arguments;
+            continue;
+          }
+
+          const text = delta.content || "";
           if (text) {
             fullResponse += text;
             controller.enqueue(sseEvent({ text }));
+          }
+        }
+
+        // Handle tool call if one was requested
+        if (toolCallName === "update_skill_task" && toolCallArgs) {
+          try {
+            const { task } = JSON.parse(toolCallArgs) as { task: string };
+            const { prisma: db } = await import("@/lib/db/prisma");
+            const activeSkill = await db.skillProgress.findFirst({
+              where: { userId, status: "active" },
+            });
+            if (activeSkill && task) {
+              await db.skillProgress.update({
+                where: { id: activeSkill.id },
+                data: { userTask: task },
+              });
+              controller.enqueue(sseEvent({ action: "task_updated", task }));
+
+              // Now get a follow-up text response confirming the update
+              const followUpMessages: { role: "system" | "user" | "assistant" | "tool"; content: string; tool_call_id?: string; name?: string }[] = [
+                ...messages,
+                {
+                  role: "assistant",
+                  content: "",
+                  // @ts-expect-error tool_calls not in simplified type
+                  tool_calls: [{ id: toolCallId, type: "function", function: { name: "update_skill_task", arguments: toolCallArgs } }],
+                },
+                {
+                  role: "tool",
+                  tool_call_id: toolCallId,
+                  name: "update_skill_task",
+                  content: `Task updated successfully: "${task}"`,
+                },
+              ];
+
+              const confirmStream = await groq.chat.completions.create({
+                model: "llama-3.3-70b-versatile",
+                messages: followUpMessages as Parameters<typeof groq.chat.completions.create>[0]["messages"],
+                max_tokens: 256,
+                stream: true,
+              });
+
+              for await (const chunk of confirmStream) {
+                const text = chunk.choices[0]?.delta?.content || "";
+                if (text) {
+                  fullResponse += text;
+                  controller.enqueue(sseEvent({ text }));
+                }
+              }
+            }
+          } catch {
+            // tool call failed silently — response still sent
           }
         }
 
