@@ -24,7 +24,30 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState<"skills" | "study" | "training">("skills");
   const [listening, setListening] = useState(false);
+  const [suggestion, setSuggestion] = useState("");
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const inputBeforeVoiceRef = useRef("");
+  const suggestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced AI autocomplete
+  const fetchSuggestion = useCallback((value: string, msgs: Message[]) => {
+    if (suggestTimeoutRef.current) clearTimeout(suggestTimeoutRef.current);
+    if (value.trim().split(/\s+/).length < 3) { setSuggestion(""); return; }
+    suggestTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/chat/suggest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input: value,
+            history: msgs.slice(-6).map((m) => ({ role: m.role, content: m.content })),
+          }),
+        });
+        const { suggestion: s } = await res.json();
+        setSuggestion(s ?? "");
+      } catch { setSuggestion(""); }
+    }, 900);
+  }, []);
 
   const toggleVoice = useCallback(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,15 +60,31 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       return;
     }
 
+    inputBeforeVoiceRef.current = input;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition: any = new SR();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    recognition.onresult = (e: { results: { [key: number]: { [key: number]: { transcript: string } } } }) => {
-      const transcript = e.results[0]?.[0]?.transcript ?? "";
-      if (transcript) setInput((prev) => prev ? prev + " " + transcript : transcript);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (e: any) => {
+      let interim = "";
+      let final = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      const base = inputBeforeVoiceRef.current;
+      if (final) {
+        const updated = base ? base + " " + final.trim() : final.trim();
+        inputBeforeVoiceRef.current = updated;
+        setInput(updated);
+      } else {
+        setInput(base ? base + " " + interim : interim);
+      }
     };
     recognition.onend = () => setListening(false);
     recognition.onerror = () => setListening(false);
@@ -53,7 +92,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);
-  }, [listening]);
+  }, [listening, input]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -73,6 +112,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setSuggestion("");
     setStreaming(true);
     setPipelineStep("Initializing DCS pipeline...");
 
@@ -248,15 +288,40 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       {/* Input */}
       <div className="border-t border-border pt-4">
         <div className="flex gap-2">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t("chat.askCoach")}
-            className="bg-card border-border text-foreground resize-none min-h-[44px] max-h-[120px]"
-            rows={1}
-          />
+          <div className="flex-1 flex flex-col gap-1">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setSuggestion("");
+                fetchSuggestion(e.target.value, messages);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Tab" && suggestion) {
+                  e.preventDefault();
+                  setInput((prev) => prev.trimEnd() + " " + suggestion);
+                  setSuggestion("");
+                  return;
+                }
+                handleKeyDown(e);
+              }}
+              placeholder={t("chat.askCoach")}
+              className="bg-card border-border text-foreground resize-none min-h-[44px] max-h-[120px]"
+              rows={1}
+            />
+            {suggestion && !streaming && (
+              <button
+                onClick={() => { setInput((prev) => prev.trimEnd() + " " + suggestion); setSuggestion(""); }}
+                className="self-start flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+                title="Tab to accept"
+              >
+                <Sparkles size={10} className="text-primary" />
+                <span className="text-muted-foreground/60 italic">{suggestion}</span>
+                <span className="text-muted-foreground/40 text-[10px] ml-1">Tab</span>
+              </button>
+            )}
+          </div>
           <button
             onClick={toggleVoice}
             title={listening ? "Stop recording" : "Voice input"}
