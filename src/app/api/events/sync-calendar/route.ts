@@ -2,9 +2,63 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
-import ical, { type VEvent } from "node-ical";
 
-// Infer event type from the ICS event summary
+interface IcsEvent {
+  uid: string;
+  summary: string;
+  date: Date;
+  description: string | null;
+}
+
+// Minimal ICS parser — extracts VEVENT blocks and reads the fields we need
+function parseICS(text: string): IcsEvent[] {
+  const results: IcsEvent[] = [];
+  // Split into VEVENT blocks
+  const blocks = text.split("BEGIN:VEVENT");
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i].split("END:VEVENT")[0];
+    // Unfold continuation lines (RFC 5545: lines starting with space/tab are continuations)
+    const unfolded = block.replace(/\r?\n[ \t]/g, "");
+
+    const get = (key: string): string => {
+      const match = unfolded.match(new RegExp(`(?:^|\\n)${key}[^:;]*(?:;[^:]*)?:([^\\r\\n]*)`, "i"));
+      return match ? match[1].trim() : "";
+    };
+
+    const uid = get("UID");
+    const summary = get("SUMMARY").replace(/\\,/g, ",").replace(/\\n/g, " ").replace(/\\/g, "");
+    if (!summary) continue;
+
+    // Try DTEND first, fall back to DUE, then DTSTART
+    const rawDate = get("DTEND") || get("DUE") || get("DTSTART");
+    if (!rawDate) continue;
+
+    const date = parseIcsDate(rawDate);
+    if (!date || isNaN(date.getTime())) continue;
+
+    const description = get("DESCRIPTION") || null;
+
+    results.push({ uid, summary, date, description });
+  }
+  return results;
+}
+
+// Parse ICS date formats: 20260415T120000Z, 20260415T120000, 20260415
+function parseIcsDate(raw: string): Date | null {
+  const clean = raw.replace(/^TZID=[^:]+:/, "").trim();
+  // All-day: YYYYMMDD
+  if (/^\d{8}$/.test(clean)) {
+    return new Date(`${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}T00:00:00Z`);
+  }
+  // DateTime: YYYYMMDDTHHmmss[Z]
+  if (/^\d{8}T\d{6}Z?$/.test(clean)) {
+    const s = clean.replace("Z", "");
+    const iso = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(9, 11)}:${s.slice(11, 13)}:${s.slice(13, 15)}${clean.endsWith("Z") ? "Z" : ""}`;
+    return new Date(iso);
+  }
+  return null;
+}
+
 function inferType(summary: string): string {
   const lower = summary.toLowerCase();
   if (lower.includes("exam") || lower.includes("final") || lower.includes("midterm")) return "exam";
@@ -28,7 +82,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "url required" }, { status: 400 });
   }
 
-  // Basic URL validation — must be http(s)
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -37,7 +90,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
-  // Fetch the ICS feed
   let icsText: string;
   try {
     const res = await fetch(parsed.href, {
@@ -51,52 +103,35 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Could not fetch calendar: ${msg}` }, { status: 422 });
   }
 
-  // Parse ICS
-  const events = ical.sync.parseICS(icsText);
+  const events = parseICS(icsText);
 
   const now = new Date();
-  const horizon = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days out
+  const horizon = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
   let imported = 0;
   let skipped = 0;
 
-  for (const key of Object.keys(events)) {
-    const component = events[key];
-    if (!component || component.type !== "VEVENT") continue;
-    const ev = component as VEvent;
+  for (const ev of events) {
+    if (ev.date < now || ev.date > horizon) continue;
 
-    const summary = typeof ev.summary === "string" ? ev.summary.trim() : "";
-    if (!summary) continue;
-
-    // Use DTEND or DTSTART as the deadline date
-    const date: Date | undefined = ev.end instanceof Date ? ev.end : ev.start instanceof Date ? ev.start : undefined;
-    if (!date || isNaN(date.getTime())) continue;
-    if (date < now || date > horizon) continue;
-
-    const uid = typeof ev.uid === "string" ? ev.uid : key;
-
-    // Skip if already imported (by UID)
-    if (uid) {
-      const existing = await prisma.event.findFirst({
-        where: { userId, calendarUid: uid },
-      });
+    if (ev.uid) {
+      const existing = await prisma.event.findFirst({ where: { userId, calendarUid: ev.uid } });
       if (existing) { skipped++; continue; }
     }
 
     await prisma.event.create({
       data: {
         userId,
-        name: summary.slice(0, 200),
-        type: inferType(summary),
-        date,
-        notes: typeof ev.description === "string" ? ev.description.slice(0, 1000) : null,
-        calendarUid: uid || null,
+        name: ev.summary.slice(0, 200),
+        type: inferType(ev.summary),
+        date: ev.date,
+        notes: ev.description ? ev.description.slice(0, 1000) : null,
+        calendarUid: ev.uid || null,
       },
     });
     imported++;
   }
 
-  // Save the feed URL + last-synced timestamp
   await prisma.userProfile.upsert({
     where: { userId },
     update: { calendarFeedUrl: url, calendarLastSynced: new Date() },
