@@ -29,6 +29,8 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [taskToast, setTaskToast] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const baseInputRef = useRef("");
+  const liveTranscribingRef = useRef(false);
   const suggestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced AI autocomplete
@@ -66,18 +68,15 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
     }
 
     audioChunksRef.current = [];
+    baseInputRef.current = input;
+    liveTranscribingRef.current = false;
     const recorder = new MediaRecorder(stream);
     mediaRecorderRef.current = recorder;
 
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) audioChunksRef.current.push(e.data);
-    };
-
-    recorder.onstop = async () => {
-      stream.getTracks().forEach((t) => t.stop());
+    const transcribeAccumulated = async () => {
+      if (liveTranscribingRef.current || audioChunksRef.current.length === 0) return;
+      liveTranscribingRef.current = true;
       const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-      audioChunksRef.current = [];
-      setTranscribing(true);
       try {
         const fd = new FormData();
         fd.append("audio", blob, "recording.webm");
@@ -85,14 +84,43 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
         const res = await fetch("/api/chat/transcribe", { method: "POST", body: fd });
         const { transcript } = await res.json();
         if (transcript) {
-          setInput((prev) => (prev.trimEnd() ? prev.trimEnd() + " " + transcript.trim() : transcript.trim()));
+          const base = baseInputRef.current;
+          setInput(base.trimEnd() ? base.trimEnd() + " " + transcript.trim() : transcript.trim());
+        }
+      } catch { /* ignore */ } finally {
+        liveTranscribingRef.current = false;
+      }
+    };
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioChunksRef.current.push(e.data);
+        transcribeAccumulated();
+      }
+    };
+
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      // Final transcription for anything after the last chunk boundary
+      setTranscribing(true);
+      const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+      audioChunksRef.current = [];
+      try {
+        const fd = new FormData();
+        fd.append("audio", blob, "recording.webm");
+        fd.append("lang", lang === "ar" ? "ar" : "en");
+        const res = await fetch("/api/chat/transcribe", { method: "POST", body: fd });
+        const { transcript } = await res.json();
+        if (transcript) {
+          const base = baseInputRef.current;
+          setInput(base.trimEnd() ? base.trimEnd() + " " + transcript.trim() : transcript.trim());
         }
       } catch { /* ignore */ } finally {
         setTranscribing(false);
       }
     };
 
-    recorder.start();
+    recorder.start(2500); // fire ondataavailable every 2.5s for live updates
     setListening(true);
   }, [listening, lang]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -338,7 +366,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
           <button
             onClick={toggleVoice}
             disabled={transcribing}
-            title={transcribing ? "Transcribing..." : listening ? "Stop recording" : "Voice input (Whisper)"}
+            title={transcribing ? "Finalizing..." : listening ? "Stop recording (live transcription active)" : "Voice input (Whisper)"}
             className={`px-3 rounded-lg border transition-colors ${
               listening
                 ? "border-red-500/50 text-red-400 bg-red-500/10 animate-pulse"
