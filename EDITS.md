@@ -140,15 +140,40 @@ Every AI behavior rule, skill categorization, and context-building decision was 
   - Motivation frame (Intrinsic vs. Exam-focused)
   - Average daily phone screen time (self-reported hours)
   - Stored on `UserProfile`, included in AI context, `/api/user/coaching-prefs` GET/PATCH route
-- [x] **Voice-to-text input** — Web Speech API in chat textarea
-  - Continuous recognition, interim results shown in real-time while speaking
-  - Final transcript appended to any existing typed text
-  - Mic/MicOff toggle button with pulsing red indicator when active
+- [x] **Voice-to-text input (Whisper)** — replaced Web Speech API with Groq's `whisper-large-v3-turbo`
+  - `MediaRecorder` captures audio; on stop, blob POSTed to `/api/chat/transcribe`
+  - Transcribe route uses `groq.audio.transcriptions.create` with language auto-detected from active UI lang (Arabic → `ar`, English → `en`)
+  - Works in all browsers (Web Speech API was Chrome-only); no new API key needed — uses existing `GROQ_API_KEY`
+  - Mic button pulses red while recording, pulses cyan while Groq processes ("Finalizing…")
+- [x] **Live speech-to-text** — text appears in real-time while speaking, not just after stopping
+  - `MediaRecorder.start(2500)` fires `ondataavailable` every 2.5 seconds
+  - On each chunk, full accumulated audio blob is re-sent to Whisper; input updates with latest transcript
+  - `liveTranscribingRef` prevents overlapping API calls if Whisper takes longer than 2.5s
+  - `baseInputRef` captures pre-voice text so live updates never erase what the user had already typed
+  - Final transcription on `onstop` catches anything spoken after the last 2.5s boundary
 - [x] **User message accent color** — chat bubbles use `bg-primary` (user's chosen accent)
 
 ### Navigation & Tools
 - [x] **AI Tools page** (`/tools`) — 5 tools (StudyFetch, NotebookLM, Napkin, Consensus, Magic School) with dimension-aware highlighting based on weakest dimension score
 - [x] **NoSkillCard** updated — added "Go to Skills →" link so students understand how to activate a skill
+
+### Calendar Sync
+- [x] **iCal feed sync** — one-time URL paste imports upcoming events from any calendar app
+  - Supports Google Calendar, Blackboard, Canvas, and any `.ics` exporting app
+  - New Settings card: URL input, Sync/Re-sync button, import result feedback, last-synced timestamp, collapsible how-to instructions, "Disconnect calendar" link
+  - `/api/events/sync-calendar` POST: fetches ICS feed (10s timeout), parses with inline zero-dependency parser, imports events in next 90 days
+  - Event type inferred from summary keywords: exam/final/midterm → exam, quiz → quiz, due/deadline/submission → deadline, project/presentation → project
+  - Deduplication via `calendarUid` (ICS UID) — re-syncing never creates duplicate events
+  - Saved feed URL and last-synced timestamp persisted to `UserProfile`
+  - `/api/events/sync-calendar` DELETE: clears saved feed URL
+  - Inline ICS parser (no npm package) handles RFC 5545 line unfolding, all-day dates, UTC datetime, and local datetime formats
+
+### Arabic i18n — Full Coverage
+- [x] **WeeklyTrendChart** — uses `t()` for title ("2-Week Trend"), tooltip labels, legend; date locale switches to `ar-SA` when Arabic active
+- [x] **Skill Tree** — tier labels (Foundation/Structure/Endurance/Mastery → الأساس/الهيكل/التحمّل/الإتقان) via `t('skills.tier.N')`; skill names translated by slug (`t('skills.name.<slug>')`) with English DB fallback; task input placeholder, status display, and prerequisite names all translated
+- [x] **Skills page header** — "Skill Tree", subtitle, and unlock info card extracted into `SkillsPageHeader` client component so they respond to lang toggle (server components can't use `useLanguage`)
+- [x] **AI Tools page** — UI moved to `ToolsPageClient` client component; title, subtitle, all tool descriptions, whenToUse text, dimension labels, "Recommended for you" badge fully translated
+- [x] **Settings** — Coaching Preferences card (style, motivation, phone hours) and Calendar Sync card fully use `t()`
 
 ### Communication
 - [x] **Feedback system** — "Send Feedback" button in sidebar opens modal with textarea
@@ -251,6 +276,9 @@ All schema changes were additive (nullable fields, new models) to avoid breaking
 | `UserProfile.coachingStyle` | Coaching preference (direct/socratic) |
 | `UserProfile.motivationalFrame` | Motivation frame (exam/intrinsic) |
 | `UserProfile.phoneUsageHours` | Self-reported daily screen time |
+| `UserProfile.calendarFeedUrl` | Saved iCal feed URL for calendar sync |
+| `UserProfile.calendarLastSynced` | Timestamp of last successful calendar sync |
+| `Event.calendarUid` | ICS UID for deduplication on re-sync |
 | `PushSubscription` (model) | Web push notification subscriptions |
 | `Feedback` (model) | User feedback submissions |
 | `KnowledgeEntry` (model) | Persistent knowledge profile across sessions |

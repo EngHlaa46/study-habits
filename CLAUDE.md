@@ -123,6 +123,19 @@ The old Render URL (`study-skills-builder.onrender.com`) redirects 301 to `study
 - Motivation & Stories section
 - SkillProgressionAgent / ProgressNarratorAgent (Layer 4 longitudinal intelligence — architecture defined, not built)
 
+## Voice Input (Whisper)
+- `/api/chat/transcribe` — receives `multipart/form-data` (audio blob + `lang`), calls `groq.audio.transcriptions.create` with `whisper-large-v3-turbo`
+- `ChatInterface` uses `MediaRecorder.start(2500)` for live transcription every 2.5s; full accumulated audio blob sent on each chunk
+- `liveTranscribingRef` prevents overlapping calls; `baseInputRef` preserves pre-voice text
+- Final transcription on `onstop` catches trailing audio; mic button pulses cyan while finalizing
+
+## Calendar Sync
+- `/api/events/sync-calendar` POST — fetches iCal feed URL, parses with inline ICS parser (no npm dep), imports VEVENT entries in next 90 days
+- Inline parser handles RFC 5545 line unfolding, all-day (YYYYMMDD), UTC (YYYYMMDDTHHmmssZ), and local datetime formats
+- `Event.calendarUid` used for dedup; `UserProfile.calendarFeedUrl` + `calendarLastSynced` persisted
+- DELETE endpoint clears saved feed URL
+- Settings card: URL input, Sync/Re-sync, result count, last-synced, disconnect link, collapsible how-to for Google/Blackboard/Canvas
+
 ## DCS Pipeline (src/lib/ai/dcs/)
 - `pipeline.ts` — main pipeline: sentinels → parallel coaches → streaming orchestrator + Groq tool calling (`update_skill_task`)
 - `sentinels.ts` — rule-based signal extraction (no LLM); `detectFixedMindset` regex
