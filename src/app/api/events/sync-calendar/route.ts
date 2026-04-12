@@ -106,7 +106,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ imported, skipped });
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
