@@ -17,17 +17,18 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState<"skills" | "study" | "training">("skills");
   const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [suggestion, setSuggestion] = useState("");
   const [taskToast, setTaskToast] = useState<string | null>(null);
-  const recognitionRef = useRef<{ stop: () => void } | null>(null);
-  const inputBeforeVoiceRef = useRef("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const suggestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced AI autocomplete
@@ -50,50 +51,50 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
     }, 900);
   }, []);
 
-  const toggleVoice = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-
+  const toggleVoice = useCallback(async () => {
     if (listening) {
-      recognitionRef.current?.stop();
+      mediaRecorderRef.current?.stop();
       setListening(false);
       return;
     }
 
-    inputBeforeVoiceRef.current = input;
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      return; // mic permission denied
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recognition: any = new SR();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
+    audioChunksRef.current = [];
+    const recorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = recorder;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (e: any) => {
-      let interim = "";
-      let final = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) final += t;
-        else interim += t;
-      }
-      const base = inputBeforeVoiceRef.current;
-      if (final) {
-        const updated = base ? base + " " + final.trim() : final.trim();
-        inputBeforeVoiceRef.current = updated;
-        setInput(updated);
-      } else {
-        setInput(base ? base + " " + interim : interim);
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+      audioChunksRef.current = [];
+      setTranscribing(true);
+      try {
+        const fd = new FormData();
+        fd.append("audio", blob, "recording.webm");
+        fd.append("lang", lang === "ar" ? "ar" : "en");
+        const res = await fetch("/api/chat/transcribe", { method: "POST", body: fd });
+        const { transcript } = await res.json();
+        if (transcript) {
+          setInput((prev) => (prev.trimEnd() ? prev.trimEnd() + " " + transcript.trim() : transcript.trim()));
+        }
+      } catch { /* ignore */ } finally {
+        setTranscribing(false);
       }
     };
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
 
-    recognitionRef.current = recognition;
-    recognition.start();
+    recorder.start();
     setListening(true);
-  }, [listening, input]);
+  }, [listening, lang]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -336,11 +337,14 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
           </div>
           <button
             onClick={toggleVoice}
-            title={listening ? "Stop recording" : "Voice input"}
+            disabled={transcribing}
+            title={transcribing ? "Transcribing..." : listening ? "Stop recording" : "Voice input (Whisper)"}
             className={`px-3 rounded-lg border transition-colors ${
               listening
                 ? "border-red-500/50 text-red-400 bg-red-500/10 animate-pulse"
-                : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+                : transcribing
+                  ? "border-primary/40 text-primary/60 bg-primary/5 animate-pulse"
+                  : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
           >
             {listening ? <MicOff size={18} /> : <Mic size={18} />}
