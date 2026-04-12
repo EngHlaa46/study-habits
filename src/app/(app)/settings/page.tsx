@@ -29,6 +29,12 @@ export default function SettingsPage() {
   const [phoneHours, setPhoneHours] = useState<string>("");
   const [prefsSaving, setPrefsSaving] = useState(false);
   const [prefsSaved, setPrefsSaved] = useState(false);
+  const [calendarUrl, setCalendarUrl] = useState("");
+  const [savedCalendarUrl, setSavedCalendarUrl] = useState<string | null>(null);
+  const [calendarLastSynced, setCalendarLastSynced] = useState<string | null>(null);
+  const [calendarSyncing, setCalendarSyncing] = useState(false);
+  const [calendarResult, setCalendarResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/user/theme-prefs")
@@ -41,6 +47,8 @@ export default function SettingsPage() {
         if (prefs.coachingStyle) setCoachingStyle(prefs.coachingStyle);
         if (prefs.motivationalFrame) setMotivationalFrame(prefs.motivationalFrame);
         if (prefs.phoneUsageHours != null) setPhoneHours(String(prefs.phoneUsageHours));
+        if (prefs.calendarFeedUrl) { setSavedCalendarUrl(prefs.calendarFeedUrl); setCalendarUrl(prefs.calendarFeedUrl); }
+        if (prefs.calendarLastSynced) setCalendarLastSynced(prefs.calendarLastSynced);
       })
       .catch(() => {});
   }, []);
@@ -58,6 +66,36 @@ export default function SettingsPage() {
         ...(phoneHours !== "" && !isNaN(hours) ? { phoneUsageHours: hours } : {}),
       }),
     }).finally(() => { setPrefsSaving(false); setPrefsSaved(true); });
+  }
+
+  async function syncCalendar() {
+    setCalendarSyncing(true);
+    setCalendarResult(null);
+    setCalendarError(null);
+    try {
+      const res = await fetch("/api/events/sync-calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: calendarUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCalendarError(data.error || "Sync failed"); return; }
+      setSavedCalendarUrl(calendarUrl);
+      setCalendarLastSynced(new Date().toISOString());
+      setCalendarResult({ imported: data.imported, skipped: data.skipped });
+    } catch {
+      setCalendarError("Network error — check your connection.");
+    } finally {
+      setCalendarSyncing(false);
+    }
+  }
+
+  async function disconnectCalendar() {
+    await fetch("/api/events/sync-calendar", { method: "DELETE" });
+    setSavedCalendarUrl(null);
+    setCalendarUrl("");
+    setCalendarLastSynced(null);
+    setCalendarResult(null);
   }
 
   async function applyColor(hex: string, hsl: string) {
@@ -199,6 +237,70 @@ export default function SettingsPage() {
             </button>
             {prefsSaved && <span className="text-xs text-[#4ade80]">Saved</span>}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card border-border mb-6">
+        <CardHeader>
+          <CardTitle className="text-foreground text-lg">Calendar Sync</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-muted-foreground text-sm">
+            Paste your calendar&apos;s private iCal feed URL to import upcoming events automatically.
+            Works with <span className="text-foreground/80">Google Calendar</span>, <span className="text-foreground/80">Blackboard</span>, <span className="text-foreground/80">Canvas</span>, and any app that exports .ics feeds.
+          </p>
+
+          <details className="text-xs text-muted-foreground/70 cursor-pointer">
+            <summary className="hover:text-muted-foreground transition-colors">How to get your feed URL</summary>
+            <ul className="mt-2 space-y-1 pl-3 list-disc list-outside">
+              <li><span className="text-foreground/70">Google Calendar:</span> Settings → your calendar → &quot;Secret address in iCal format&quot;</li>
+              <li><span className="text-foreground/70">Blackboard:</span> Calendar → Export / Feed</li>
+              <li><span className="text-foreground/70">Canvas:</span> Calendar → Calendar Feed (bottom left)</li>
+            </ul>
+          </details>
+
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={calendarUrl}
+              onChange={(e) => setCalendarUrl(e.target.value)}
+              placeholder="https://calendar.google.com/calendar/ical/..."
+              className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
+            />
+            <button
+              onClick={syncCalendar}
+              disabled={calendarSyncing || !calendarUrl.trim()}
+              className="px-4 py-2 rounded-lg bg-primary text-black text-sm font-medium hover:bg-primary/80 disabled:opacity-50 transition-colors whitespace-nowrap"
+            >
+              {calendarSyncing ? "Syncing…" : savedCalendarUrl ? "Re-sync" : "Sync"}
+            </button>
+          </div>
+
+          {calendarError && (
+            <p className="text-xs text-red-400">{calendarError}</p>
+          )}
+
+          {calendarResult && (
+            <p className="text-xs text-[#4ade80]">
+              Imported {calendarResult.imported} event{calendarResult.imported !== 1 ? "s" : ""}
+              {calendarResult.skipped > 0 ? `, ${calendarResult.skipped} already existed` : ""}.
+            </p>
+          )}
+
+          {calendarLastSynced && (
+            <p className="text-xs text-muted-foreground/60">
+              Last synced: {new Date(calendarLastSynced).toLocaleString()}
+            </p>
+          )}
+
+          {savedCalendarUrl && (
+            <button
+              onClick={disconnectCalendar}
+              className="text-xs text-red-400/70 hover:text-red-400 transition-colors"
+            >
+              Disconnect calendar
+            </button>
+          )}
         </CardContent>
       </Card>
 

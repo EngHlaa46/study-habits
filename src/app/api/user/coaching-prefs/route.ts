@@ -12,12 +12,14 @@ export async function GET() {
 
   const profile = await prisma.userProfile.findUnique({
     where: { userId: session.user.id },
-  }) as { coachingStyle?: string | null; motivationalFrame?: string | null; phoneUsageHours?: number | null } | null;
+  }) as { coachingStyle?: string | null; motivationalFrame?: string | null; phoneUsageHours?: number | null; calendarFeedUrl?: string | null; calendarLastSynced?: Date | null } | null;
 
   return NextResponse.json({
     coachingStyle: profile?.coachingStyle ?? "direct",
     motivationalFrame: profile?.motivationalFrame ?? "intrinsic",
     phoneUsageHours: profile?.phoneUsageHours ?? null,
+    calendarFeedUrl: profile?.calendarFeedUrl ?? null,
+    calendarLastSynced: profile?.calendarLastSynced ?? null,
   });
 }
 

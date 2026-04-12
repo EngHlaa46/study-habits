@@ -48,6 +48,8 @@ model UserProfile {
   coachingStyle       String?   @default("direct")    // direct, socratic
   motivationalFrame   String?   @default("intrinsic") // intrinsic, exam
   phoneUsageHours     Float?                           // avg daily phone screen time (hours)
+  calendarFeedUrl     String?                          // iCal feed URL for Google Calendar / Blackboard sync
+  calendarLastSynced  DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
@@ -61,6 +63,7 @@ model Event {
   date        DateTime
   status      String   @default("upcoming") // upcoming, passed
   notes       String?
+  calendarUid String?  // ICS UID for deduplication on re-sync
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

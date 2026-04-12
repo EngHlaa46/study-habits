@@ -48,6 +48,8 @@ model UserProfile {
   coachingStyle       String?   @default("direct")
   motivationalFrame   String?   @default("intrinsic")
   phoneUsageHours     Float?
+  calendarFeedUrl     String?
+  calendarLastSynced  DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
@@ -61,6 +63,7 @@ model Event {
   date        DateTime
   status      String   @default("upcoming") // upcoming, passed
   notes       String?
+  calendarUid String?  // ICS UID for deduplication on re-sync
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
