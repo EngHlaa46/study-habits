@@ -48,11 +48,11 @@ interface SkillTreeProps {
   canActivate: boolean;
 }
 
-const tierConfig: Record<number, { color: string; bg: string; label: string }> = {
-  1: { color: "#38bdf8", bg: "rgba(56,189,248,0.07)",  label: "Foundation" },
-  2: { color: "#a855f7", bg: "rgba(168,85,247,0.07)", label: "Structure"  },
-  3: { color: "#f97316", bg: "rgba(249,115,22,0.07)", label: "Endurance"  },
-  4: { color: "#fbbf24", bg: "rgba(251,191,36,0.07)", label: "Mastery"    },
+const tierConfig: Record<number, { color: string; bg: string }> = {
+  1: { color: "#38bdf8", bg: "rgba(56,189,248,0.07)"  },
+  2: { color: "#a855f7", bg: "rgba(168,85,247,0.07)" },
+  3: { color: "#f97316", bg: "rgba(249,115,22,0.07)" },
+  4: { color: "#fbbf24", bg: "rgba(251,191,36,0.07)" },
 };
 
 const skillIconMap: Record<string, React.ElementType> = {
@@ -155,7 +155,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                   className="text-[11px] font-bold uppercase tracking-widest"
                   style={{ color: tc.color + "bb" }}
                 >
-                  {t("skills.tier")} {tier} — {tc.label}
+                  {t("skills.tier")} {tier} — {t(`skills.tier.${tier}`)}
                 </span>
               </div>
 
@@ -209,7 +209,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                         className="font-semibold text-sm leading-snug"
                         style={{ color: s.textColor }}
                       >
-                        {skill.name}
+                        {t(`skills.name.${skill.slug}`) !== `skills.name.${skill.slug}` ? t(`skills.name.${skill.slug}`) : skill.name}
                       </p>
 
                       {/* Active: mini stability bar + week */}
@@ -298,7 +298,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                 <DialogHeader>
                   <DialogTitle className="text-foreground flex items-center gap-2">
                     <Icon size={18} style={{ color: tc.color }} />
-                    {selected.name}
+                    {t(`skills.name.${selected.slug}`) !== `skills.name.${selected.slug}` ? t(`skills.name.${selected.slug}`) : selected.name}
                   </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -310,7 +310,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground/70">{t("skills.status")}</span>
-                    <span className="capitalize text-foreground/80">{selected.currentStatus}</span>
+                    <span className="capitalize text-foreground/80">{getStatusLabel(selected.currentStatus)}</span>
                   </div>
 
                   {selected.progress && selected.currentStatus === "active" && (
@@ -338,7 +338,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                           <Input
                             value={userTask}
                             onChange={(e) => setUserTask(e.target.value)}
-                            placeholder="e.g., At 8am at my desk, I will open my textbook"
+                            placeholder={t("skills.taskPlaceholder")}
                             className="bg-surface-inset border-border text-foreground"
                           />
                           <Button
@@ -384,7 +384,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                                     : "text-muted-foreground/70"
                                 }
                               >
-                                {p.name}
+                                {t(`skills.name.${p.slug}`) !== `skills.name.${p.slug}` ? t(`skills.name.${p.slug}`) : p.name}
                               </span>
                               {p.met && (
                                 <span className="text-[#4ade80] text-xs">{t("skills.stable")}</span>

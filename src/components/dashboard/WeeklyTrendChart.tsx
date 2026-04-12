@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { useLanguage } from "@/lib/language";
 
 interface CheckInData {
   date: string;
@@ -28,7 +29,6 @@ const focusToValue: Record<string, number> = {
   deep: 4,
 };
 
-// focusToColor is built at render time so it picks up the current --primary value
 function buildFocusToColor(accentColor: string): Record<number, string> {
   return {
     0: "#1f1f2e",
@@ -39,36 +39,48 @@ function buildFocusToColor(accentColor: string): Record<number, string> {
   };
 }
 
-const focusToLabel: Record<number, string> = {
-  0: "No check-in",
-  1: "No focus",
-  2: "Brief",
-  3: "Focused",
-  4: "Deep",
-};
-
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { label: string; value: number; initiated: boolean } }> }) {
+function CustomTooltip({
+  active,
+  payload,
+  labels,
+  didNotStudy,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: { label: string; value: number; initiated: boolean } }>;
+  labels: Record<number, string>;
+  didNotStudy: string;
+}) {
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
   return (
     <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs">
       <p className="text-foreground/80 font-medium">{data.label}</p>
       <p className="text-muted-foreground/70">
-        {data.initiated ? focusToLabel[data.value] : "Did not study"}
+        {data.initiated ? labels[data.value] : didNotStudy}
       </p>
     </div>
   );
 }
 
 export function WeeklyTrendChart({ checkIns }: WeeklyTrendChartProps) {
-  // Read accent color from CSS variable so it follows theme
+  const { t, lang } = useLanguage();
+
   const primaryHsl = typeof window !== "undefined"
     ? getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()
     : "199 89% 60%";
   const accentColor = `hsl(${primaryHsl})`;
   const focusToColor = buildFocusToColor(accentColor);
 
-  // Build data for last 14 days
+  const focusLabels: Record<number, string> = {
+    0: t("checkin.focus.noCheckIn"),
+    1: t("checkin.focus.none"),
+    2: t("checkin.focus.brief"),
+    3: t("checkin.focus.focused"),
+    4: t("checkin.focus.deep"),
+  };
+
+  const locale = lang === "ar" ? "ar-SA" : "en-US";
+
   const data = [];
   for (let i = 13; i >= 0; i--) {
     const d = new Date();
@@ -76,40 +88,28 @@ export function WeeklyTrendChart({ checkIns }: WeeklyTrendChartProps) {
     const dateStr = d.toISOString().split("T")[0];
     const ci = checkIns.find((c) => c.date === dateStr);
 
-    const dayLabel = d.toLocaleDateString("en-US", { weekday: "short" });
-    const dateLabel = d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    const dayLabel = d.toLocaleDateString(locale, { weekday: "short" });
+    const dateLabel = d.toLocaleDateString(locale, { month: "short", day: "numeric" });
 
     if (ci && ci.initiated) {
-      data.push({
-        day: dayLabel,
-        label: dateLabel,
-        value: focusToValue[ci.focusLevel || "none"] || 1,
-        initiated: true,
-      });
+      data.push({ day: dayLabel, label: dateLabel, value: focusToValue[ci.focusLevel || "none"] || 1, initiated: true });
     } else if (ci) {
-      data.push({
-        day: dayLabel,
-        label: dateLabel,
-        value: 1,
-        initiated: false,
-      });
+      data.push({ day: dayLabel, label: dateLabel, value: 1, initiated: false });
     } else {
-      data.push({
-        day: dayLabel,
-        label: dateLabel,
-        value: 0,
-        initiated: false,
-      });
+      data.push({ day: dayLabel, label: dateLabel, value: 0, initiated: false });
     }
   }
+
+  const legend = [
+    { labelKey: "checkin.focus.brief", color: "#eab308" },
+    { labelKey: "checkin.focus.focused", color: accentColor },
+    { labelKey: "checkin.focus.deep", color: "#4ade80" },
+  ];
 
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
-        <CardTitle className="text-foreground text-lg">2-Week Trend</CardTitle>
+        <CardTitle className="text-foreground text-lg">{t("dashboard.weeklyTrend")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-40">
@@ -124,7 +124,7 @@ export function WeeklyTrendChart({ checkIns }: WeeklyTrendChartProps) {
               />
               <YAxis hide domain={[0, 4]} />
               <Tooltip
-                content={<CustomTooltip />}
+                content={<CustomTooltip labels={focusLabels} didNotStudy={t("checkin.didNotStudy")} />}
                 cursor={{ fill: "rgba(255,255,255,0.03)" }}
               />
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>
@@ -136,17 +136,10 @@ export function WeeklyTrendChart({ checkIns }: WeeklyTrendChartProps) {
           </ResponsiveContainer>
         </div>
         <div className="flex items-center justify-center gap-4 mt-3">
-          {[
-            { label: "Brief", color: "#eab308" },
-            { label: "Focused", color: accentColor },
-            { label: "Deep", color: "#4ade80" },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center gap-1.5">
-              <div
-                className="w-2.5 h-2.5 rounded-sm"
-                style={{ backgroundColor: item.color }}
-              />
-              <span className="text-muted-foreground/70 text-xs">{item.label}</span>
+          {legend.map((item) => (
+            <div key={item.labelKey} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+              <span className="text-muted-foreground/70 text-xs">{t(item.labelKey)}</span>
             </div>
           ))}
         </div>

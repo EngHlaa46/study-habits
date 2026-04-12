@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/session";
 import { getAvailableSkills } from "@/lib/skills/progression";
 import { prisma } from "@/lib/db/prisma";
 import { SkillTree } from "@/components/skills/SkillTree";
+import { SkillsPageHeader } from "@/components/skills/SkillsPageHeader";
 
 export default async function SkillsPage() {
   const session = await requireAuth();
@@ -46,17 +47,7 @@ export default async function SkillsPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-foreground mb-2">Skill Tree</h1>
-      <p className="text-muted-foreground text-sm mb-4">
-        Master skills from the bottom up. Each skill builds on the ones below
-        it.
-      </p>
-      <div className="bg-card border border-border rounded-xl px-4 py-3 mb-8 text-sm text-muted-foreground">
-        Skills unlock when their prerequisites reach{" "}
-        <span className="text-[#4ade80] font-medium">Stable</span> or better —
-        meaning you completed their 3-week training cycle. Progress is based on
-        your check-in patterns, not a fixed timer.
-      </div>
+      <SkillsPageHeader />
       <SkillTree skills={serialized} canActivate={canActivate} />
     </div>
   );

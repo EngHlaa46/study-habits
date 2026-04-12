@@ -395,6 +395,84 @@ const translations: Record<Lang, Record<string, string>> = {
     "phase.activeLabel": "Active:",
     "phase.checkIns": "check-ins",
     "phase.completeCheckIns": "complete your daily check-ins",
+
+    // skill tree — tier labels
+    "skills.tier.1": "Foundation",
+    "skills.tier.2": "Structure",
+    "skills.tier.3": "Endurance",
+    "skills.tier.4": "Mastery",
+
+    // skill tree — skill names (keyed by slug for DB-independent translation)
+    "skills.name.task-clarity": "Task Clarity",
+    "skills.name.initiation": "Initiation",
+    "skills.name.focus-containment": "Focus Containment",
+    "skills.name.environment-control": "Environment Control",
+    "skills.name.focus-endurance": "Focus Endurance",
+    "skills.name.cognitive-recovery": "Cognitive Recovery",
+    "skills.name.planning-sequencing": "Planning & Sequencing",
+    "skills.name.deadline-calibration": "Deadline Calibration",
+
+    // skill tree — page chrome
+    "skills.treeSubtitle": "Master skills from the bottom up. Each skill builds on the ones below it.",
+    "skills.unlockInfoPre": "Skills unlock when their prerequisites reach",
+    "skills.unlockInfoPost": "or better — completed via a 3-week training cycle with a stability score ≥ 70%. Progress is based on your check-in patterns, not a timer.",
+    "skills.taskPlaceholder": "e.g., At 8am at my desk, I will open my textbook",
+
+    // weekly trend
+    "dashboard.weeklyTrend": "2-Week Trend",
+    "checkin.focus.noCheckIn": "No check-in",
+    "checkin.didNotStudy": "Did not study",
+
+    // settings — coaching prefs
+    "settings.coachingPrefs": "Coaching Preferences",
+    "settings.coachingStyle": "Coaching style",
+    "settings.styleDirect": "Direct",
+    "settings.styleSocratic": "Socratic",
+    "settings.styleDirectDesc": "Coach gives clear feedback and suggestions.",
+    "settings.styleSocraticDesc": "Coach asks questions to help you think it through yourself.",
+    "settings.motivation": "What drives you?",
+    "settings.motivationIntrinsic": "Genuine understanding",
+    "settings.motivationExam": "Grades & exams",
+    "settings.phoneScreenTime": "Average daily phone screen time (hours)",
+    "settings.phoneScreenTimeDesc": "Helps the coach understand your distraction environment.",
+    "settings.savePrefs": "Save preferences",
+    "settings.prefsSaved": "Saved",
+
+    // settings — calendar sync
+    "settings.calendarSync": "Calendar Sync",
+    "settings.calendarDesc": "Paste your calendar's private iCal feed URL to import upcoming events automatically. Works with",
+    "settings.calendarDescSuffix": "and any app that exports .ics feeds.",
+    "settings.calendarHowToTitle": "How to get your feed URL",
+    "settings.calendarGoogleHint": "Google Calendar: Settings → your calendar → \"Secret address in iCal format\"",
+    "settings.calendarBlackboardHint": "Blackboard: Calendar → Export / Feed",
+    "settings.calendarCanvasHint": "Canvas: Calendar → Calendar Feed (bottom left)",
+    "settings.calendarSyncBtn": "Sync",
+    "settings.calendarResync": "Re-sync",
+    "settings.calendarSyncing": "Syncing…",
+    "settings.calendarDisconnect": "Disconnect calendar",
+    "settings.calendarLastSynced": "Last synced:",
+    "settings.calendarUrlPlaceholder": "https://calendar.google.com/calendar/ical/...",
+    "settings.calendarImportedPre": "Imported",
+    "settings.calendarImportedEvent": "event",
+    "settings.calendarImportedEvents": "events",
+    "settings.calendarAlreadyExisted": "already existed",
+
+    // tools page
+    "tools.title": "AI Study Tools",
+    "tools.subtitle": "Curated tools to complement your skill training. Use them alongside your daily sessions.",
+    "tools.basedOnProfile": "Based on your profile, tools for your",
+    "tools.dimensionHighlighted": "dimension are highlighted.",
+    "tools.recommendedForYou": "Recommended for you",
+    "tools.studyfetch.desc": "Transforms your notes and files into flashcards, quizzes, podcasts, and personalised study plans.",
+    "tools.studyfetch.when": "Use when you need to memorise course material or want active recall practice.",
+    "tools.notebooklm.desc": "Upload lecture notes and get audio summaries, mind maps, and a Q&A assistant grounded in your material.",
+    "tools.notebooklm.when": "Use when you want to deeply understand a topic or need a structured summary before an exam.",
+    "tools.napkin.desc": "Paste any text and Napkin auto-generates visual mind maps and diagrams to help you see connections.",
+    "tools.napkin.when": "Use when your notes feel disorganised or you want to visualise a concept.",
+    "tools.consensus.desc": "AI-powered research engine that finds answers from peer-reviewed papers — evidence-based, not opinion.",
+    "tools.consensus.when": "Use when you want to verify a study strategy or understand research behind a topic.",
+    "tools.magicschool.desc": "Generates practice quizzes, rubrics, and study prompts. Great for self-assessment before exams.",
+    "tools.magicschool.when": "Use when you want to test yourself with a mock quiz or simulate exam conditions.",
   },
   ar: {
     // Legacy top-level keys (Sidebar uses these)
@@ -780,6 +858,84 @@ const translations: Record<Lang, Record<string, string>> = {
     "phase.activeLabel": "نشط:",
     "phase.checkIns": "تسجيلات",
     "phase.completeCheckIns": "أكمل تسجيلاتك اليومية",
+
+    // skill tree — tier labels
+    "skills.tier.1": "الأساس",
+    "skills.tier.2": "الهيكل",
+    "skills.tier.3": "التحمّل",
+    "skills.tier.4": "الإتقان",
+
+    // skill tree — skill names
+    "skills.name.task-clarity": "وضوح المهمة",
+    "skills.name.initiation": "البدء",
+    "skills.name.focus-containment": "احتواء التركيز",
+    "skills.name.environment-control": "التحكم في البيئة",
+    "skills.name.focus-endurance": "تحمّل التركيز",
+    "skills.name.cognitive-recovery": "التعافي المعرفي",
+    "skills.name.planning-sequencing": "التخطيط والتسلسل",
+    "skills.name.deadline-calibration": "معايرة المواعيد",
+
+    // skill tree — page chrome
+    "skills.treeSubtitle": "أتقن المهارات من الأساس للأعلى. كل مهارة تبني على ما قبلها.",
+    "skills.unlockInfoPre": "تُفتح المهارات عندما تصل متطلباتها إلى",
+    "skills.unlockInfoPost": "أو أعلى — عبر دورة تدريب 3 أسابيع بدرجة استقرار ≥ 70٪. يعتمد التقدم على أنماط تسجيلاتك.",
+    "skills.taskPlaceholder": "مثال: في الساعة 8 صباحاً على مكتبي، سأفتح الكتاب",
+
+    // weekly trend
+    "dashboard.weeklyTrend": "اتجاه الأسبوعين",
+    "checkin.focus.noCheckIn": "لا تسجيل",
+    "checkin.didNotStudy": "لم أدرس",
+
+    // settings — coaching prefs
+    "settings.coachingPrefs": "تفضيلات التدريب",
+    "settings.coachingStyle": "أسلوب التدريب",
+    "settings.styleDirect": "مباشر",
+    "settings.styleSocratic": "سقراطي",
+    "settings.styleDirectDesc": "يقدم المدرب ملاحظات واضحة ومقترحات مباشرة.",
+    "settings.styleSocraticDesc": "يطرح المدرب أسئلة تساعدك على التفكير بنفسك.",
+    "settings.motivation": "ما الذي يحفزك؟",
+    "settings.motivationIntrinsic": "الفهم الحقيقي",
+    "settings.motivationExam": "الدرجات والامتحانات",
+    "settings.phoneScreenTime": "متوسط وقت شاشة الهاتف اليومي (ساعات)",
+    "settings.phoneScreenTimeDesc": "يساعد المدرب على فهم بيئة التشتت لديك.",
+    "settings.savePrefs": "حفظ التفضيلات",
+    "settings.prefsSaved": "تم الحفظ",
+
+    // settings — calendar sync
+    "settings.calendarSync": "مزامنة التقويم",
+    "settings.calendarDesc": "الصق رابط تقويمك الخاص (iCal) لاستيراد الأحداث القادمة تلقائياً. يعمل مع",
+    "settings.calendarDescSuffix": "وأي تطبيق يدعم تصدير .ics.",
+    "settings.calendarHowToTitle": "كيف تحصل على رابط تقويمك",
+    "settings.calendarGoogleHint": "Google Calendar: الإعدادات ← تقويمك ← \"عنوان سري بتنسيق iCal\"",
+    "settings.calendarBlackboardHint": "Blackboard: التقويم ← تصدير / رابط التغذية",
+    "settings.calendarCanvasHint": "Canvas: التقويم ← رابط التقويم (أسفل اليسار)",
+    "settings.calendarSyncBtn": "مزامنة",
+    "settings.calendarResync": "إعادة المزامنة",
+    "settings.calendarSyncing": "جارٍ المزامنة…",
+    "settings.calendarDisconnect": "فصل التقويم",
+    "settings.calendarLastSynced": "آخر مزامنة:",
+    "settings.calendarUrlPlaceholder": "https://calendar.google.com/calendar/ical/...",
+    "settings.calendarImportedPre": "تم استيراد",
+    "settings.calendarImportedEvent": "حدث",
+    "settings.calendarImportedEvents": "أحداث",
+    "settings.calendarAlreadyExisted": "موجودة مسبقاً",
+
+    // tools page
+    "tools.title": "أدوات الذكاء الاصطناعي للدراسة",
+    "tools.subtitle": "أدوات منتقاة لتكمل تدريبك على المهارات. استخدمها إلى جانب جلساتك اليومية.",
+    "tools.basedOnProfile": "بناءً على ملفك، الأدوات الخاصة ببُعد",
+    "tools.dimensionHighlighted": "مميّزة لك.",
+    "tools.recommendedForYou": "موصى به لك",
+    "tools.studyfetch.desc": "تحوّل ملاحظاتك وملفاتك إلى بطاقات تعليمية واختبارات وبودكاست وخطط دراسية مخصصة.",
+    "tools.studyfetch.when": "استخدمه عندما تحتاج لحفظ مادة الدراسة أو تريد ممارسة الاستدعاء النشط.",
+    "tools.notebooklm.desc": "ارفع ملاحظات المحاضرات واحصل على ملخصات صوتية وخرائط ذهنية ومساعد أسئلة وأجوبة.",
+    "tools.notebooklm.when": "استخدمه عندما تريد فهماً عميقاً لموضوع أو تحتاج ملخصاً منظماً قبل الامتحان.",
+    "tools.napkin.desc": "الصق أي نص وسيولّد Napkin خرائط ذهنية ومخططات بصرية تساعدك على رؤية الروابط.",
+    "tools.napkin.when": "استخدمه عندما تبدو ملاحظاتك غير منظمة أو تريد تصوير مفهوم بصرياً.",
+    "tools.consensus.desc": "محرك بحث بالذكاء الاصطناعي يجد إجابات من الأوراق العلمية المحكّمة — مبني على الأدلة.",
+    "tools.consensus.when": "استخدمه للتحقق من استراتيجية دراسية أو فهم الأبحاث وراء موضوع ما.",
+    "tools.magicschool.desc": "يولّد اختبارات تدريبية ومعايير تقييم وتلميحات دراسية. مثالي للتقييم الذاتي قبل الامتحانات.",
+    "tools.magicschool.when": "استخدمه عندما تريد اختبار نفسك باختبار وهمي أو محاكاة ظروف الامتحان.",
   },
 };
 

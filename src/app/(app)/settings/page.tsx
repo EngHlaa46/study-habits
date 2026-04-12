@@ -164,11 +164,11 @@ export default function SettingsPage() {
 
       <Card className="bg-card border-border mb-6">
         <CardHeader>
-          <CardTitle className="text-foreground text-lg">Coaching Preferences</CardTitle>
+          <CardTitle className="text-foreground text-lg">{t("settings.coachingPrefs")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div>
-            <p className="text-muted-foreground text-sm mb-2">Coaching style</p>
+            <p className="text-muted-foreground text-sm mb-2">{t("settings.coachingStyle")}</p>
             <div className="flex gap-3">
               {(["direct", "socratic"] as CoachingStyle[]).map((s) => (
                 <button
@@ -180,19 +180,17 @@ export default function SettingsPage() {
                       : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
                   }`}
                 >
-                  {s === "direct" ? "Direct" : "Socratic"}
+                  {s === "direct" ? t("settings.styleDirect") : t("settings.styleSocratic")}
                 </button>
               ))}
             </div>
             <p className="text-xs text-muted-foreground/60 mt-1.5">
-              {coachingStyle === "direct"
-                ? "Coach gives clear feedback and suggestions."
-                : "Coach asks questions to help you think it through yourself."}
+              {coachingStyle === "direct" ? t("settings.styleDirectDesc") : t("settings.styleSocraticDesc")}
             </p>
           </div>
 
           <div>
-            <p className="text-muted-foreground text-sm mb-2">What drives you?</p>
+            <p className="text-muted-foreground text-sm mb-2">{t("settings.motivation")}</p>
             <div className="flex gap-3">
               {(["intrinsic", "exam"] as MotivationalFrame[]).map((f) => (
                 <button
@@ -204,14 +202,14 @@ export default function SettingsPage() {
                       : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
                   }`}
                 >
-                  {f === "intrinsic" ? "Genuine understanding" : "Grades & exams"}
+                  {f === "intrinsic" ? t("settings.motivationIntrinsic") : t("settings.motivationExam")}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="text-muted-foreground text-sm mb-2">Average daily phone screen time (hours)</p>
+            <p className="text-muted-foreground text-sm mb-2">{t("settings.phoneScreenTime")}</p>
             <input
               type="number"
               min="0"
@@ -222,9 +220,7 @@ export default function SettingsPage() {
               placeholder="e.g. 4.5"
               className="w-28 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <p className="text-xs text-muted-foreground/60 mt-1">
-              Helps the coach understand your distraction environment.
-            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1">{t("settings.phoneScreenTimeDesc")}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -233,29 +229,32 @@ export default function SettingsPage() {
               disabled={prefsSaving}
               className="px-4 py-2 rounded-lg bg-primary text-black text-sm font-medium hover:bg-primary/80 disabled:opacity-50 transition-colors"
             >
-              {prefsSaving ? "Saving…" : "Save preferences"}
+              {prefsSaving ? t("settings.saving") : t("settings.savePrefs")}
             </button>
-            {prefsSaved && <span className="text-xs text-[#4ade80]">Saved</span>}
+            {prefsSaved && <span className="text-xs text-[#4ade80]">{t("settings.prefsSaved")}</span>}
           </div>
         </CardContent>
       </Card>
 
       <Card className="bg-card border-border mb-6">
         <CardHeader>
-          <CardTitle className="text-foreground text-lg">Calendar Sync</CardTitle>
+          <CardTitle className="text-foreground text-lg">{t("settings.calendarSync")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground text-sm">
-            Paste your calendar&apos;s private iCal feed URL to import upcoming events automatically.
-            Works with <span className="text-foreground/80">Google Calendar</span>, <span className="text-foreground/80">Blackboard</span>, <span className="text-foreground/80">Canvas</span>, and any app that exports .ics feeds.
+            {t("settings.calendarDesc")}{" "}
+            <span className="text-foreground/80">Google Calendar</span>,{" "}
+            <span className="text-foreground/80">Blackboard</span>,{" "}
+            <span className="text-foreground/80">Canvas</span>{" "}
+            {t("settings.calendarDescSuffix")}
           </p>
 
           <details className="text-xs text-muted-foreground/70 cursor-pointer">
-            <summary className="hover:text-muted-foreground transition-colors">How to get your feed URL</summary>
+            <summary className="hover:text-muted-foreground transition-colors">{t("settings.calendarHowToTitle")}</summary>
             <ul className="mt-2 space-y-1 pl-3 list-disc list-outside">
-              <li><span className="text-foreground/70">Google Calendar:</span> Settings → your calendar → &quot;Secret address in iCal format&quot;</li>
-              <li><span className="text-foreground/70">Blackboard:</span> Calendar → Export / Feed</li>
-              <li><span className="text-foreground/70">Canvas:</span> Calendar → Calendar Feed (bottom left)</li>
+              <li>{t("settings.calendarGoogleHint")}</li>
+              <li>{t("settings.calendarBlackboardHint")}</li>
+              <li>{t("settings.calendarCanvasHint")}</li>
             </ul>
           </details>
 
@@ -264,7 +263,7 @@ export default function SettingsPage() {
               type="url"
               value={calendarUrl}
               onChange={(e) => setCalendarUrl(e.target.value)}
-              placeholder="https://calendar.google.com/calendar/ical/..."
+              placeholder={t("settings.calendarUrlPlaceholder")}
               className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
             />
             <button
@@ -272,7 +271,7 @@ export default function SettingsPage() {
               disabled={calendarSyncing || !calendarUrl.trim()}
               className="px-4 py-2 rounded-lg bg-primary text-black text-sm font-medium hover:bg-primary/80 disabled:opacity-50 transition-colors whitespace-nowrap"
             >
-              {calendarSyncing ? "Syncing…" : savedCalendarUrl ? "Re-sync" : "Sync"}
+              {calendarSyncing ? t("settings.calendarSyncing") : savedCalendarUrl ? t("settings.calendarResync") : t("settings.calendarSyncBtn")}
             </button>
           </div>
 
@@ -282,14 +281,15 @@ export default function SettingsPage() {
 
           {calendarResult && (
             <p className="text-xs text-[#4ade80]">
-              Imported {calendarResult.imported} event{calendarResult.imported !== 1 ? "s" : ""}
-              {calendarResult.skipped > 0 ? `, ${calendarResult.skipped} already existed` : ""}.
+              {t("settings.calendarImportedPre")} {calendarResult.imported}{" "}
+              {calendarResult.imported !== 1 ? t("settings.calendarImportedEvents") : t("settings.calendarImportedEvent")}
+              {calendarResult.skipped > 0 ? `, ${calendarResult.skipped} ${t("settings.calendarAlreadyExisted")}` : ""}.
             </p>
           )}
 
           {calendarLastSynced && (
             <p className="text-xs text-muted-foreground/60">
-              Last synced: {new Date(calendarLastSynced).toLocaleString()}
+              {t("settings.calendarLastSynced")} {new Date(calendarLastSynced).toLocaleString()}
             </p>
           )}
 
@@ -298,7 +298,7 @@ export default function SettingsPage() {
               onClick={disconnectCalendar}
               className="text-xs text-red-400/70 hover:text-red-400 transition-colors"
             >
-              Disconnect calendar
+              {t("settings.calendarDisconnect")}
             </button>
           )}
         </CardContent>
