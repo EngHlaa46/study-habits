@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mic, MicOff, Timer } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { CheckInTimer } from "@/components/check-in/CheckInTimer";
 
 interface CheckInFormProps {
   activeSkillSlug?: string;
@@ -58,6 +59,13 @@ export function CheckInForm({
   const intentionVoice = useVoiceInput({ getBase: () => sessionIntention, onResult: setSessionIntention });
   const contextVoice = useVoiceInput({ getBase: () => contextNote, onResult: setContextNote });
   const missReasonVoice = useVoiceInput({ getBase: () => otherMissReason, onResult: setOtherMissReason });
+
+  // Inline timer result (overrides URL params when set)
+  const [timerDuration, setTimerDuration] = useState<number | null>(null);
+  const [timerPomodoros, setTimerPomodoros] = useState<number | null>(null);
+
+  const activeDuration = timerDuration ?? initialDuration ?? null;
+  const activePomodoros = timerPomodoros ?? initialPomodoros ?? null;
 
   const focusOptions = [
     { value: "none", label: t("checkin.focus.none"), description: t("checkin.focus.noneDesc") },
@@ -129,8 +137,8 @@ export function CheckInForm({
           aiResponses,
           ...(selectedDate ? { date: selectedDate, backfilled: true } : {}),
           ...(sessionIntention.trim() ? { sessionIntention: sessionIntention.trim() } : {}),
-          ...(initialDuration != null ? { sessionDuration: initialDuration } : {}),
-          ...(initialPomodoros != null ? { pomodoroCount: initialPomodoros } : {}),
+          ...(activeDuration != null ? { sessionDuration: activeDuration } : {}),
+          ...(activePomodoros != null ? { pomodoroCount: activePomodoros } : {}),
         }),
       });
 
@@ -163,8 +171,8 @@ export function CheckInForm({
     <div className="max-w-lg mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-foreground">{t("checkin.title")}</h1>
 
-      {/* Session summary badge (from timer) */}
-      {initialDuration != null && (
+      {/* Session summary badge (from /session page redirect) */}
+      {initialDuration != null && timerDuration == null && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm">
           <Timer size={15} />
           <span>
@@ -212,6 +220,12 @@ export function CheckInForm({
           />
         </CardContent>
       </Card>
+
+      {/* Inline session timer */}
+      <CheckInTimer
+        onStop={(mins, pomos) => { setTimerDuration(mins); setTimerPomodoros(pomos > 0 ? pomos : null); }}
+        onReset={() => { setTimerDuration(null); setTimerPomodoros(null); }}
+      />
 
       {/* Date selector */}
       <Card>
