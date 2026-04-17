@@ -171,7 +171,6 @@ export async function getAvailableSkills(userId: string) {
   return allSkills.map((skill) => {
     const progress = skill.progresses[0];
     const isCurrentLevel = skill.level === currentLevel;
-    const isPastLevel = skill.level < currentLevel;
     const isFutureLevel = skill.level > currentLevel;
 
     let currentStatus: string;
