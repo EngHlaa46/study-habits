@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, X, Timer } from "lucide-react";
+import { CheckSquare, X } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/lib/language";
 
@@ -40,22 +40,11 @@ export function CheckInWidget({
             <span className="text-sm">{t("dashboard.completedToday")}</span>
           </div>
         ) : (
-          <div className="space-y-2">
-            <Link href="/check-in">
-              <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold">
-                {t("dashboard.startCheckIn")}
-              </Button>
-            </Link>
-            <Link href="/session">
-              <Button
-                variant="outline"
-                className="w-full border-border text-muted-foreground hover:border-primary/50 hover:text-primary gap-2"
-              >
-                <Timer size={15} />
-                Start Session
-              </Button>
-            </Link>
-          </div>
+          <Link href="/check-in">
+            <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold">
+              {t("dashboard.startCheckIn")}
+            </Button>
+          </Link>
         )}
 
         <div>

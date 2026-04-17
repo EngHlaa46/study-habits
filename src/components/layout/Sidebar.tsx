@@ -15,7 +15,6 @@ import {
   LogOut,
   Menu,
   X,
-  Timer,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
@@ -31,7 +30,6 @@ export function Sidebar() {
   const navItems = [
     { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
     { href: "/check-in", labelKey: "checkIn", icon: CheckSquare },
-    { href: "/session", labelKey: "session", icon: Timer },
     { href: "/skills", labelKey: "skills", icon: GitBranch },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
 { href: "/events", labelKey: "events", icon: CalendarDays },
