@@ -33,7 +33,7 @@ export function PhaseBanner({
   const label = phaseLabels[phase] || phase;
 
   return (
-    <div className="w-full rounded-xl bg-gradient-to-r from-[#38bdf8]/10 to-[#4ade80]/10 border border-border p-4 mb-6">
+    <div className="w-full rounded-xl bg-gradient-to-r from-[#38bdf8]/[0.08] to-[#4ade80]/[0.06] border border-white/[0.1] backdrop-blur-sm p-4 mb-6 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge

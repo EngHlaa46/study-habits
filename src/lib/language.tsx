@@ -15,6 +15,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // Legacy top-level keys (Sidebar uses these)
     dashboard: "Dashboard",
     checkIn: "Check In",
+    session: "Session",
     skills: "Skills",
     aiCoach: "AI Coach",
     tools: "AI Tools",
@@ -478,6 +479,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // Legacy top-level keys (Sidebar uses these)
     dashboard: "لوحة التحكم",
     checkIn: "تسجيل اليوم",
+    session: "الجلسة",
     skills: "المهارات",
     aiCoach: "المدرب الذكي",
     tools: "أدوات الذكاء",

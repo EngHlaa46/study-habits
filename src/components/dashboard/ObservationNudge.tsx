@@ -6,7 +6,7 @@ import { useLanguage } from "@/lib/language";
 export function ObservationNudge({ checkInCount }: { checkInCount: number }) {
   const { t } = useLanguage();
   return (
-    <div className="mb-6 bg-card border border-primary/30 rounded-xl p-6">
+    <div className="mb-6 bg-card/60 backdrop-blur-md border border-primary/30 rounded-xl p-6 shadow-lg shadow-black/20">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-foreground font-semibold mb-1">

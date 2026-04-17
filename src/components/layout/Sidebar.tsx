@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Wrench,
+  Timer,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
@@ -31,6 +32,7 @@ export function Sidebar() {
   const navItems = [
     { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
     { href: "/check-in", labelKey: "checkIn", icon: CheckSquare },
+    { href: "/session", labelKey: "session", icon: Timer },
     { href: "/skills", labelKey: "skills", icon: GitBranch },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
     { href: "/tools", labelKey: "tools", icon: Wrench },
@@ -51,8 +53,8 @@ export function Sidebar() {
               onClick={() => setOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  ? "bg-primary/15 text-primary border border-primary/20 shadow-[0_0_14px_rgba(56,189,248,0.12)]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06] border border-transparent"
               }`}
             >
               <item.icon size={18} />
@@ -62,7 +64,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-white/[0.08]">
         <NotificationBell />
         <FeedbackButton />
         <ThemeToggle />
@@ -81,7 +83,7 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 z-50">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-card/70 backdrop-blur-xl border-b border-white/[0.08] flex items-center justify-between px-4 z-50">
         <Link href="/dashboard" className="text-lg font-bold text-foreground">
           Study <span className="text-primary">Habits</span>
         </Link>
@@ -101,7 +103,7 @@ export function Sidebar() {
         />
       )}
       <aside
-        className={`md:hidden fixed top-14 left-0 bottom-0 w-64 bg-card border-r border-border flex flex-col z-50 transition-transform ${
+        className={`md:hidden fixed top-14 left-0 bottom-0 w-64 bg-card/70 backdrop-blur-xl border-r border-white/[0.08] flex flex-col z-50 transition-transform ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -109,7 +111,7 @@ export function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-card border-r border-border flex-col z-50">
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-card/70 backdrop-blur-xl border-r border-white/[0.08] flex-col z-50">
         <div className="p-6">
           <Link href="/dashboard" className="text-xl font-bold text-foreground">
             Study <span className="text-primary">Habits</span>

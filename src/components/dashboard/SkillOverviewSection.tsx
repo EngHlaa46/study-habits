@@ -29,7 +29,7 @@ export function SkillOverviewSection({ skills }: { skills: SkillItem[] }) {
         {skills.map((sp) => {
           const colors = statusColors[sp.status] || statusColors.locked;
           return (
-            <div key={sp.id} className={`border rounded-lg p-3 bg-card ${colors}`}>
+            <div key={sp.id} className={`border rounded-lg p-3 bg-card/60 backdrop-blur-sm ${colors}`}>
               <p className="text-xs opacity-60 mb-1">
                 {t("skills.tier")} {sp.skillTier}
               </p>

@@ -112,6 +112,7 @@ export function buildContextFromData(data: UserData): string {
       try {
         if (ci.studyMethod) methods = JSON.parse(ci.studyMethod);
       } catch { /* ignore */ }
+      const ciAny = ci as unknown as { sessionDuration?: number | null; pomodoroCount?: number | null };
       const parts = [
         `date=${dateStr}`,
         `studied=${ci.initiated}`,
@@ -123,6 +124,8 @@ export function buildContextFromData(data: UserData): string {
         ci.mood ? `mood=${ci.mood}/5` : null,
         ci.missReason ? `missed_because=${ci.missReason}` : null,
         ci.sessionIntention ? `intention="${ci.sessionIntention}"` : null,
+        ciAny.sessionDuration != null ? `timed=${ciAny.sessionDuration}min` : null,
+        ciAny.pomodoroCount != null && ciAny.pomodoroCount > 0 ? `pomodoros=${ciAny.pomodoroCount}` : null,
       ].filter(Boolean);
       lines.push(`  ${parts.join(", ")}`);
     }
@@ -130,7 +133,14 @@ export function buildContextFromData(data: UserData): string {
     const last7 = recentCheckIns.slice(0, 7);
     const initiated = last7.filter((c) => c.initiated).length;
     const focused = last7.filter((c) => c.focusLevel === "focused" || c.focusLevel === "deep").length;
-    lines.push(`\n7-day summary: ${initiated}/7 initiated, ${focused}/7 focused+`);
+    const timedSessions = last7
+      .map((c) => (c as unknown as { sessionDuration?: number | null }).sessionDuration)
+      .filter((d): d is number => d != null && d > 0);
+    const avgDuration = timedSessions.length > 0
+      ? Math.round(timedSessions.reduce((a, b) => a + b, 0) / timedSessions.length)
+      : null;
+    const durationNote = avgDuration != null ? `, avg timed session ${avgDuration}min (${timedSessions.length}/${last7.length} sessions timed)` : "";
+    lines.push(`\n7-day summary: ${initiated}/7 initiated, ${focused}/7 focused+${durationNote}`);
 
     const emotionalReasons = new Set(["Felt overwhelmed", "Wasn't in the mood"]);
     const missReasonCount: Record<string, number> = {};

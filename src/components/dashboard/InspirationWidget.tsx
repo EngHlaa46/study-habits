@@ -38,7 +38,7 @@ export function InspirationWidget() {
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 h-full flex flex-col">
+    <div className="bg-card/60 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-lg shadow-black/20 p-5 h-full flex flex-col">
       <p className="text-xs text-muted-foreground/60 uppercase tracking-widest mb-3">
         {t("dashboard.todayNote")}
       </p>

@@ -76,7 +76,7 @@ export default function EventsPage() {
       </div>
 
       {showForm && (
-        <Card className="bg-card border-border mb-6">
+        <Card className="mb-6">
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-foreground/80">{t("events.eventName")}</Label>
@@ -149,7 +149,7 @@ export default function EventsPage() {
             return (
               <Card
                 key={event.id}
-                className="bg-card border-border"
+                className=""
               >
                 <CardContent className="py-3 px-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -198,7 +198,7 @@ export default function EventsPage() {
             {passed.map((event) => (
               <Card
                 key={event.id}
-                className="bg-card border-border"
+                className=""
               >
                 <CardContent className="py-3 px-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">

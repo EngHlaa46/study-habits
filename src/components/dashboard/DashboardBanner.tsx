@@ -21,7 +21,8 @@ export function DashboardBanner() {
   const pendingPosition = useRef("50% 50%");
   const repositioningRef = useRef(false);
 
-  // Keep ref in sync with state so event listeners always see current value
+  // Keep ref in sync with state so event listeners always see current value.
+  // Note: we also sync immediately in click handlers to avoid the async useEffect gap.
   useEffect(() => {
     repositioningRef.current = repositioning;
   }, [repositioning]);
@@ -73,6 +74,8 @@ export function DashboardBanner() {
       dragStart.current = { x: e.clientX, y: e.clientY };
       posStart.current = parsePos(pendingPosition.current);
       el.setPointerCapture(e.pointerId);
+      // Prevent text selection across the page while dragging
+      document.body.style.userSelect = "none";
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -83,6 +86,7 @@ export function DashboardBanner() {
 
     const onPointerUp = () => {
       dragging.current = false;
+      document.body.style.userSelect = "";
     };
 
     el.addEventListener("pointerdown", onPointerDown, { passive: false });
@@ -125,6 +129,7 @@ export function DashboardBanner() {
 
   const savePosition = async () => {
     setSaving(true);
+    repositioningRef.current = false;
     await fetch("/api/user/banner", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -136,6 +141,7 @@ export function DashboardBanner() {
   };
 
   const cancelReposition = () => {
+    repositioningRef.current = false;
     pendingPosition.current = position;
     if (containerRef.current) containerRef.current.style.backgroundPosition = position;
     setRepositioning(false);
@@ -174,6 +180,7 @@ export function DashboardBanner() {
               <button
                 onClick={() => {
                   pendingPosition.current = position;
+                  repositioningRef.current = true; // sync immediately before next pointer event
                   setRepositioning(true);
                 }}
                 className="p-1.5 rounded-lg bg-black/40 text-white hover:bg-black/60 transition-colors"

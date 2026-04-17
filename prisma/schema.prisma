@@ -139,6 +139,8 @@ model CheckIn {
   mood         Int?     // 1-5
   backfilled        Boolean  @default(false)
   sessionIntention  String?  // pre-session plan (what the user intends to study)
+  sessionDuration   Int?     // actual study minutes from timer
+  pomodoroCount     Int?     // number of pomodoro cycles completed
   missReason        String?
   studyMethod       String?  // JSON array of method keys
   aiResponses       String?  // JSON: { questions: string[], answers: string[] }

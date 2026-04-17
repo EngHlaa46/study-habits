@@ -53,7 +53,7 @@ function CustomTooltip({
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
   return (
-    <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs">
+    <div className="bg-card/60 backdrop-blur-md border border-white/[0.08] rounded-lg px-3 py-2 text-xs">
       <p className="text-foreground/80 font-medium">{data.label}</p>
       <p className="text-muted-foreground/70">
         {data.initiated ? labels[data.value] : didNotStudy}
@@ -107,7 +107,7 @@ export function WeeklyTrendChart({ checkIns }: WeeklyTrendChartProps) {
   ];
 
   return (
-    <Card className="bg-card border-border">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-foreground text-lg">{t("dashboard.weeklyTrend")}</CardTitle>
       </CardHeader>

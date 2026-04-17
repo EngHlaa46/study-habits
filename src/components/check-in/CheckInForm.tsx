@@ -7,11 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { Mic, MicOff, Timer } from "lucide-react";
 import { useLanguage } from "@/lib/language";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 
 interface CheckInFormProps {
   activeSkillSlug?: string;
   aiQuestions?: string[];
+  initialIntention?: string;
+  initialDuration?: number;
+  initialPomodoros?: number;
 }
 
 function getDateOffset(daysBack: number): string {
@@ -21,14 +26,20 @@ function getDateOffset(daysBack: number): string {
   return d.toISOString().split("T")[0];
 }
 
-export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormProps) {
+export function CheckInForm({
+  activeSkillSlug,
+  aiQuestions = [],
+  initialIntention,
+  initialDuration,
+  initialPomodoros,
+}: CheckInFormProps) {
   const router = useRouter();
   const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = today
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [sessionType, setSessionType] = useState<"full" | "brief" | "no" | null>(null);
-  const [sessionIntention, setSessionIntention] = useState("");
+  const [sessionIntention, setSessionIntention] = useState(initialIntention ?? "");
   const [initiated, setInitiated] = useState<boolean | null>(null);
   const [focusLevel, setFocusLevel] = useState<string | null>(null);
   const [decayPoint, setDecayPoint] = useState<string | null>(null);
@@ -42,6 +53,11 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
   const [aiAnswers, setAiAnswers] = useState<string[]>(aiQuestions.map(() => ""));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Voice inputs for text fields
+  const intentionVoice = useVoiceInput({ getBase: () => sessionIntention, onResult: setSessionIntention });
+  const contextVoice = useVoiceInput({ getBase: () => contextNote, onResult: setContextNote });
+  const missReasonVoice = useVoiceInput({ getBase: () => otherMissReason, onResult: setOtherMissReason });
 
   const focusOptions = [
     { value: "none", label: t("checkin.focus.none"), description: t("checkin.focus.noneDesc") },
@@ -113,6 +129,8 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
           aiResponses,
           ...(selectedDate ? { date: selectedDate, backfilled: true } : {}),
           ...(sessionIntention.trim() ? { sessionIntention: sessionIntention.trim() } : {}),
+          ...(initialDuration != null ? { sessionDuration: initialDuration } : {}),
+          ...(initialPomodoros != null ? { pomodoroCount: initialPomodoros } : {}),
         }),
       });
 
@@ -145,17 +163,45 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
     <div className="max-w-lg mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-foreground">{t("checkin.title")}</h1>
 
+      {/* Session summary badge (from timer) */}
+      {initialDuration != null && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm">
+          <Timer size={15} />
+          <span>
+            Session timed: <strong>{initialDuration}min</strong>
+            {initialPomodoros ? ` · ${initialPomodoros} pomodoro${initialPomodoros !== 1 ? "s" : ""}` : ""}
+          </span>
+        </div>
+      )}
+
       {/* Pre-session intention (optional) */}
-      <Card className="bg-card border-border">
+      <Card>
         <CardContent className="pt-4 pb-4">
           <div className="flex items-center justify-between mb-2">
             <label className="text-foreground text-sm font-medium">{t("checkin.intentionLabel")}</label>
-            <button
-              onClick={() => setSessionIntention("")}
-              className="text-muted-foreground/50 text-xs hover:text-muted-foreground"
-            >
-              {t("checkin.intentionSkip")}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={intentionVoice.toggle}
+                disabled={intentionVoice.transcribing}
+                title={intentionVoice.transcribing ? "Finalizing…" : intentionVoice.listening ? "Stop recording" : "Voice input"}
+                className={`p-1 rounded transition-colors ${
+                  intentionVoice.listening
+                    ? "text-red-400 animate-pulse"
+                    : intentionVoice.transcribing
+                    ? "text-primary/60 animate-pulse"
+                    : "text-muted-foreground/50 hover:text-muted-foreground"
+                }`}
+              >
+                {intentionVoice.listening ? <MicOff size={14} /> : <Mic size={14} />}
+              </button>
+              <button
+                onClick={() => setSessionIntention("")}
+                className="text-muted-foreground/50 text-xs hover:text-muted-foreground"
+              >
+                {t("checkin.intentionSkip")}
+              </button>
+            </div>
           </div>
           <Input
             value={sessionIntention}
@@ -168,7 +214,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
       </Card>
 
       {/* Date selector */}
-      <Card className="bg-card border-border">
+      <Card>
         <CardContent className="pt-4 pb-4">
           <div className="flex items-center justify-between">
             <span className="text-foreground text-sm font-medium">
@@ -210,7 +256,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
       </Card>
 
       {/* Step 1: Did you study? */}
-      <Card className="bg-card border-border">
+      <Card>
         <CardContent className="pt-6">
           <h3 className="text-foreground text-lg mb-4">{t("checkin.didYouStudy")}</h3>
           <div className="flex gap-2">
@@ -255,7 +301,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
 
       {/* Step 2: Why did you miss? (only when not studied) */}
       {step >= 2 && initiated === false && (
-        <Card className="bg-card border-border">
+        <Card>
           <CardContent className="pt-6 space-y-3">
             <h3 className="text-foreground text-lg mb-2">{t("checkin.whyDidYouMiss")}</h3>
             {missReasonOptions.map((opt) => (
@@ -277,12 +323,27 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
             ))}
             {missReason === "Other" && (
               <div className="space-y-2">
-                <Input
-                  value={otherMissReason}
-                  onChange={(e) => setOtherMissReason(e.target.value)}
-                  placeholder={t("checkin.whatHappened")}
-                  className="bg-surface-inset border-border text-foreground"
-                />
+                <div className="relative">
+                  <Input
+                    value={otherMissReason}
+                    onChange={(e) => setOtherMissReason(e.target.value)}
+                    placeholder={t("checkin.whatHappened")}
+                    className="bg-surface-inset border-border text-foreground pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={missReasonVoice.toggle}
+                    disabled={missReasonVoice.transcribing}
+                    title={missReasonVoice.listening ? "Stop recording" : "Voice input"}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
+                      missReasonVoice.listening
+                        ? "text-red-400 animate-pulse"
+                        : "text-muted-foreground/50 hover:text-muted-foreground"
+                    }`}
+                  >
+                    {missReasonVoice.listening ? <MicOff size={13} /> : <Mic size={13} />}
+                  </button>
+                </div>
                 <Button
                   onClick={() => setStep(4)}
                   disabled={!otherMissReason.trim()}
@@ -298,7 +359,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
 
       {/* Step 2: Focus level (only when full session) */}
       {step >= 1 && sessionType === "full" && (
-        <Card className="bg-card border-border">
+        <Card>
           <CardContent className="pt-6">
             <h3 className="text-foreground text-lg mb-4">{t("checkin.howWasFocus")}</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -328,7 +389,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
 
       {/* Decay point (Focus Endurance only) */}
       {step >= 4 && showDecay && (
-        <Card className="bg-card border-border">
+        <Card>
           <CardContent className="pt-6">
             <h3 className="text-foreground text-lg mb-4">{t("checkin.decay.whenDropped")}</h3>
             <div className="grid grid-cols-3 gap-2">
@@ -353,7 +414,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
 
       {/* Study methods (only when studied) */}
       {step >= 3 && initiated === true && (
-        <Card className="bg-card border-border">
+        <Card>
           <CardContent className="pt-6 space-y-3">
             <div className="flex items-start justify-between">
               <h3 className="text-foreground text-lg">{t("checkin.whatMethod")}</h3>
@@ -394,12 +455,29 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
 
       {/* Context & optional fields */}
       {step >= 4 && (
-        <Card className="bg-card border-border">
+        <Card>
           <CardContent className="pt-6 space-y-4">
             <div>
-              <h3 className="text-foreground text-lg mb-2">
-                {t("checkin.anythingToNote")} <span className="text-muted-foreground/70 text-sm">{t("checkin.optional")}</span>
-              </h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-foreground text-lg">
+                  {t("checkin.anythingToNote")} <span className="text-muted-foreground/70 text-sm">{t("checkin.optional")}</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={contextVoice.toggle}
+                  disabled={contextVoice.transcribing}
+                  title={contextVoice.transcribing ? "Finalizing…" : contextVoice.listening ? "Stop recording" : "Voice input"}
+                  className={`p-1.5 rounded-md transition-colors ${
+                    contextVoice.listening
+                      ? "text-red-400 bg-red-500/10 border border-red-500/40 animate-pulse"
+                      : contextVoice.transcribing
+                      ? "text-primary/60 animate-pulse"
+                      : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {contextVoice.listening ? <MicOff size={15} /> : <Mic size={15} />}
+                </button>
+              </div>
               <Textarea
                 value={contextNote}
                 onChange={(e) => setContextNote(e.target.value)}
@@ -468,7 +546,7 @@ export function CheckInForm({ activeSkillSlug, aiQuestions = [] }: CheckInFormPr
 
       {/* Step 5: AI reflection questions (skippable) */}
       {step >= 5 && hasAiQuestions && (
-        <Card className="bg-card border-border">
+        <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-start justify-between">
               <h3 className="text-foreground text-lg">{t("checkin.quickReflection")}</h3>

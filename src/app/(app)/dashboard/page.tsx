@@ -3,27 +3,14 @@ import { prisma } from "@/lib/db/prisma";
 import { redirect } from "next/navigation";
 import { PhaseBanner } from "@/components/dashboard/PhaseBanner";
 import { ActiveSkillCard } from "@/components/dashboard/ActiveSkillCard";
-import { ActivePlanCard } from "@/components/dashboard/ActivePlanCard";
 import { CheckInWidget } from "@/components/dashboard/CheckInWidget";
 import { EventCard } from "@/components/dashboard/EventCard";
 import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
 import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
-import { MiniChatWidget } from "@/components/dashboard/MiniChatWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
-import { DimensionProfileCard } from "@/components/dashboard/DimensionProfileCard";
 import { ObservationNudge } from "@/components/dashboard/ObservationNudge";
 import { NoSkillCard } from "@/components/dashboard/NoSkillCard";
-import { SkillOverviewSection } from "@/components/dashboard/SkillOverviewSection";
-import dynamic from "next/dynamic";
-
-const WeeklyTrendChart = dynamic(
-  () => import("@/components/dashboard/WeeklyTrendChart").then((m) => ({ default: m.WeeklyTrendChart })),
-  { ssr: false, loading: () => <div className="h-48 bg-card rounded-xl animate-pulse" /> }
-);
-const SkillRadarChart = dynamic(
-  () => import("@/components/dashboard/SkillRadarChart").then((m) => ({ default: m.SkillRadarChart })),
-  { ssr: false, loading: () => <div className="h-48 bg-card rounded-xl animate-pulse" /> }
-);
+import { PlanWidget } from "@/components/dashboard/PlanWidget";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -37,7 +24,7 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  const [activePhase, skillProgresses, recentCheckIns, upcomingEvents, recentChatMessages] =
+  const [activePhase, skillProgresses, recentCheckIns, upcomingEvents] =
     await Promise.all([
       prisma.activePhase.findUnique({ where: { userId } }),
       prisma.skillProgress.findMany({
@@ -52,11 +39,6 @@ export default async function DashboardPage() {
       prisma.event.findMany({
         where: { userId, status: "upcoming" },
         orderBy: { date: "asc" },
-        take: 3,
-      }),
-      prisma.chatMessage.findMany({
-        where: { userId, role: { in: ["user", "assistant"] } },
-        orderBy: { createdAt: "desc" },
         take: 3,
       }),
     ]);
@@ -86,16 +68,6 @@ export default async function DashboardPage() {
     }))
     .reverse();
 
-  const trendCheckIns = recentCheckIns.map((ci) => ({
-    date: ci.date.toISOString().split("T")[0],
-    initiated: ci.initiated,
-    focusLevel: ci.focusLevel,
-  }));
-
-  const initialChatMessages = recentChatMessages
-    .reverse()
-    .map((m) => ({ id: m.id, role: m.role as "user" | "assistant", content: m.content }));
-
   const formattedEvents = upcomingEvents.map((e) => ({
     id: e.id,
     name: e.name,
@@ -104,31 +76,6 @@ export default async function DashboardPage() {
     daysUntil: Math.ceil(
       (e.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
     ),
-  }));
-
-  // Parse challenges from profile
-  let challenges: string[] = [];
-  if (profile?.biggestChallenge) {
-    try {
-      const parsed = JSON.parse(profile.biggestChallenge);
-      challenges = Array.isArray(parsed) ? parsed : [profile.biggestChallenge];
-    } catch {
-      challenges = [profile.biggestChallenge];
-    }
-  }
-
-  const radarSkills = skillProgresses
-    .sort((a, b) => a.skill.tier - b.skill.tier)
-    .map((sp) => ({
-      name: sp.skill.name,
-      status: sp.status,
-      stabilityScore: sp.stabilityScore,
-    }));
-
-  const dimensionSkills = skillProgresses.map((sp) => ({
-    dimension: sp.skill.dimension ?? null,
-    status: sp.status,
-    stabilityScore: sp.stabilityScore,
   }));
 
   return (
@@ -146,14 +93,11 @@ export default async function DashboardPage() {
         <ObservationNudge checkInCount={recentCheckIns.length} />
       )}
 
-      {/* Active plan card — always visible during skill training */}
+      {/* Compact plan widget — links to skill tree */}
       {phase === "skill_training" && activeSkillProgress && (
-        <ActivePlanCard
+        <PlanWidget
           skillName={activeSkillProgress.skill.name}
-          skillDescription={activeSkillProgress.skill.description}
           weekPhase={activeSkillProgress.weekPhase}
-          challenges={challenges}
-          userTask={activeSkillProgress.userTask ?? null}
         />
       )}
 
@@ -178,45 +122,10 @@ export default async function DashboardPage() {
         <EventCard events={formattedEvents} />
       </div>
 
-      {/* Skill Radar + Dimension Profile + Today's note */}
-      {radarSkills.length > 0 ? (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-          <div className="flex flex-col gap-6">
-            <SkillRadarChart skills={radarSkills} />
-            <AssessmentWidget />
-          </div>
-          <div className="flex flex-col gap-6">
-            <DimensionProfileCard skills={dimensionSkills} />
-            <div className="flex-1 min-h-0">
-              <InspirationWidget />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <InspirationWidget />
-          <AssessmentWidget />
-        </div>
-      )}
-
-      {/* Mini chat widget */}
-      <MiniChatWidget initialMessages={initialChatMessages} />
-
-      {/* Weekly trend chart */}
-      <div className="mt-6">
-        <WeeklyTrendChart checkIns={trendCheckIns} />
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <AssessmentWidget />
+        <InspirationWidget />
       </div>
-
-      <SkillOverviewSection
-        skills={skillProgresses
-          .sort((a, b) => a.skill.tier - b.skill.tier)
-          .map((sp) => ({
-            id: sp.id,
-            skillName: sp.skill.name,
-            skillTier: sp.skill.tier,
-            status: sp.status,
-          }))}
-      />
     </div>
   );
 }

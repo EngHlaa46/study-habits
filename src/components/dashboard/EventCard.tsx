@@ -18,7 +18,7 @@ export function EventCard({ events }: EventCardProps) {
   const { t } = useLanguage();
 
   return (
-    <Card className="bg-card border-border">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-foreground text-lg">{t("dashboard.upcomingEvents")}</CardTitle>
       </CardHeader>
@@ -30,7 +30,7 @@ export function EventCard({ events }: EventCardProps) {
             {events.map((event) => (
               <div
                 key={event.id}
-                className="flex items-center justify-between p-3 bg-surface-inset rounded-lg"
+                className="flex items-center justify-between p-3 bg-white/[0.04] border border-white/[0.06] rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   <CalendarDays size={16} className="text-[#fbbf24]" />

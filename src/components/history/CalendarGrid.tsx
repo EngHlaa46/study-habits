@@ -103,7 +103,7 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-card border-border">
+      <Card>
         <CardContent className="pt-6">
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-4">
@@ -161,7 +161,7 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
 
       {/* Selected day detail */}
       {selectedDay && (
-        <Card className="bg-card border-border">
+        <Card>
           <CardContent className="pt-6">
             <h3 className="text-foreground font-semibold mb-3">
               {new Date(selectedDay.date + "T12:00:00").toLocaleDateString("en-US", {

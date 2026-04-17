@@ -6,7 +6,7 @@ import { useLanguage } from "@/lib/language";
 export function NoSkillCard({ phase }: { phase: string }) {
   const { t } = useLanguage();
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
+    <div className="bg-card/60 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-lg shadow-black/20 p-6">
       <h3 className="text-foreground text-lg font-semibold mb-2">
         {phase === "observation"
           ? t("dashboard.observationInProgress")

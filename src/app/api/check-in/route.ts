@@ -46,6 +46,14 @@ export async function POST(req: Request) {
   if (body.aiResponses !== undefined && body.aiResponses !== null && typeof body.aiResponses !== "string") {
     return NextResponse.json({ error: "Invalid aiResponses" }, { status: 400 });
   }
+  if (body.sessionDuration !== undefined && body.sessionDuration !== null &&
+      (typeof body.sessionDuration !== "number" || body.sessionDuration < 0 || body.sessionDuration > 1440)) {
+    return NextResponse.json({ error: "Invalid sessionDuration" }, { status: 400 });
+  }
+  if (body.pomodoroCount !== undefined && body.pomodoroCount !== null &&
+      (typeof body.pomodoroCount !== "number" || body.pomodoroCount < 0 || body.pomodoroCount > 100)) {
+    return NextResponse.json({ error: "Invalid pomodoroCount" }, { status: 400 });
+  }
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -100,6 +108,8 @@ export async function POST(req: Request) {
       sessionIntention: typeof body.sessionIntention === "string" && body.sessionIntention.trim()
         ? body.sessionIntention.trim().slice(0, 300)
         : null,
+      sessionDuration: typeof body.sessionDuration === "number" ? body.sessionDuration : null,
+      pomodoroCount: typeof body.pomodoroCount === "number" ? body.pomodoroCount : null,
       missReason: body.missReason || null,
       studyMethod: body.studyMethod?.length > 0 ? JSON.stringify(body.studyMethod) : null,
       aiResponses: body.aiResponses || null,

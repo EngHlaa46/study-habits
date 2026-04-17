@@ -78,7 +78,7 @@ export function MiniChatWidget({ initialMessages }: MiniChatWidgetProps) {
   }
 
   return (
-    <div className="mt-6 bg-card border border-border rounded-xl flex flex-col" style={{ height: "300px" }}>
+    <div className="mt-6 bg-card/60 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-lg shadow-black/20 flex flex-col" style={{ height: "300px" }}>
       <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-border">
         <p className="text-xs text-muted-foreground/60 uppercase tracking-widest">{t("dashboard.coach")}</p>
         <Link href="/chat" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">

@@ -48,7 +48,7 @@ function CustomTooltip({
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
   return (
-    <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs">
+    <div className="bg-card/60 backdrop-blur-md border border-white/[0.08] rounded-lg px-3 py-2 text-xs">
       <p className="text-foreground font-medium">{data.skill}</p>
       <p className="text-muted-foreground capitalize">
         {data.status} &middot; {data.stability}% stability

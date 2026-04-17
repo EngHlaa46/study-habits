@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, X } from "lucide-react";
+import { CheckSquare, X, Timer } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/lib/language";
 
@@ -29,7 +29,7 @@ export function CheckInWidget({
   const { t } = useLanguage();
 
   return (
-    <Card className="bg-card border-border">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-foreground text-lg">{t("dashboard.dailyCheckIn")}</CardTitle>
       </CardHeader>
@@ -40,11 +40,22 @@ export function CheckInWidget({
             <span className="text-sm">{t("dashboard.completedToday")}</span>
           </div>
         ) : (
-          <Link href="/check-in">
-            <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold">
-              {t("dashboard.startCheckIn")}
-            </Button>
-          </Link>
+          <div className="space-y-2">
+            <Link href="/check-in">
+              <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold">
+                {t("dashboard.startCheckIn")}
+              </Button>
+            </Link>
+            <Link href="/session">
+              <Button
+                variant="outline"
+                className="w-full border-border text-muted-foreground hover:border-primary/50 hover:text-primary gap-2"
+              >
+                <Timer size={15} />
+                Start Session
+              </Button>
+            </Link>
+          </div>
         )}
 
         <div>
@@ -56,7 +67,7 @@ export function CheckInWidget({
                 return (
                   <div
                     key={i}
-                    className="w-full h-8 rounded bg-surface-inset flex items-center justify-center"
+                    className="w-full h-8 rounded bg-white/[0.04] border border-white/[0.06] flex items-center justify-center"
                   >
                     <X size={10} className="text-muted-foreground/50" />
                   </div>

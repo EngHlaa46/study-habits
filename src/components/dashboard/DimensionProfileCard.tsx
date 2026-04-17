@@ -73,7 +73,7 @@ export function DimensionProfileCard({ skills }: DimensionProfileCardProps) {
   ];
 
   return (
-    <Card className="bg-card border-border">
+    <Card>
       <CardContent className="pt-5 pb-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-foreground text-sm font-semibold uppercase tracking-wide opacity-60">

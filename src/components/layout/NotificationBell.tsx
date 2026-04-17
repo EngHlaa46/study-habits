@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, X, Smartphone } from "lucide-react";
+import { Bell, X, Smartphone, Download } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 import { subscribeToPush, unsubscribeFromPush, getPushState } from "@/components/providers/PushProvider";
 
@@ -17,6 +17,9 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [pushState, setPushState] = useState<"unsupported" | "denied" | "subscribed" | "unsubscribed">("unsubscribed");
   const [pushLoading, setPushLoading] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<Event & { prompt?: () => Promise<void> } | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
@@ -33,6 +36,23 @@ export function NotificationBell() {
   useEffect(() => {
     fetchNotifications();
     getPushState().then(setPushState);
+
+    // PWA install prompt (Chrome/Android)
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as Event & { prompt?: () => Promise<void> });
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+
+    // Detect if already installed
+    setIsInstalled(window.matchMedia("(display-mode: standalone)").matches);
+
+    // iOS Safari detection (no beforeinstallprompt, needs manual instructions)
+    const ua = navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) && !(window as unknown as Record<string, unknown>).MSStream;
+    setIsIOS(ios && !window.matchMedia("(display-mode: standalone)").matches);
+
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   // Refresh whenever the popover opens
@@ -131,6 +151,36 @@ export function NotificationBell() {
                     : t("notifications.pushEnable")}
                 </button>
               )}
+            </div>
+          )}
+
+          {/* PWA install — Chrome/Android */}
+          {!isInstalled && installPrompt && (
+            <div className="px-4 py-3 border-t border-border">
+              <button
+                onClick={async () => {
+                  if (installPrompt.prompt) {
+                    await installPrompt.prompt();
+                    setInstallPrompt(null);
+                    setIsInstalled(window.matchMedia("(display-mode: standalone)").matches);
+                  }
+                }}
+                className="flex items-center gap-2 text-xs text-primary/80 hover:text-primary transition-colors w-full"
+              >
+                <Download size={13} />
+                Add to Home Screen
+              </button>
+            </div>
+          )}
+
+          {/* PWA install — iOS Safari (manual instructions) */}
+          {isIOS && !isInstalled && (
+            <div className="px-4 py-3 border-t border-border">
+              <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                <span className="text-primary/80">Install on iOS:</span> tap the Share button
+                {" "}(<span className="font-mono">⎙</span>){" "}
+                then <span className="text-foreground/70">&ldquo;Add to Home Screen&rdquo;</span>
+              </p>
             </div>
           )}
         </div>

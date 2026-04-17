@@ -43,7 +43,11 @@ async function fetchAiQuestions(userId: string, activeSkillId?: string): Promise
   }
 }
 
-export default async function CheckInPage() {
+export default async function CheckInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ intention?: string; duration?: string; pomodoros?: string }>;
+}) {
   const session = await requireAuth();
   const userId = session.user.id;
 
@@ -63,12 +67,20 @@ export default async function CheckInPage() {
   }
 
   const aiQuestions = await fetchAiQuestions(userId, activeSkill?.id);
+  const params = await searchParams;
+
+  const initialIntention = params.intention?.slice(0, 300) ?? undefined;
+  const initialDuration = params.duration ? parseInt(params.duration, 10) || undefined : undefined;
+  const initialPomodoros = params.pomodoros ? parseInt(params.pomodoros, 10) || undefined : undefined;
 
   return (
     <div className="max-w-2xl mx-auto">
       <CheckInForm
         activeSkillSlug={activeSkill?.skill.slug}
         aiQuestions={aiQuestions}
+        initialIntention={initialIntention}
+        initialDuration={initialDuration}
+        initialPomodoros={initialPomodoros}
       />
     </div>
   );

@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, BookOpen, Brain, Mic, MicOff, Sparkles } from "lucide-react";
+import { Send, Mic, MicOff, Sparkles, Wrench, ExternalLink, X } from "lucide-react";
 import { useLanguage } from "@/lib/language";
+import { TOOLS } from "@/lib/tools-data";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 
 interface Message {
   id: string;
@@ -22,16 +24,15 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
-  const [chatMode, setChatMode] = useState<"skills" | "study" | "training">("skills");
-  const [listening, setListening] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
   const [suggestion, setSuggestion] = useState("");
   const [taskToast, setTaskToast] = useState<string | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const baseInputRef = useRef("");
-  const liveTranscribingRef = useRef(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const suggestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { listening, transcribing, toggle: toggleVoice } = useVoiceInput({
+    getBase: () => input,
+    onResult: (val) => setInput(val),
+    lang,
+  });
 
   // Debounced AI autocomplete
   const fetchSuggestion = useCallback((value: string, msgs: Message[]) => {
@@ -53,76 +54,6 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
     }, 900);
   }, []);
 
-  const toggleVoice = useCallback(async () => {
-    if (listening) {
-      mediaRecorderRef.current?.stop();
-      setListening(false);
-      return;
-    }
-
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      return; // mic permission denied
-    }
-
-    audioChunksRef.current = [];
-    baseInputRef.current = input;
-    liveTranscribingRef.current = false;
-    const recorder = new MediaRecorder(stream);
-    mediaRecorderRef.current = recorder;
-
-    const transcribeAccumulated = async () => {
-      if (liveTranscribingRef.current || audioChunksRef.current.length === 0) return;
-      liveTranscribingRef.current = true;
-      const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-      try {
-        const fd = new FormData();
-        fd.append("audio", blob, "recording.webm");
-        fd.append("lang", lang === "ar" ? "ar" : "en");
-        const res = await fetch("/api/chat/transcribe", { method: "POST", body: fd });
-        const { transcript } = await res.json();
-        if (transcript) {
-          const base = baseInputRef.current;
-          setInput(base.trimEnd() ? base.trimEnd() + " " + transcript.trim() : transcript.trim());
-        }
-      } catch { /* ignore */ } finally {
-        liveTranscribingRef.current = false;
-      }
-    };
-
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        audioChunksRef.current.push(e.data);
-        transcribeAccumulated();
-      }
-    };
-
-    recorder.onstop = async () => {
-      stream.getTracks().forEach((t) => t.stop());
-      // Final transcription for anything after the last chunk boundary
-      setTranscribing(true);
-      const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-      audioChunksRef.current = [];
-      try {
-        const fd = new FormData();
-        fd.append("audio", blob, "recording.webm");
-        fd.append("lang", lang === "ar" ? "ar" : "en");
-        const res = await fetch("/api/chat/transcribe", { method: "POST", body: fd });
-        const { transcript } = await res.json();
-        if (transcript) {
-          const base = baseInputRef.current;
-          setInput(base.trimEnd() ? base.trimEnd() + " " + transcript.trim() : transcript.trim());
-        }
-      } catch { /* ignore */ } finally {
-        setTranscribing(false);
-      }
-    };
-
-    recorder.start(2500); // fire ondataavailable every 2.5s for live updates
-    setListening(true);
-  }, [listening, lang]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -157,7 +88,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, chatMode }),
+        body: JSON.stringify({ message: text, chatMode: "skills" }),
       });
 
       if (!res.ok) {
@@ -231,56 +162,6 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)]">
-      {/* Mode toggle */}
-      <div className="mb-4 p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
-        <div className="flex items-center gap-2">
-          {/* Skills Coach — primary/default */}
-          <button
-            onClick={() => setChatMode("skills")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${
-              chatMode === "skills"
-                ? "bg-primary/20 text-primary border-primary/40"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
-            }`}
-          >
-            <Sparkles size={14} />
-            Skills Coach
-          </button>
-
-          <span className="text-muted-foreground/30 text-xs">|</span>
-
-          {/* Study & Training — secondary */}
-          <button
-            onClick={() => setChatMode("study")}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              chatMode === "study"
-                ? "bg-[#4ade80]/20 text-[#4ade80] border-[#4ade80]/40"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
-            }`}
-          >
-            <BookOpen size={12} />
-            Study
-          </button>
-          <button
-            onClick={() => setChatMode("training")}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              chatMode === "training"
-                ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary"
-            }`}
-          >
-            <Brain size={12} />
-            Training
-          </button>
-        </div>
-
-        <p className="text-xs text-muted-foreground/60 leading-relaxed">
-          {chatMode === "skills" && "Skill building, habit coaching, check-in reviews, and planning. This is the core of the app."}
-          {chatMode === "study" && "Ask subject questions — math, science, history, anything. Coach answers directly and suggests tools."}
-          {chatMode === "training" && "Socratic exam prep. Coach never gives the answer — asks you questions until you work it out yourself."}
-        </p>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pb-4">
         {messages.length === 0 && (
@@ -326,6 +207,35 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
         </div>
       )}
 
+      {/* Tools panel */}
+      {toolsOpen && (
+        <div className="mb-3 rounded-xl border border-border bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+            <p className="text-xs font-semibold text-foreground">Study Tools</p>
+            <button onClick={() => setToolsOpen(false)} className="text-muted-foreground/50 hover:text-muted-foreground">
+              <X size={13} />
+            </button>
+          </div>
+          <div className="divide-y divide-border">
+            {TOOLS.map((tool) => (
+              <a
+                key={tool.key}
+                href={tool.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-secondary/50 transition-colors"
+              >
+                <div className="min-w-0">
+                  <span className="text-sm font-medium text-foreground">{tool.name}</span>
+                  <span className="text-xs text-muted-foreground/60 ml-2">{tool.badge}</span>
+                </div>
+                <ExternalLink size={12} className="text-muted-foreground/40 shrink-0" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <div className="border-t border-border pt-4">
         <div className="flex gap-2">
@@ -363,6 +273,17 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
               </button>
             )}
           </div>
+          <button
+            onClick={() => setToolsOpen((v) => !v)}
+            title="Study tools"
+            className={`px-3 rounded-lg border transition-colors ${
+              toolsOpen
+                ? "border-primary/40 text-primary bg-primary/10"
+                : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            <Wrench size={16} />
+          </button>
           <button
             onClick={toggleVoice}
             disabled={transcribing}

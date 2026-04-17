@@ -115,7 +115,7 @@ export default function SettingsPage() {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold text-foreground mb-6">{t("settings.title")}</h1>
 
-      <Card className="bg-card border-border mb-6">
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-foreground text-lg">{t("settings.account")}</CardTitle>
         </CardHeader>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border mb-6">
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-foreground text-lg">{t("settings.appearance")}</CardTitle>
         </CardHeader>
@@ -162,7 +162,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border mb-6">
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-foreground text-lg">{t("settings.coachingPrefs")}</CardTitle>
         </CardHeader>
@@ -236,7 +236,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border mb-6">
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-foreground text-lg">{t("settings.calendarSync")}</CardTitle>
         </CardHeader>
@@ -304,7 +304,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-card border-border">
+      <Card>
         <CardHeader>
           <CardTitle className="text-foreground text-lg">{t("settings.actions")}</CardTitle>
         </CardHeader>

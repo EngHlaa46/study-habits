@@ -33,7 +33,7 @@ export function ActiveSkillCard({
   const progressPercent = ((weekPhase) / 3) * 100;
 
   return (
-    <Card className="bg-card border-border">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-foreground text-lg">{skillName}</CardTitle>
@@ -54,7 +54,7 @@ export function ActiveSkillCard({
         </div>
 
         {userTask && (
-          <div className="bg-surface-inset rounded-lg p-3">
+          <div className="bg-white/[0.04] border border-white/[0.06] rounded-lg p-3">
             <p className="text-xs text-muted-foreground/70 mb-1">{t("skills.yourTask")}</p>
             <p className="text-foreground/80 text-sm">{userTask}</p>
           </div>

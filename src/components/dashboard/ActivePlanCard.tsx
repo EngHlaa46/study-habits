@@ -39,7 +39,7 @@ export function ActivePlanCard({ skillName, skillDescription, weekPhase, challen
   const week = weekConfig[weekPhase] ?? weekConfig[1];
 
   return (
-    <div className={`bg-card border-2 ${week.border} rounded-xl p-5 mb-6`}>
+    <div className={`bg-card/60 backdrop-blur-md border-2 ${week.border} rounded-xl p-5 mb-6 shadow-lg shadow-black/20`}>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">

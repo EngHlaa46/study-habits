@@ -98,7 +98,7 @@ export default function OnboardingPage() {
         </div>
 
         {step === 0 && (
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
                 {t("onboarding.studyGoalTitle")}
@@ -140,7 +140,7 @@ export default function OnboardingPage() {
         )}
 
         {step === 1 && (
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
                 {t("onboarding.challengesTitle")}
@@ -182,7 +182,7 @@ export default function OnboardingPage() {
         )}
 
         {step === 2 && (
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
                 {t("onboarding.timeTitle")}
@@ -213,7 +213,7 @@ export default function OnboardingPage() {
         )}
 
         {step === 3 && (
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
                 {t("onboarding.eventTitle")}

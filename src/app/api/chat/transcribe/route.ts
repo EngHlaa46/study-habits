@@ -21,7 +21,9 @@ export async function POST(req: Request) {
   }
 
   const buffer = Buffer.from(await audio.arrayBuffer());
-  const file = await toFile(buffer, "recording.webm", { type: audio.type || "audio/webm" });
+  const audioMime = audio.type || "audio/webm";
+  const ext = audioMime.includes("mp4") ? "mp4" : "webm";
+  const file = await toFile(buffer, `recording.${ext}`, { type: audioMime });
 
   const result = await groq.audio.transcriptions.create({
     file,

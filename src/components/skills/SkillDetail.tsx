@@ -165,7 +165,7 @@ export function SkillDetail({
 
       {/* Description & Purpose */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="bg-card border-border">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground text-sm">{t("skills.description")}</CardTitle>
           </CardHeader>
@@ -173,7 +173,7 @@ export function SkillDetail({
             <p className="text-muted-foreground text-sm">{skill.description}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground text-sm">{t("skills.whyThisSkill")}</CardTitle>
           </CardHeader>
@@ -185,7 +185,7 @@ export function SkillDetail({
 
       {/* Active skill training section */}
       {status === "active" && progress && (
-        <Card className="bg-card border-primary/30">
+        <Card className="border-primary/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-primary text-lg">
               {t("skills.trainingProgress")}
@@ -290,7 +290,7 @@ export function SkillDetail({
 
       {/* Completed skill summary */}
       {(status === "stable" || status === "mastered") && progress && (
-        <Card className="bg-card border-[#4ade80]/30">
+        <Card className="border-[#4ade80]/30">
           <CardContent className="pt-6">
             {/* Growth narrative */}
             {narrative ? (
@@ -392,7 +392,7 @@ export function SkillDetail({
       {/* Dependencies */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {prerequisites.length > 0 && (
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-foreground text-sm">{t("skills.requires")}</CardTitle>
             </CardHeader>
@@ -410,7 +410,7 @@ export function SkillDetail({
           </Card>
         )}
         {unlocksSkills.length > 0 && (
-          <Card className="bg-card border-border">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-foreground text-sm">{t("skills.unlocks")}</CardTitle>
             </CardHeader>

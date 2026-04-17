@@ -59,7 +59,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md bg-card border-border">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl text-foreground">{t("auth.createAccount")}</CardTitle>
           <CardDescription className="text-muted-foreground">
