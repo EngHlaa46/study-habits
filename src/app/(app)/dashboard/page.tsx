@@ -2,14 +2,12 @@ import { requireAuth } from "@/lib/session";
 import { prisma } from "@/lib/db/prisma";
 import { redirect } from "next/navigation";
 import { PhaseBanner } from "@/components/dashboard/PhaseBanner";
-import { ActiveSkillCard } from "@/components/dashboard/ActiveSkillCard";
 import { CheckInWidget } from "@/components/dashboard/CheckInWidget";
 import { EventCard } from "@/components/dashboard/EventCard";
 import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
 import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
 import { ObservationNudge } from "@/components/dashboard/ObservationNudge";
-import { NoSkillCard } from "@/components/dashboard/NoSkillCard";
 import { PlanWidget } from "@/components/dashboard/PlanWidget";
 
 export default async function DashboardPage() {
@@ -101,19 +99,7 @@ export default async function DashboardPage() {
         />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {activeSkillProgress ? (
-          <ActiveSkillCard
-            skillName={activeSkillProgress.skill.name}
-            skillDescription={activeSkillProgress.skill.description}
-            weekPhase={activeSkillProgress.weekPhase}
-            userTask={activeSkillProgress.userTask}
-            stabilityScore={activeSkillProgress.stabilityScore}
-          />
-        ) : (
-          <NoSkillCard phase={phase} />
-        )}
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <CheckInWidget
           todayCompleted={!!todayCheckIn}
           recentCheckIns={formattedCheckIns}
