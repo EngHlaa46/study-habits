@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getAvailableSkills, activateSkill } from "@/lib/skills/progression";
+import { getAvailableSkills } from "@/lib/skills/progression";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -20,14 +20,6 @@ export async function POST(req: Request) {
   }
 
   const { skillId, action, userTask } = await req.json();
-
-  if (action === "activate") {
-    if (!skillId) {
-      return NextResponse.json({ error: "skillId required" }, { status: 400 });
-    }
-    const result = await activateSkill(session.user.id, skillId);
-    return NextResponse.json({ skillProgress: result });
-  }
 
   if (action === "setTask") {
     if (!skillId || !userTask) {

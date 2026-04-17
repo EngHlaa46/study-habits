@@ -27,10 +27,9 @@ export default async function SkillsPage() {
   ]);
 
   const phase = activePhase?.phase || "onboarding";
-  const hasActiveSkill = skills.some((s) => s.currentStatus === "active");
-  const canActivate = phase === "skill_training" && !hasActiveSkill;
 
-  const activeSkillProgress = skillProgresses.find((sp) => sp.status === "active");
+  const activeSkillProgresses = skillProgresses.filter((sp) => sp.status === "active");
+  const activeLevel = activeSkillProgresses[0]?.skill.level ?? 1;
 
   let challenges: string[] = [];
   if (profile?.biggestChallenge) {
@@ -54,25 +53,16 @@ export default async function SkillsPage() {
     stabilityScore: sp.stabilityScore,
   }));
 
+  // Serialize skills for SkillTree (new shape: level + dimension, no tier/prereqs)
   const serialized = skills.map((s) => ({
     id: s.id,
     slug: s.slug,
     name: s.name,
-    tier: s.tier,
+    level: s.level,
+    dimension: s.dimension ?? "behavioral",
     description: s.description,
     purpose: s.purpose,
     currentStatus: s.currentStatus,
-    prereqsMet: s.prereqsMet,
-    prerequisites: s.dependsOn.map((dep) => {
-      const prereqSkill = skills.find((sk) => sk.id === dep.prerequisiteId);
-      return {
-        name: dep.prerequisite.name,
-        slug: dep.prerequisite.slug,
-        met:
-          prereqSkill?.currentStatus === "stable" ||
-          prereqSkill?.currentStatus === "mastered",
-      };
-    }),
     progress: s.progress
       ? {
           weekPhase: s.progress.weekPhase,
@@ -86,15 +76,18 @@ export default async function SkillsPage() {
     <div className="max-w-3xl mx-auto">
       <SkillsPageHeader />
 
-      {/* Current skill plan — visible during active skill training */}
-      {phase === "skill_training" && activeSkillProgress && (
+      {/* Level plan — visible during active skill training */}
+      {phase === "skill_training" && activeSkillProgresses.length > 0 && (
         <>
           <ActivePlanCard
-            skillName={activeSkillProgress.skill.name}
-            skillDescription={activeSkillProgress.skill.description}
-            weekPhase={activeSkillProgress.weekPhase}
+            activeSkills={activeSkillProgresses.map((sp) => ({
+              name: sp.skill.name,
+              dimension: sp.skill.dimension ?? "behavioral",
+              weekPhase: sp.weekPhase,
+              userTask: sp.userTask ?? null,
+            }))}
+            levelNumber={activeLevel}
             challenges={challenges}
-            userTask={activeSkillProgress.userTask ?? null}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -113,7 +106,7 @@ export default async function SkillsPage() {
         </>
       )}
 
-      <SkillTree skills={serialized} canActivate={canActivate} />
+      <SkillTree skills={serialized} />
     </div>
   );
 }

@@ -3,21 +3,22 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const skills = [
+  // Level 1 — Beginner
   {
     slug: "task-clarity",
     name: "Task Clarity",
-    tier: 1,
-    dimension: "behavioral",
+    level: 1,
+    dimension: "planning",
     description:
       "Define exactly what you will study before you begin. Convert vague intentions into concrete tasks.",
     purpose:
-      "Most study sessions fail before they start because the student sits down without knowing what to do. This skill removes that ambiguity.",
+      "Most study sessions fail before they start because the student sits down without knowing what to do. This skill removes that ambiguity — pre-session.",
     icon: "target",
   },
   {
     slug: "initiation",
     name: "Initiation",
-    tier: 1,
+    level: 1,
     dimension: "behavioral",
     description:
       "Start studying within 5 minutes of your planned time. The goal is simply to begin, not to sustain.",
@@ -28,21 +29,34 @@ const skills = [
   {
     slug: "focus-containment",
     name: "Focus Containment",
-    tier: 2,
+    level: 1,
     dimension: "cognitive",
     description:
-      "Maintain focused attention for a defined short block (15-25 minutes) without switching tasks.",
+      "Maintain focused attention for a defined short block (15–25 minutes) without switching tasks.",
     purpose:
       "Once you can start, you need to stay. This skill builds the minimum viable focus window.",
     icon: "eye",
   },
+
+  // Level 2 — Intermediate
+  {
+    slug: "estimating-time",
+    name: "Estimating Time",
+    level: 2,
+    dimension: "planning",
+    description:
+      "Accurately estimate how long tasks will take before you start a session. Build a realistic pre-session plan.",
+    purpose:
+      "Underestimating task time leads to rushed sessions and incomplete work. This skill calibrates your planning instinct.",
+    icon: "clock",
+  },
   {
     slug: "environment-control",
     name: "Environment Control",
-    tier: 2,
-    dimension: "cognitive",
+    level: 2,
+    dimension: "behavioral",
     description:
-      "Set up your study space to minimize distractions before you begin. Phone away, tabs closed, materials ready.",
+      "Set up your study space to eliminate external distractions before you begin. Phone away, tabs closed, materials ready.",
     purpose:
       "Your environment either supports focus or destroys it. This skill makes the choice intentional.",
     icon: "shield",
@@ -50,99 +64,77 @@ const skills = [
   {
     slug: "focus-endurance",
     name: "Focus Endurance",
-    tier: 3,
+    level: 2,
     dimension: "cognitive",
     description:
-      "Extend focused study beyond the initial block. Work through the natural urge to stop at 25-30 minutes.",
+      "Extend focused study beyond the initial block. Work through the natural urge to stop at 25–30 minutes.",
     purpose:
-      "Some material requires deep engagement. This skill stretches your focus capacity.",
+      "Some material requires deep engagement. This skill stretches your focus capacity beyond the minimum.",
     icon: "timer",
+  },
+
+  // Level 3 — Mastery
+  {
+    slug: "flexible-planning",
+    name: "Flexible Planning",
+    level: 3,
+    dimension: "planning",
+    description:
+      "Adapt your study plan dynamically when sessions don't go as expected. Reorganize tasks across sessions without losing progress.",
+    purpose:
+      "Rigid plans break under real-world pressure. This skill turns setbacks into re-plans rather than stops.",
+    icon: "layout",
+  },
+  {
+    slug: "sticking-to-plan",
+    name: "Sticking to Plan",
+    level: 3,
+    dimension: "behavioral",
+    description:
+      "Follow your pre-session plan through the session without drifting to easier or unrelated tasks.",
+    purpose:
+      "Planning is only half the battle. This skill closes the gap between intention and execution.",
+    icon: "check-square",
   },
   {
     slug: "cognitive-recovery",
     name: "Cognitive Recovery",
-    tier: 3,
+    level: 3,
     dimension: "cognitive",
     description:
       "Take effective breaks that actually restore focus. Learn the difference between rest and distraction.",
     purpose:
-      "Sustainable study requires recovery. This skill prevents burnout and maintains session quality.",
+      "Sustainable study requires recovery. This skill prevents burnout and maintains session quality over time.",
     icon: "battery",
   },
-  {
-    slug: "planning-sequencing",
-    name: "Planning & Sequencing",
-    tier: 4,
-    dimension: "metacognitive",
-    description:
-      "Organize multiple study tasks across a session or week. Prioritize by difficulty, deadline, and energy.",
-    purpose:
-      "With solid focus skills, you can now optimize how you allocate your study time across subjects.",
-    icon: "layout",
-  },
-  {
-    slug: "deadline-calibration",
-    name: "Deadline Calibration",
-    tier: 4,
-    dimension: "metacognitive",
-    description:
-      "Accurately estimate how long tasks will take and work backward from deadlines to create realistic schedules.",
-    purpose:
-      "The final skill: turning your improved study habits into reliable academic performance under real constraints.",
-    icon: "calendar",
-  },
-];
-
-const dependencies: [string, string][] = [
-  // [dependent, prerequisite]
-  ["focus-containment", "task-clarity"],
-  ["focus-containment", "initiation"],
-  ["environment-control", "task-clarity"],
-  ["environment-control", "initiation"],
-  ["focus-endurance", "focus-containment"],
-  ["cognitive-recovery", "focus-containment"],
-  ["cognitive-recovery", "environment-control"],
-  ["planning-sequencing", "focus-endurance"],
-  ["planning-sequencing", "cognitive-recovery"],
-  ["deadline-calibration", "planning-sequencing"],
 ];
 
 async function main() {
   console.log("Seeding skills...");
 
-  // Upsert skills
-  const skillMap: Record<string, string> = {};
+  // Clear SkillProgress records referencing renamed/removed slugs first
+  const oldSkills = await prisma.skill.findMany({
+    where: { slug: { in: ["deadline-calibration", "planning-sequencing"] } },
+    select: { id: true },
+  });
+  if (oldSkills.length > 0) {
+    await prisma.skillProgress.deleteMany({
+      where: { skillId: { in: oldSkills.map((s) => s.id) } },
+    });
+    await prisma.skill.deleteMany({
+      where: { slug: { in: ["deadline-calibration", "planning-sequencing"] } },
+    });
+  }
+
   for (const skill of skills) {
-    const created = await prisma.skill.upsert({
+    await prisma.skill.upsert({
       where: { slug: skill.slug },
       update: skill,
       create: skill,
     });
-    skillMap[skill.slug] = created.id;
   }
 
   console.log(`Seeded ${skills.length} skills.`);
-
-  // Create dependencies
-  for (const [depSlug, preSlug] of dependencies) {
-    const depId = skillMap[depSlug];
-    const preId = skillMap[preSlug];
-    await prisma.skillDependency.upsert({
-      where: {
-        dependentSkillId_prerequisiteId: {
-          dependentSkillId: depId,
-          prerequisiteId: preId,
-        },
-      },
-      update: {},
-      create: {
-        dependentSkillId: depId,
-        prerequisiteId: preId,
-      },
-    });
-  }
-
-  console.log(`Seeded ${dependencies.length} dependencies.`);
 }
 
 main()

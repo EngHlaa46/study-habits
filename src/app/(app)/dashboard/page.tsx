@@ -7,7 +7,6 @@ import { EventCard } from "@/components/dashboard/EventCard";
 import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
 import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
-import { ObservationNudge } from "@/components/dashboard/ObservationNudge";
 import { PlanWidget } from "@/components/dashboard/PlanWidget";
 
 export default async function DashboardPage() {
@@ -49,9 +48,10 @@ export default async function DashboardPage() {
       )
     : 0;
 
-  const activeSkillProgress = skillProgresses.find(
+  const activeSkillProgresses = skillProgresses.filter(
     (sp) => sp.status === "active"
   );
+  const activeLevel = activeSkillProgresses[0]?.skill.level ?? 1;
 
   const today = new Date().toISOString().split("T")[0];
   const todayCheckIn = recentCheckIns.find(
@@ -82,20 +82,18 @@ export default async function DashboardPage() {
       <PhaseBanner
         phase={phase}
         dayCount={dayCount}
-        activeSkillName={activeSkillProgress?.skill.name}
-        weekPhase={activeSkillProgress?.weekPhase}
+        activeLevel={activeLevel}
       />
 
-      {/* Observation phase nudge */}
-      {phase === "observation" && (
-        <ObservationNudge checkInCount={recentCheckIns.length} />
-      )}
-
       {/* Compact plan widget — links to skill tree */}
-      {phase === "skill_training" && activeSkillProgress && (
+      {phase === "skill_training" && activeSkillProgresses.length > 0 && (
         <PlanWidget
-          skillName={activeSkillProgress.skill.name}
-          weekPhase={activeSkillProgress.weekPhase}
+          activeSkills={activeSkillProgresses.map((sp) => ({
+            name: sp.skill.name,
+            dimension: sp.skill.dimension ?? "behavioral",
+            weekPhase: sp.weekPhase,
+          }))}
+          levelNumber={activeLevel}
         />
       )}
 

@@ -3,31 +3,24 @@
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/lib/language";
 
+const LEVEL_NAMES: Record<number, string> = {
+  1: "Beginner",
+  2: "Intermediate",
+  3: "Mastery",
+};
+
 interface PhaseBannerProps {
   phase: string;
   dayCount: number;
-  activeSkillName?: string | null;
-  weekPhase?: number;
+  activeLevel?: number | null;
 }
 
-export function PhaseBanner({
-  phase,
-  dayCount,
-  activeSkillName,
-  weekPhase,
-}: PhaseBannerProps) {
+export function PhaseBanner({ phase, dayCount, activeLevel }: PhaseBannerProps) {
   const { t } = useLanguage();
 
   const phaseLabels: Record<string, string> = {
     onboarding: t("phase.onboarding"),
-    observation: t("phase.observation"),
     skill_training: t("phase.skill_training"),
-  };
-
-  const weekLabels: Record<number, string> = {
-    1: t("skills.week1Label"),
-    2: t("skills.week2Label"),
-    3: t("skills.week3Label"),
   };
 
   const label = phaseLabels[phase] || phase;
@@ -36,24 +29,13 @@ export function PhaseBanner({
     <div className="w-full rounded-xl bg-gradient-to-r from-[#38bdf8]/[0.08] to-[#4ade80]/[0.06] border border-white/[0.1] backdrop-blur-sm p-4 mb-6 shadow-[0_0_24px_rgba(56,189,248,0.06)]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge
-            variant="outline"
-            className="border-[#38bdf8] text-[#38bdf8] text-xs"
-          >
+          <Badge variant="outline" className="border-[#38bdf8] text-[#38bdf8] text-xs">
             {label}
           </Badge>
-          {activeSkillName && (
+          {activeLevel && phase === "skill_training" && (
             <span className="text-foreground/80 text-sm">
-              {t("phase.activeLabel")} <span className="text-[#38bdf8]">{activeSkillName}</span>
+              Level {activeLevel} — <span className="text-[#38bdf8]">{LEVEL_NAMES[activeLevel] ?? ""}</span>
             </span>
-          )}
-          {weekPhase && weekPhase > 0 && (
-            <Badge
-              variant="outline"
-              className="border-[#4ade80] text-[#4ade80] text-xs"
-            >
-              {weekLabels[weekPhase]}
-            </Badge>
           )}
         </div>
         <span className="text-muted-foreground/70 text-sm">{t("phase.day")} {dayCount}</span>

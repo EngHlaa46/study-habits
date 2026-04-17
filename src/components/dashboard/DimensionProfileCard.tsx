@@ -56,6 +56,11 @@ export function DimensionProfileCard({ skills }: DimensionProfileCardProps) {
 
   const dimensions = [
     {
+      key: "planning",
+      label: t("dimension.planning") || "Planning & Prep",
+      desc: t("dimension.planningDesc") || "Pre-session habits: defining tasks, estimating time, and flexible planning.",
+    },
+    {
       key: "behavioral",
       label: t("dimension.behavioral"),
       desc: t("dimension.behavioralDesc"),
@@ -64,11 +69,6 @@ export function DimensionProfileCard({ skills }: DimensionProfileCardProps) {
       key: "cognitive",
       label: t("dimension.cognitive"),
       desc: t("dimension.cognitiveDesc"),
-    },
-    {
-      key: "metacognitive",
-      label: t("dimension.metacognitive"),
-      desc: t("dimension.metacognitiveDesc"),
     },
   ];
 

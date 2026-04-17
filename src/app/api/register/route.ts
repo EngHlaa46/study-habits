@@ -48,12 +48,12 @@ export async function POST(req: Request) {
       },
     });
 
-    // Initialize skill progress for tier 1 skills (available by default)
-    const tier1Skills = await prisma.skill.findMany({
-      where: { tier: 1 },
+    // Initialize skill progress for level 1 skills (available by default)
+    const level1Skills = await prisma.skill.findMany({
+      where: { level: 1 },
     });
 
-    for (const skill of tier1Skills) {
+    for (const skill of level1Skills) {
       await prisma.skillProgress.create({
         data: {
           userId: user.id,
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
     // Initialize remaining skills as locked
     const otherSkills = await prisma.skill.findMany({
-      where: { tier: { gt: 1 } },
+      where: { level: { gt: 1 } },
     });
 
     for (const skill of otherSkills) {

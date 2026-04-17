@@ -69,27 +69,15 @@ model Event {
 }
 
 model Skill {
-  id           String            @id @default(cuid())
-  slug         String            @unique
+  id           String          @id @default(cuid())
+  slug         String          @unique
   name         String
-  tier         Int
+  level        Int
   description  String
   purpose      String
   icon         String?
-  dimension    String?           // behavioral, cognitive, metacognitive
-  dependsOn    SkillDependency[] @relation("DependentSkill")
-  requiredFor  SkillDependency[] @relation("PrerequisiteSkill")
+  dimension    String?         // planning, behavioral, cognitive
   progresses   SkillProgress[]
-}
-
-model SkillDependency {
-  id               String @id @default(cuid())
-  dependentSkillId String
-  prerequisiteId   String
-  dependentSkill   Skill  @relation("DependentSkill", fields: [dependentSkillId], references: [id])
-  prerequisite     Skill  @relation("PrerequisiteSkill", fields: [prerequisiteId], references: [id])
-
-  @@unique([dependentSkillId, prerequisiteId])
 }
 
 model SkillProgress {
@@ -116,9 +104,8 @@ model ActivePhase {
   id            String   @id @default(cuid())
   userId        String   @unique
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phase         String   @default("onboarding") // onboarding, observation, skill_training
+  phase         String   @default("onboarding") // onboarding, skill_training
   phaseStart    DateTime @default(now())
-  activeSkillId String?
   activeEventId String?
   dayCount      Int      @default(0)
   createdAt     DateTime @default(now())

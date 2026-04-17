@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { activateLevelSkills } from "@/lib/skills/progression";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -75,21 +76,24 @@ export async function POST(req: Request) {
     });
   }
 
-  // Transition to observation phase
+  // Transition directly to skill_training (no observation gate)
   await prisma.activePhase.upsert({
     where: { userId },
     update: {
-      phase: "observation",
+      phase: "skill_training",
       phaseStart: new Date(),
       dayCount: 0,
     },
     create: {
       userId,
-      phase: "observation",
+      phase: "skill_training",
       phaseStart: new Date(),
       dayCount: 0,
     },
   });
+
+  // Auto-activate all 3 Level 1 skills immediately
+  await activateLevelSkills(userId, 1);
 
   return NextResponse.json({ success: true });
 }

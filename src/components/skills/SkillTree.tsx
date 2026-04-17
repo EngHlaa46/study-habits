@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Target,
   Play,
@@ -20,9 +19,11 @@ import {
   Timer,
   Battery,
   LayoutGrid,
-  CalendarDays,
+  Clock,
+  CheckSquare,
   Lock,
   CheckCircle2,
+  ChevronDown,
 } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
@@ -30,12 +31,11 @@ interface SkillNode {
   id: string;
   slug: string;
   name: string;
-  tier: number;
+  level: number;
+  dimension: string;
   description: string;
   purpose: string;
   currentStatus: string;
-  prereqsMet: boolean;
-  prerequisites: { name: string; slug: string; met: boolean }[];
   progress?: {
     weekPhase: number;
     stabilityScore: number;
@@ -45,71 +45,62 @@ interface SkillNode {
 
 interface SkillTreeProps {
   skills: SkillNode[];
-  canActivate: boolean;
 }
 
-const tierConfig: Record<number, { color: string; bg: string }> = {
-  1: { color: "#38bdf8", bg: "rgba(56,189,248,0.07)"  },
-  2: { color: "#a855f7", bg: "rgba(168,85,247,0.07)" },
-  3: { color: "#f97316", bg: "rgba(249,115,22,0.07)" },
-  4: { color: "#fbbf24", bg: "rgba(251,191,36,0.07)" },
+const WEEK_LABELS: Record<number, string> = {
+  1: "Stabilize",
+  2: "Express",
+  3: "Probe",
 };
 
-const skillIconMap: Record<string, React.ElementType> = {
+const LEVEL_NAMES: Record<number, string> = {
+  1: "Beginner",
+  2: "Intermediate",
+  3: "Mastery",
+};
+
+// Dimension order for columns
+const DIMENSIONS = ["planning", "behavioral", "cognitive"] as const;
+
+const DIMENSION_CONFIG: Record<string, { color: string; bg: string; label: string; sub: string }> = {
+  planning:   { color: "#38bdf8", bg: "rgba(56,189,248,0.07)",  label: "Planning & Prep", sub: "pre-session" },
+  behavioral: { color: "#fbbf24", bg: "rgba(251,191,36,0.07)",  label: "Behavioural",     sub: "starting session" },
+  cognitive:  { color: "#a855f7", bg: "rgba(168,85,247,0.07)",  label: "Cognitive",        sub: "during session" },
+};
+
+const SKILL_ICONS: Record<string, React.ElementType> = {
   "task-clarity":        Target,
   "initiation":          Play,
   "focus-containment":   Eye,
+  "estimating-time":     Clock,
   "environment-control": Shield,
   "focus-endurance":     Timer,
+  "flexible-planning":   LayoutGrid,
+  "sticking-to-plan":    CheckSquare,
   "cognitive-recovery":  Battery,
-  "planning-sequencing": LayoutGrid,
-  "deadline-calibration": CalendarDays,
 };
 
-// [fromCardIndex, toCardIndex] (0 = left card, 1 = right card) between tier N and tier N+1
-const tierConnections: Record<number, [number, number][]> = {
-  1: [[0, 0], [0, 1], [1, 0], [1, 1]], // both T1 skills → both T2 skills
-  2: [[0, 0], [0, 1], [1, 1]],          // FC→FE, FC→CR, EC→CR
-  3: [[0, 0], [1, 0]],                   // FE→PS, CR→PS (both converge left)
-};
-
-function getCardStyle(status: string, tier: number) {
-  const tc = tierConfig[tier] ?? tierConfig[1];
+function getCardStyle(status: string, dimColor: string) {
   switch (status) {
     case "available":
-      return { borderColor: tc.color + "70", bg: tc.bg, textColor: tc.color, iconColor: tc.color };
+      return { borderColor: dimColor + "70", bg: "transparent", textColor: dimColor };
     case "active":
-      return { borderColor: tc.color, bg: tc.bg, textColor: tc.color, iconColor: tc.color };
+      return { borderColor: dimColor, bg: `${dimColor}0f`, textColor: dimColor };
     case "stable":
-      return { borderColor: "#4ade80", bg: "rgba(74,222,128,0.07)", textColor: "#4ade80", iconColor: "#4ade80" };
+      return { borderColor: "#4ade80", bg: "rgba(74,222,128,0.07)", textColor: "#4ade80" };
     case "mastered":
-      return { borderColor: "#fbbf24", bg: "rgba(251,191,36,0.07)", textColor: "#fbbf24", iconColor: "#fbbf24" };
+      return { borderColor: "#fbbf24", bg: "rgba(251,191,36,0.07)", textColor: "#fbbf24" };
     default: // locked
-      return { borderColor: "rgba(100,100,120,0.25)", bg: "transparent", textColor: "rgba(150,150,160,0.45)", iconColor: "rgba(150,150,160,0.3)" };
+      return { borderColor: "rgba(100,100,120,0.2)", bg: "transparent", textColor: "rgba(150,150,160,0.4)" };
   }
 }
 
-export function SkillTree({ skills, canActivate }: SkillTreeProps) {
+export function SkillTree({ skills }: SkillTreeProps) {
   const router = useRouter();
   const { t } = useLanguage();
   const [selected, setSelected] = useState<SkillNode | null>(null);
   const [userTask, setUserTask] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const handleActivate = async (skillId: string) => {
-    setLoading(true);
-    try {
-      await fetch("/api/skills", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skillId, action: "activate" }),
-      });
-      router.refresh();
-      setSelected(null);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSetTask = async (skillId: string) => {
     if (!userTask.trim()) return;
@@ -131,178 +122,141 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "available": return t("skills.ready");
-      case "active": return t("skills.active");
-      case "stable": return t("skills.stable");
-      case "mastered": return t("skills.mastered");
-      default: return status;
+      case "active":    return t("skills.active");
+      case "stable":    return t("skills.stable");
+      case "mastered":  return t("skills.mastered");
+      default:          return status;
     }
   };
 
   return (
     <>
-      <div className="max-w-lg mx-auto">
-        {[1, 2, 3, 4].map((tier) => {
-          const tierSkills = skills.filter((s) => s.tier === tier);
-          const tc = tierConfig[tier];
-          const connections = tierConnections[tier];
-
+      {/* Dimension column headers */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        {DIMENSIONS.map((dim) => {
+          const dc = DIMENSION_CONFIG[dim];
           return (
-            <div key={tier}>
-              {/* Tier label */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-4 rounded-full" style={{ backgroundColor: tc.color }} />
-                <span
-                  className="text-[11px] font-bold uppercase tracking-widest"
-                  style={{ color: tc.color + "bb" }}
-                >
-                  {t("skills.tier")} {tier} — {t(`skills.tier.${tier}`)}
-                </span>
-              </div>
-
-              {/* Skill cards */}
-              <div className="grid grid-cols-2 gap-3">
-                {tierSkills.map((skill) => {
-                  const s = getCardStyle(skill.currentStatus, tier);
-                  const Icon = skillIconMap[skill.slug] ?? Target;
-                  const isLocked = skill.currentStatus === "locked";
-                  const isActive = skill.currentStatus === "active";
-                  const isStableOrMastered =
-                    skill.currentStatus === "stable" || skill.currentStatus === "mastered";
-
-                  return (
-                    <button
-                      key={skill.id}
-                      onClick={() => setSelected(skill)}
-                      className="relative rounded-xl p-4 text-left transition-all hover:scale-[1.02] border-2"
-                      style={{
-                        borderColor: s.borderColor,
-                        backgroundColor: s.bg || "var(--card)",
-                        boxShadow: isActive ? `0 0 18px ${tc.color}28` : undefined,
-                      }}
-                    >
-                      {/* Lock icon top-right */}
-                      {isLocked && (
-                        <Lock
-                          size={11}
-                          className="absolute top-2.5 right-2.5"
-                          style={{ color: "rgba(150,150,160,0.35)" }}
-                        />
-                      )}
-
-                      {/* Status badge top-right */}
-                      {!isLocked && (
-                        <span
-                          className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                          style={{ color: s.textColor, backgroundColor: s.borderColor + "25" }}
-                        >
-                          {getStatusLabel(skill.currentStatus)}
-                        </span>
-                      )}
-
-                      {/* Icon */}
-                      <div className="mb-2.5">
-                        <Icon size={20} style={{ color: s.iconColor }} />
-                      </div>
-
-                      {/* Name */}
-                      <p
-                        className="font-semibold text-sm leading-snug"
-                        style={{ color: s.textColor }}
-                      >
-                        {t(`skills.name.${skill.slug}`) !== `skills.name.${skill.slug}` ? t(`skills.name.${skill.slug}`) : skill.name}
-                      </p>
-
-                      {/* Active: mini stability bar + week */}
-                      {isActive && skill.progress && (
-                        <div className="mt-2.5">
-                          <div className="h-1 bg-secondary rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full"
-                              style={{
-                                width: `${skill.progress.stabilityScore * 100}%`,
-                                backgroundColor: tc.color,
-                              }}
-                            />
-                          </div>
-                          <p className="text-[10px] mt-1" style={{ color: tc.color + "99" }}>
-                            {t("skills.week")} {skill.progress.weekPhase}/3 ·{" "}
-                            {(skill.progress.stabilityScore * 100).toFixed(0)}% {t("skills.stable").toLowerCase()}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Stable / mastered checkmark */}
-                      {isStableOrMastered && (
-                        <CheckCircle2
-                          size={13}
-                          className="mt-2"
-                          style={{ color: s.textColor }}
-                        />
-                      )}
-
-                      {/* Within-tier dependency hint for deadline-calibration */}
-                      {skill.slug === "deadline-calibration" && (
-                        <p
-                          className="text-[10px] mt-1.5"
-                          style={{ color: "rgba(150,150,160,0.45)" }}
-                        >
-                          {t("skills.needsPlanning")}
-                        </p>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* SVG connector lines to next tier */}
-              {connections && tier < 4 && (
-                <svg
-                  width="100%"
-                  height="32"
-                  className="block"
-                  preserveAspectRatio="none"
-                >
-                  {connections.map(([from, to], i) => {
-                    // Account for gap-3 (12px): left center = 25% - 3px, right center = 75% + 3px
-                    const xs = ["calc(25% - 3px)", "calc(75% + 3px)"];
-                    return (
-                      <line
-                        key={i}
-                        x1={xs[from]}
-                        y1="0"
-                        x2={xs[to]}
-                        y2="32"
-                        stroke={tc.color}
-                        strokeWidth="1.5"
-                        strokeOpacity="0.22"
-                      />
-                    );
-                  })}
-                </svg>
-              )}
-
-              {tier < 4 && !connections && <div className="h-8" />}
+            <div key={dim} className="text-center">
+              <p className="text-xs font-bold" style={{ color: dc.color }}>{dc.label}</p>
+              <p className="text-[10px] text-muted-foreground/50">{dc.sub}</p>
             </div>
           );
         })}
       </div>
 
+      {/* Level rows */}
+      {[1, 2, 3].map((level) => {
+        const levelSkills = skills.filter((s) => s.level === level);
+        const isLevelLocked = levelSkills.every((s) => s.currentStatus === "locked");
+        const isLevelComplete = levelSkills.every(
+          (s) => s.currentStatus === "stable" || s.currentStatus === "mastered"
+        );
+
+        return (
+          <div key={level}>
+            {/* Level header */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-px flex-1 bg-white/[0.06]" />
+              <span className={`text-[11px] font-bold uppercase tracking-widest px-2 ${
+                isLevelLocked
+                  ? "text-muted-foreground/30"
+                  : isLevelComplete
+                  ? "text-[#4ade80]/70"
+                  : "text-muted-foreground/60"
+              }`}>
+                Level {level} · {LEVEL_NAMES[level]}
+              </span>
+              {isLevelComplete && <CheckCircle2 size={11} className="text-[#4ade80]/70" />}
+              <div className="h-px flex-1 bg-white/[0.06]" />
+            </div>
+
+            {/* 3-column skill grid */}
+            <div className="grid grid-cols-3 gap-3 mb-2">
+              {DIMENSIONS.map((dim) => {
+                const skill = levelSkills.find((s) => s.dimension === dim);
+                if (!skill) return <div key={dim} />;
+
+                const dc = DIMENSION_CONFIG[dim];
+                const s = getCardStyle(skill.currentStatus, dc.color);
+                const Icon = SKILL_ICONS[skill.slug] ?? Target;
+                const isActive = skill.currentStatus === "active";
+                const isStable = skill.currentStatus === "stable" || skill.currentStatus === "mastered";
+                const isLocked = skill.currentStatus === "locked";
+
+                return (
+                  <button
+                    key={skill.id}
+                    onClick={() => { setSelected(skill); setUserTask(skill.progress?.userTask ?? ""); }}
+                    className="relative rounded-xl p-3 text-left transition-all hover:scale-[1.02] border"
+                    style={{
+                      borderColor: s.borderColor,
+                      backgroundColor: s.bg || "transparent",
+                      boxShadow: isActive ? `0 0 14px ${dc.color}20` : undefined,
+                    }}
+                  >
+                    {isLocked && (
+                      <Lock size={10} className="absolute top-2 right-2" style={{ color: "rgba(150,150,160,0.3)" }} />
+                    )}
+
+                    <Icon size={16} className="mb-2" style={{ color: s.textColor }} />
+
+                    <p className="text-xs font-semibold leading-snug" style={{ color: s.textColor }}>
+                      {skill.name}
+                    </p>
+
+                    {isActive && skill.progress && (
+                      <div className="mt-2">
+                        <div className="h-0.5 bg-secondary rounded-full overflow-hidden mb-1">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${skill.progress.stabilityScore * 100}%`,
+                              backgroundColor: dc.color,
+                            }}
+                          />
+                        </div>
+                        <p className="text-[10px]" style={{ color: dc.color + "99" }}>
+                          W{skill.progress.weekPhase} · {WEEK_LABELS[skill.progress.weekPhase]}
+                        </p>
+                      </div>
+                    )}
+
+                    {isStable && (
+                      <CheckCircle2 size={12} className="mt-1.5" style={{ color: s.textColor }} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Arrow to next level */}
+            {level < 3 && (
+              <div className="flex justify-center my-3">
+                <ChevronDown size={16} className="text-muted-foreground/20" />
+              </div>
+            )}
+          </div>
+        );
+      })}
+
       {/* Skill detail dialog */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="bg-card border-border text-foreground max-w-md">
           {selected && (() => {
-            const Icon = skillIconMap[selected.slug] ?? Target;
-            const tc = tierConfig[selected.tier];
+            const dc = DIMENSION_CONFIG[selected.dimension] ?? DIMENSION_CONFIG.planning;
+            const Icon = SKILL_ICONS[selected.slug] ?? Target;
             return (
               <>
                 <DialogHeader>
                   <DialogTitle className="text-foreground flex items-center gap-2">
-                    <Icon size={18} style={{ color: tc.color }} />
-                    {t(`skills.name.${selected.slug}`) !== `skills.name.${selected.slug}` ? t(`skills.name.${selected.slug}`) : selected.name}
+                    <Icon size={18} style={{ color: dc.color }} />
+                    {selected.name}
                   </DialogTitle>
                 </DialogHeader>
+
                 <div className="space-y-4">
                   <p className="text-muted-foreground text-sm">{selected.description}</p>
+
                   <div className="bg-surface-inset rounded-lg p-3">
                     <p className="text-xs text-muted-foreground/70 mb-1">{t("skills.whyThisSkillLabel")}</p>
                     <p className="text-foreground/80 text-sm">{selected.purpose}</p>
@@ -310,14 +264,21 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground/70">{t("skills.status")}</span>
-                    <span className="capitalize text-foreground/80">{getStatusLabel(selected.currentStatus)}</span>
+                    <span className="capitalize" style={{ color: dc.color }}>{getStatusLabel(selected.currentStatus)}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground/70">Dimension</span>
+                    <span className="text-xs font-medium" style={{ color: dc.color }}>{dc.label}</span>
                   </div>
 
                   {selected.progress && selected.currentStatus === "active" && (
                     <>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground/70">{t("skills.week")}</span>
-                        <span className="text-foreground/80">{selected.progress.weekPhase}/3</span>
+                        <span className="text-foreground/80">
+                          {selected.progress.weekPhase}/3 · {WEEK_LABELS[selected.progress.weekPhase]}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground/70">{t("skills.stability")}</span>
@@ -325,6 +286,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                           {(selected.progress.stabilityScore * 100).toFixed(0)}%
                         </span>
                       </div>
+
                       {selected.progress.userTask ? (
                         <div className="bg-surface-inset rounded-lg p-3">
                           <p className="text-xs text-muted-foreground/70 mb-1">{t("skills.yourTask")}</p>
@@ -332,9 +294,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <Label className="text-foreground/80 text-sm">
-                            {t("skills.defineTask")}
-                          </Label>
+                          <Label className="text-foreground/80 text-sm">{t("skills.defineTask")}</Label>
                           <Input
                             value={userTask}
                             onChange={(e) => setUserTask(e.target.value)}
@@ -345,7 +305,7 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                             onClick={() => handleSetTask(selected.id)}
                             disabled={loading || !userTask.trim()}
                             className="w-full text-black"
-                            style={{ backgroundColor: tc.color }}
+                            style={{ backgroundColor: dc.color }}
                           >
                             {loading ? t("skills.saving") : t("skills.setTask")}
                           </Button>
@@ -354,57 +314,11 @@ export function SkillTree({ skills, canActivate }: SkillTreeProps) {
                     </>
                   )}
 
-                  {selected.currentStatus === "available" && canActivate && (
-                    <Button
-                      onClick={() => handleActivate(selected.id)}
-                      disabled={loading}
-                      className="w-full font-semibold text-black"
-                      style={{ backgroundColor: tc.color }}
-                    >
-                      {loading ? t("skills.activating") : t("skills.activateSkill")}
-                    </Button>
-                  )}
-
                   {selected.currentStatus === "locked" && (
-                    <div className="space-y-3">
-                      {selected.prerequisites.length > 0 && (
-                        <div className="bg-surface-inset rounded-lg p-3 space-y-2">
-                          <p className="text-xs text-muted-foreground/70 font-medium">
-                            {t("skills.requiredToUnlock")}
-                          </p>
-                          {selected.prerequisites.map((p) => (
-                            <div key={p.slug} className="flex items-center gap-2 text-sm">
-                              <span className={p.met ? "text-[#4ade80]" : "text-muted-foreground/50"}>
-                                {p.met ? "✓" : "○"}
-                              </span>
-                              <span
-                                className={
-                                  p.met
-                                    ? "text-foreground/80 line-through"
-                                    : "text-muted-foreground/70"
-                                }
-                              >
-                                {t(`skills.name.${p.slug}`) !== `skills.name.${p.slug}` ? t(`skills.name.${p.slug}`) : p.name}
-                              </span>
-                              {p.met && (
-                                <span className="text-[#4ade80] text-xs">{t("skills.stable")}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <p className="text-muted-foreground/60 text-xs text-center">
-                        {t("skills.prerequisiteNote")}
-                      </p>
-                    </div>
+                    <p className="text-muted-foreground/50 text-xs text-center">
+                      Complete all Level {selected.level - 1} skills to unlock this level.
+                    </p>
                   )}
-
-                  <Link
-                    href={`/skills/${selected.slug}`}
-                    className="block text-center text-muted-foreground hover:text-[#38bdf8] text-sm mt-2 transition-colors"
-                  >
-                    {t("skills.viewFullDetails")}
-                  </Link>
                 </div>
               </>
             );

@@ -64,19 +64,24 @@ export function buildContextFromData(data: UserData): string {
     lines.push(`Current phase: ${activePhase.phase} (day ${daysSincePhaseStart})`);
   }
 
-  const activeSkill = skillProgresses.find((sp) => sp.status === "active");
-  if (activeSkill) {
-    const weekLabels: Record<number, string> = { 1: "Stabilize", 2: "Express", 3: "Probe" };
-    lines.push(
-      `Active skill: ${activeSkill.skill.name} — Week ${activeSkill.weekPhase} (${weekLabels[activeSkill.weekPhase] || "Not started"})`
-    );
-    if (activeSkill.userTask) lines.push(`User-defined task: ${activeSkill.userTask}`);
-    lines.push(`Stability score: ${activeSkill.stabilityScore}`);
+  const weekLabels: Record<number, string> = { 1: "Stabilize", 2: "Express", 3: "Probe" };
+  const activeSkills = skillProgresses.filter((sp) => sp.status === "active");
+  if (activeSkills.length > 0) {
+    const activeLevel = activeSkills[0].skill.level;
+    lines.push(`Active level: Level ${activeLevel} — training ${activeSkills.length} skills in parallel`);
+    for (const sp of activeSkills) {
+      const dimLabel = sp.skill.dimension ?? "unknown";
+      lines.push(
+        `  [${dimLabel}] ${sp.skill.name} — Week ${sp.weekPhase} (${weekLabels[sp.weekPhase] || "Not started"}), stability ${sp.stabilityScore}`
+      );
+      if (sp.userTask) lines.push(`    Task: ${sp.userTask}`);
+    }
   }
 
   lines.push("\nSkill statuses:");
   for (const sp of skillProgresses) {
-    lines.push(`  - ${sp.skill.name} (Tier ${sp.skill.tier}): ${sp.status}`);
+    const lvl = (sp.skill as unknown as { level?: number }).level;
+    lines.push(`  - ${sp.skill.name} (Level ${lvl ?? "?"}): ${sp.status}`);
   }
 
   const dimGroups: Record<string, { scores: number[]; statuses: string[] }> = {};

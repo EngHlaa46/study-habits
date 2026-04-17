@@ -12,12 +12,25 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Lock, CheckCircle2, Zap, Target } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
+const DIMENSION_LABELS: Record<string, string> = {
+  planning:   "Planning & Prep",
+  behavioral: "Behavioural",
+  cognitive:  "Cognitive",
+};
+
+const LEVEL_NAMES: Record<number, string> = {
+  1: "Beginner",
+  2: "Intermediate",
+  3: "Mastery",
+};
+
 interface SkillDetailProps {
   skill: {
     id: string;
     slug: string;
     name: string;
-    tier: number;
+    level: number;
+    dimension: string;
     description: string;
     purpose: string;
   };
@@ -36,19 +49,9 @@ interface SkillDetailProps {
     focusLevel: string | null;
     atypical: boolean;
   }[];
-  prerequisites: { name: string; slug: string; met?: boolean }[];
-  unlocksSkills: { name: string; slug: string }[];
-  canActivate: boolean;
 }
 
-export function SkillDetail({
-  skill,
-  progress,
-  checkIns,
-  prerequisites,
-  unlocksSkills,
-  canActivate,
-}: SkillDetailProps) {
+export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
   const router = useRouter();
   const { t } = useLanguage();
   const [userTask, setUserTask] = useState("");
@@ -80,12 +83,28 @@ export function SkillDetail({
     }
   };
 
+  const handleSetTask = async () => {
+    if (!userTask.trim()) return;
+    setLoading(true);
+    try {
+      await fetch("/api/skills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skillId: skill.id, action: "setTask", userTask }),
+      });
+      router.refresh();
+      setUserTask("");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-    locked: { label: t("skills.locked"), color: "text-muted-foreground border-muted-foreground/30", icon: <Lock size={16} /> },
-    available: { label: t("skills.available"), color: "text-muted-foreground border-border", icon: <Target size={16} /> },
-    active: { label: t("skills.active"), color: "text-primary border-primary", icon: <Zap size={16} /> },
-    stable: { label: t("skills.stable"), color: "text-[#4ade80] border-[#4ade80]", icon: <CheckCircle2 size={16} /> },
-    mastered: { label: t("skills.mastered"), color: "text-[#fbbf24] border-[#fbbf24]", icon: <CheckCircle2 size={16} /> },
+    locked:    { label: t("skills.locked"),    color: "text-muted-foreground border-muted-foreground/30", icon: <Lock size={16} /> },
+    available: { label: t("skills.available"), color: "text-muted-foreground border-border",              icon: <Target size={16} /> },
+    active:    { label: t("skills.active"),    color: "text-primary border-primary",                      icon: <Zap size={16} /> },
+    stable:    { label: t("skills.stable"),    color: "text-[#4ade80] border-[#4ade80]",                  icon: <CheckCircle2 size={16} /> },
+    mastered:  { label: t("skills.mastered"),  color: "text-[#fbbf24] border-[#fbbf24]",                  icon: <CheckCircle2 size={16} /> },
   };
 
   const weekLabels: Record<number, string> = {
@@ -97,46 +116,9 @@ export function SkillDetail({
   const status = progress?.status || "locked";
   const config = statusConfig[status] || statusConfig.locked;
 
-  const handleActivate = async () => {
-    setLoading(true);
-    try {
-      await fetch("/api/skills", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skillId: skill.id, action: "activate" }),
-      });
-      router.refresh();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSetTask = async () => {
-    if (!userTask.trim()) return;
-    setLoading(true);
-    try {
-      await fetch("/api/skills", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          skillId: skill.id,
-          action: "setTask",
-          userTask,
-        }),
-      });
-      router.refresh();
-      setUserTask("");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Calculate training stats
   const totalCheckIns = checkIns.length;
   const initiatedDays = checkIns.filter((c) => c.initiated).length;
-  const focusedDays = checkIns.filter(
-    (c) => c.focusLevel === "focused" || c.focusLevel === "deep"
-  ).length;
+  const focusedDays = checkIns.filter((c) => c.focusLevel === "focused" || c.focusLevel === "deep").length;
 
   return (
     <div className="space-y-6">
@@ -159,7 +141,10 @@ export function SkillDetail({
               {config.label}
             </Badge>
           </div>
-          <p className="text-muted-foreground/70 text-sm">{t("skills.tier")} {skill.tier}</p>
+          <p className="text-muted-foreground/70 text-sm">
+            Level {skill.level} · {LEVEL_NAMES[skill.level] ?? ""} &middot;{" "}
+            {DIMENSION_LABELS[skill.dimension] ?? skill.dimension}
+          </p>
         </div>
       </div>
 
@@ -187,38 +172,26 @@ export function SkillDetail({
       {status === "active" && progress && (
         <Card className="border-primary/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-primary text-lg">
-              {t("skills.trainingProgress")}
-            </CardTitle>
+            <CardTitle className="text-primary text-lg">{t("skills.trainingProgress")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Week progress */}
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">
-                  Week {progress.weekPhase} —{" "}
-                  {weekLabels[progress.weekPhase] || "Not Started"}
+                  Week {progress.weekPhase} — {weekLabels[progress.weekPhase] || "Not Started"}
                 </span>
-                <span className="text-muted-foreground/70">
-                  {progress.weekPhase}/3 {t("skills.week").toLowerCase()}s
-                </span>
+                <span className="text-muted-foreground/70">{progress.weekPhase}/3 {t("skills.week").toLowerCase()}s</span>
               </div>
-              <Progress
-                value={(progress.weekPhase / 3) * 100}
-                className="h-2 bg-secondary"
-              />
+              <Progress value={(progress.weekPhase / 3) * 100} className="h-2 bg-secondary" />
             </div>
 
-            {/* Stats row */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-surface-inset rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-foreground">{totalCheckIns}</p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.checkIns")}</p>
               </div>
               <div className="bg-surface-inset rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-primary">
-                  {initiatedDays}
-                </p>
+                <p className="text-xl font-bold text-primary">{initiatedDays}</p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.daysStudied")}</p>
               </div>
               <div className="bg-surface-inset rounded-lg p-3 text-center">
@@ -229,12 +202,9 @@ export function SkillDetail({
               </div>
             </div>
 
-            {/* Mini check-in timeline */}
             {checkIns.length > 0 && (
               <div>
-                <p className="text-xs text-muted-foreground/70 mb-2">
-                  {t("skills.trainingTimeline")}
-                </p>
+                <p className="text-xs text-muted-foreground/70 mb-2">{t("skills.trainingTimeline")}</p>
                 <div className="flex gap-1">
                   {checkIns.slice(-14).map((ci, i) => {
                     const focusColors: Record<string, string> = {
@@ -243,9 +213,7 @@ export function SkillDetail({
                       focused: "bg-[#38bdf8]",
                       deep: "bg-[#4ade80]",
                     };
-                    const color = ci.initiated
-                      ? focusColors[ci.focusLevel || "none"]
-                      : "bg-gray-700";
+                    const color = ci.initiated ? focusColors[ci.focusLevel || "none"] : "bg-gray-700";
                     return (
                       <div
                         key={i}
@@ -258,7 +226,6 @@ export function SkillDetail({
               </div>
             )}
 
-            {/* User task */}
             {progress.userTask ? (
               <div className="bg-surface-inset rounded-lg p-4">
                 <p className="text-xs text-muted-foreground/70 mb-1">{t("skills.yourTask")}</p>
@@ -266,9 +233,7 @@ export function SkillDetail({
               </div>
             ) : (
               <div className="space-y-3">
-                <Label className="text-foreground/80 text-sm">
-                  {t("skills.defineTask")}
-                </Label>
+                <Label className="text-foreground/80 text-sm">{t("skills.defineTask")}</Label>
                 <Input
                   value={userTask}
                   onChange={(e) => setUserTask(e.target.value)}
@@ -292,7 +257,6 @@ export function SkillDetail({
       {(status === "stable" || status === "mastered") && progress && (
         <Card className="border-[#4ade80]/30">
           <CardContent className="pt-6">
-            {/* Growth narrative */}
             {narrative ? (
               <div className="bg-surface-inset rounded-lg p-4 mb-4 border border-[#4ade80]/20">
                 <p className="text-foreground/80 text-sm leading-relaxed">{narrative}</p>
@@ -322,9 +286,7 @@ export function SkillDetail({
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.totalCheckIns")}</p>
               </div>
               <div className="bg-surface-inset rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-primary">
-                  {focusedDays}
-                </p>
+                <p className="text-xl font-bold text-primary">{focusedDays}</p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.focusedDays")}</p>
               </div>
             </div>
@@ -338,96 +300,15 @@ export function SkillDetail({
         </Card>
       )}
 
-      {/* Activation button */}
-      {status === "available" && canActivate && (
-        <Button
-          onClick={handleActivate}
-          disabled={loading}
-          className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-6"
-        >
-          {loading ? t("skills.activating") : t("skills.activateSkill")}
-        </Button>
-      )}
-
+      {/* Locked */}
       {status === "locked" && (
-        <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <Lock size={18} className="text-muted-foreground/60 shrink-0" />
-            <p className="text-muted-foreground/80 text-sm font-medium">
-              {t("skills.locked")}
-            </p>
-          </div>
-          {prerequisites.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground/60 uppercase tracking-wider font-medium">
-                {t("skills.completeFirst")}
-              </p>
-              {prerequisites.map((p) => (
-                <Link
-                  key={p.slug}
-                  href={`/skills/${p.slug}`}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-inset hover:bg-secondary transition-colors"
-                >
-                  <span className={p.met ? "text-[#4ade80]" : "text-muted-foreground/40"}>
-                    {p.met ? "✓" : "○"}
-                  </span>
-                  <span className={`text-sm ${p.met ? "text-foreground/60 line-through" : "text-muted-foreground"}`}>
-                    {p.name}
-                  </span>
-                  {p.met ? (
-                    <span className="ml-auto text-xs text-[#4ade80]">{t("skills.stable")}</span>
-                  ) : (
-                    <span className="ml-auto text-xs text-muted-foreground/50">→</span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground/50 leading-relaxed">
-            {t("skills.prerequisiteNote")}
+        <div className="bg-card border border-border rounded-xl p-5 flex items-center gap-3">
+          <Lock size={18} className="text-muted-foreground/60 shrink-0" />
+          <p className="text-muted-foreground/70 text-sm">
+            Complete all Level {skill.level - 1} skills to unlock Level {skill.level}.
           </p>
         </div>
       )}
-
-      {/* Dependencies */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {prerequisites.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-foreground text-sm">{t("skills.requires")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {prerequisites.map((p) => (
-                <Link
-                  key={p.slug}
-                  href={`/skills/${p.slug}`}
-                  className="block text-muted-foreground hover:text-primary text-sm transition-colors"
-                >
-                  {p.name}
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-        {unlocksSkills.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-foreground text-sm">{t("skills.unlocks")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {unlocksSkills.map((s) => (
-                <Link
-                  key={s.slug}
-                  href={`/skills/${s.slug}`}
-                  className="block text-muted-foreground hover:text-primary text-sm transition-colors"
-                >
-                  {s.name}
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-      </div>
     </div>
   );
 }

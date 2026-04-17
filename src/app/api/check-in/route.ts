@@ -3,8 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import {
-  checkObservationComplete,
   calculateStabilityScore,
+  checkWeek1Complete,
+  checkWeek2Complete,
+  checkWeek3Complete,
+  advanceWeekPhase,
+  checkLevelComplete,
+  activateLevelSkills,
 } from "@/lib/skills/progression";
 
 
@@ -122,37 +127,44 @@ export async function POST(req: Request) {
     data: { dayCount: { increment: 1 } },
   });
 
-  // Check for phase transitions
-  const activePhase = await prisma.activePhase.findUnique({
-    where: { userId },
-  });
-
-  if (activePhase?.phase === "observation") {
-    const result = await checkObservationComplete(userId);
-    if (result.advanced) {
-      await prisma.activePhase.update({
-        where: { userId },
-        data: { phase: "skill_training" },
-      });
-    }
-  }
-
-  // Update stability score if there's an active skill
-  const activeSkill = await prisma.skillProgress.findFirst({
+  // Update stability score and check week advancement for all active skills
+  const activeSkills = await prisma.skillProgress.findMany({
     where: { userId, status: "active" },
+    include: { skill: true },
   });
 
-  if (activeSkill) {
+  if (activeSkills.length > 0) {
     const recent = await prisma.checkIn.findMany({
       where: { userId },
       orderBy: { date: "desc" },
       take: 7,
     });
     const score = calculateStabilityScore(recent);
-    await prisma.skillProgress.update({
-      where: { id: activeSkill.id },
-      data: { stabilityScore: score },
-    });
+
+    for (const sp of activeSkills) {
+      // Update stability score
+      await prisma.skillProgress.update({
+        where: { id: sp.id },
+        data: { stabilityScore: score },
+      });
+
+      // Check week phase advancement
+      let result;
+      if (sp.weekPhase === 1) result = await checkWeek1Complete(userId, sp.id);
+      else if (sp.weekPhase === 2) result = await checkWeek2Complete(userId, sp.id);
+      else if (sp.weekPhase === 3) result = await checkWeek3Complete(userId, sp.id);
+
+      if (result?.advanced) {
+        await advanceWeekPhase(userId, sp.id);
+      }
+    }
+
+    // After advancing week phases, check if all skills in the current level are now stable
+    const currentLevel = activeSkills[0].skill.level;
+    const levelDone = await checkLevelComplete(userId, currentLevel);
+    if (levelDone && currentLevel < 3) {
+      await activateLevelSkills(userId, currentLevel + 1);
+    }
   }
 
   return NextResponse.json({ checkIn }, { status: 201 });

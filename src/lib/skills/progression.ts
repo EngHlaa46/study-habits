@@ -7,62 +7,7 @@ export interface ProgressionResult {
   newWeek?: number;
 }
 
-// Observation phase: 5+ check-ins in 7 days
-export async function checkObservationComplete(
-  userId: string
-): Promise<ProgressionResult> {
-  const activePhase = await prisma.activePhase.findUnique({
-    where: { userId },
-  });
-  if (!activePhase || activePhase.phase !== "observation") {
-    return { advanced: false, reason: "Not in observation phase" };
-  }
-
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const checkInCount = await prisma.checkIn.count({
-    where: {
-      userId,
-      date: { gte: sevenDaysAgo },
-    },
-  });
-
-  if (checkInCount >= 5) {
-    return {
-      advanced: true,
-      reason: `${checkInCount}/5 check-ins completed in observation window`,
-      newPhase: "skill_training",
-    };
-  }
-
-  // Relaxed path: if 10+ days have passed and user has 3+ total check-ins since phase start
-  const daysSinceStart = Math.ceil(
-    (Date.now() - activePhase.phaseStart.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  if (daysSinceStart >= 10) {
-    const totalCheckIns = await prisma.checkIn.count({
-      where: {
-        userId,
-        date: { gte: activePhase.phaseStart },
-      },
-    });
-    if (totalCheckIns >= 3) {
-      return {
-        advanced: true,
-        reason: `${totalCheckIns} check-ins over ${daysSinceStart} days — relaxed threshold met`,
-        newPhase: "skill_training",
-      };
-    }
-  }
-
-  return {
-    advanced: false,
-    reason: `${checkInCount}/5 check-ins completed. Need ${5 - checkInCount} more.`,
-  };
-}
-
-// Week 1 (Stabilize): 4/7 days initiated + skill practiced
+// Week 1 (Stabilize): 4/7 days initiated
 export async function checkWeek1Complete(
   userId: string,
   skillProgressId: string
@@ -166,7 +111,7 @@ export async function checkWeek2Complete(
   };
 }
 
-// Week 3 (Probe): AI readiness score >= 0.7
+// Week 3 (Probe): stability score >= 0.7
 export async function checkWeek3Complete(
   userId: string,
   skillProgressId: string
@@ -205,35 +150,45 @@ export async function checkWeek3Complete(
   };
 }
 
-// Get available skills for a user (prerequisites all mastered/stable)
+// Get skills for a user — level-based locking (no dependency edges)
 export async function getAvailableSkills(userId: string) {
   const allSkills = await prisma.skill.findMany({
     include: {
-      dependsOn: { include: { prerequisite: true } },
       progresses: { where: { userId } },
     },
-    orderBy: { tier: "asc" },
+    orderBy: [{ level: "asc" }, { dimension: "asc" }],
   });
+
+  // Determine the user's current active level
+  const activeProgress = allSkills
+    .flatMap((s) => s.progresses)
+    .find((p) => p.status === "active");
+
+  const currentLevel = activeProgress
+    ? allSkills.find((s) => s.progresses.some((p) => p.id === activeProgress.id))?.level ?? 1
+    : 1;
 
   return allSkills.map((skill) => {
     const progress = skill.progresses[0];
-    const prereqsMet = skill.dependsOn.every((dep) => {
-      const preSkill = allSkills.find(
-        (s) => s.id === dep.prerequisiteId
-      );
-      const preProgress = preSkill?.progresses[0];
-      return (
-        preProgress &&
-        (preProgress.status === "stable" || preProgress.status === "mastered")
-      );
-    });
+    const isCurrentLevel = skill.level === currentLevel;
+    const isPastLevel = skill.level < currentLevel;
+    const isFutureLevel = skill.level > currentLevel;
 
-    const currentStatus = progress?.status || (prereqsMet && skill.dependsOn.length === 0 ? "available" : prereqsMet ? "available" : "locked");
+    let currentStatus: string;
+    if (progress) {
+      currentStatus = progress.status;
+    } else if (isFutureLevel) {
+      currentStatus = "locked";
+    } else if (isCurrentLevel) {
+      currentStatus = "available";
+    } else {
+      // past level with no progress record — shouldn't happen normally
+      currentStatus = "available";
+    }
 
     return {
       ...skill,
       currentStatus,
-      prereqsMet,
       progress,
     };
   });
@@ -269,52 +224,50 @@ export async function advanceWeekPhase(
   });
 }
 
-// Activate a skill for training
-export async function activateSkill(userId: string, skillId: string) {
-  // Ensure no other skill is active
-  await prisma.skillProgress.updateMany({
-    where: { userId, status: "active" },
-    data: { status: "available" },
-  });
+// Activate all 3 skills in a given level simultaneously
+export async function activateLevelSkills(userId: string, level: number) {
+  const levelSkills = await prisma.skill.findMany({ where: { level } });
 
-  const existing = await prisma.skillProgress.findUnique({
-    where: { userId_skillId: { userId, skillId } },
-  });
+  for (const skill of levelSkills) {
+    await prisma.skillProgress.upsert({
+      where: { userId_skillId: { userId, skillId: skill.id } },
+      update: {
+        status: "active",
+        weekPhase: 1,
+        weekPhaseStart: new Date(),
+      },
+      create: {
+        userId,
+        skillId: skill.id,
+        status: "active",
+        weekPhase: 1,
+        weekPhaseStart: new Date(),
+      },
+    });
+  }
+}
 
-  const skillProgress = existing
-    ? await prisma.skillProgress.update({
-        where: { id: existing.id },
-        data: {
-          status: "active",
-          weekPhase: 1,
-          weekPhaseStart: new Date(),
-        },
-      })
-    : await prisma.skillProgress.create({
-        data: {
-          userId,
-          skillId,
-          status: "active",
-          weekPhase: 1,
-          weekPhaseStart: new Date(),
-        },
-      });
+// Check if all 3 skills in a level are stable or mastered
+export async function checkLevelComplete(
+  userId: string,
+  level: number
+): Promise<boolean> {
+  const levelSkills = await prisma.skill.findMany({ where: { level } });
+  if (levelSkills.length === 0) return false;
 
-  // Update active phase
-  await prisma.activePhase.upsert({
-    where: { userId },
-    update: {
-      phase: "skill_training",
-      activeSkillId: skillId,
-    },
-    create: {
+  const progresses = await prisma.skillProgress.findMany({
+    where: {
       userId,
-      phase: "skill_training",
-      activeSkillId: skillId,
+      skillId: { in: levelSkills.map((s) => s.id) },
     },
   });
 
-  return skillProgress;
+  return (
+    progresses.length === levelSkills.length &&
+    progresses.every(
+      (p) => p.status === "stable" || p.status === "mastered"
+    )
+  );
 }
 
 // Calculate a simple stability score based on recent check-ins
