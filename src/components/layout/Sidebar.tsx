@@ -10,7 +10,6 @@ import {
   GitBranch,
   MessageSquare,
   CalendarDays,
-  History,
   Settings,
   LogOut,
   Menu,
@@ -32,8 +31,7 @@ export function Sidebar() {
     { href: "/check-in", labelKey: "checkIn", icon: CheckSquare },
     { href: "/skills", labelKey: "skills", icon: GitBranch },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
-{ href: "/events", labelKey: "events", icon: CalendarDays },
-    { href: "/history", labelKey: "history", icon: History },
+    { href: "/history", labelKey: "history", icon: CalendarDays },
     { href: "/settings", labelKey: "settings", icon: Settings },
   ];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,25 +17,23 @@ interface Event {
   notes: string | null;
 }
 
-export default function EventsPage() {
+interface EventsSectionProps {
+  initialEvents: Event[];
+}
+
+export function EventsSection({ initialEvents }: EventsSectionProps) {
   const { t } = useLanguage();
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<Event[]>(initialEvents);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [type, setType] = useState("exam");
-  const [loading, setLoading] = useState(true);
 
   const fetchEvents = async () => {
     const res = await fetch("/api/events");
     const data = await res.json();
     setEvents(data.events || []);
-    setLoading(false);
   };
-
-  useEffect(() => {
-    fetchEvents();
-  }, []);
 
   const handleAdd = async () => {
     if (!name || !date) return;
@@ -52,25 +50,22 @@ export default function EventsPage() {
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/events?id=${id}`, { method: "DELETE" });
-    fetchEvents();
+    setEvents((prev) => prev.filter((e) => e.id !== id));
   };
 
   const upcoming = events.filter((e) => e.status === "upcoming");
   const passed = events.filter((e) => e.status === "passed");
 
-  if (loading) {
-    return <div className="text-muted-foreground">{t("events.loadingEvents")}</div>;
-  }
-
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">{t("events.title")}</h1>
+    <div className="mt-10">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-foreground">{t("events.title")}</h2>
         <Button
           onClick={() => setShowForm(!showForm)}
+          size="sm"
           className="bg-primary hover:bg-primary/80 text-primary-foreground"
         >
-          <Plus size={16} className="mr-2" />
+          <Plus size={14} className="mr-1.5" />
           {t("events.addEvent")}
         </Button>
       </div>
@@ -135,29 +130,22 @@ export default function EventsPage() {
         </Card>
       )}
 
-      {/* Upcoming events */}
-      <h2 className="text-foreground text-lg font-semibold mb-3">{t("events.upcoming")}</h2>
+      {/* Upcoming */}
       {upcoming.length === 0 ? (
-        <p className="text-muted-foreground/70 text-sm mb-6">{t("events.noUpcoming")}</p>
+        <p className="text-muted-foreground/60 text-sm mb-4">{t("events.noUpcoming")}</p>
       ) : (
         <div className="space-y-2 mb-6">
           {upcoming.map((event) => {
             const daysUntil = Math.ceil(
-              (new Date(event.date).getTime() - Date.now()) /
-                (1000 * 60 * 60 * 24)
+              (new Date(event.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
             );
             return (
-              <Card
-                key={event.id}
-                className=""
-              >
+              <Card key={event.id}>
                 <CardContent className="py-3 px-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <CalendarDays size={16} className="text-[#fbbf24]" />
                     <div>
-                      <p className="text-foreground/80 text-sm font-medium">
-                        {event.name}
-                      </p>
+                      <p className="text-foreground/80 text-sm font-medium">{event.name}</p>
                       <p className="text-muted-foreground/70 text-xs">
                         {new Date(event.date).toLocaleDateString()} &middot;{" "}
                         <span className="capitalize">{event.type}</span>
@@ -170,8 +158,8 @@ export default function EventsPage() {
                         daysUntil <= 3
                           ? "text-red-400"
                           : daysUntil <= 7
-                            ? "text-[#fbbf24]"
-                            : "text-muted-foreground"
+                          ? "text-[#fbbf24]"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {daysUntil}d
@@ -190,16 +178,13 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Passed events */}
+      {/* Passed */}
       {passed.length > 0 && (
         <>
-          <h2 className="text-foreground text-lg font-semibold mb-3">{t("events.passed")}</h2>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">{t("events.passed")}</h3>
           <div className="space-y-2 opacity-60">
             {passed.map((event) => (
-              <Card
-                key={event.id}
-                className=""
-              >
+              <Card key={event.id}>
                 <CardContent className="py-3 px-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <CalendarDays size={16} className="text-muted-foreground/60" />
