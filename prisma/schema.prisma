@@ -72,7 +72,7 @@ model Skill {
   id           String          @id @default(cuid())
   slug         String          @unique
   name         String
-  level        Int
+  level        Int             @default(1)
   description  String
   purpose      String
   icon         String?

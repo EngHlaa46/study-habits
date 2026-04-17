@@ -5,7 +5,7 @@ AI-guided web app that helps students improve study efficiency by refining one c
 
 ## Tech Stack
 - **Next.js 14** (App Router, TypeScript)
-- **Prisma ORM** with **SQLite** (`prisma/dev.db`) for local dev, **PostgreSQL** (Supabase) for production
+- **Prisma ORM** with **SQLite** (`prisma/dev.db`) for local dev, **PostgreSQL** (Railway) for production
 - **NextAuth.js v4** — email/password auth (bcryptjs hashing)
 - **Groq API** (llama-3.3-70b-versatile) for AI chat — NOT Anthropic
 - **Resend** for transactional email (password reset). Requires `RESEND_API_KEY`. Sends from `noreply@studyskillsbuilder.com` (verified domain). Falls back to console.log locally when key is missing.
@@ -38,7 +38,7 @@ VAPID_SUBJECT="mailto:you@email.com"
 prisma/
   schema.prisma        — PostgreSQL schema (production/Supabase)
   schema.dev.prisma    — SQLite schema (local dev)
-  seed.ts              — 8 skills + 10 dependency edges
+  seed.ts              — 9 skills across 3 levels × 3 dimensions (no dependency edges)
   dev.db               — local SQLite file (gitignored)
 
 src/
@@ -61,14 +61,15 @@ src/
 ```
 
 ## Key Concepts
-- **One habit, one skill at a time** — user maintains "I show up to study"; quality is improved by training one skill
-- **8 skills across 4 tiers** with explicit dependency chain (seeded):
-  - Tier 1: Task Clarity, Initiation
-  - Tier 2: Focus Containment, Environment Control
-  - Tier 3: Focus Endurance, Cognitive Recovery
-  - Tier 4: Planning & Sequencing, Deadline Calibration
-- **Skill unlock** — requires prerequisite to reach "stable" (3-week cycle + stability score ≥ 0.7). Based on check-in patterns, not a timer.
-- **Observation phase** (~7 days, 5+ check-ins required before advancing) — no skill training yet
+- **Parallel dimension training** — 3 skills trained simultaneously, one per dimension, advancing together within a level
+- **9 skills across 3 levels**, 3 dimensions each:
+  - Level 1 · Beginner: Task Clarity (planning), Initiation (behavioral), Focus Containment (cognitive)
+  - Level 2 · Intermediate: Estimating Time (planning), Environment Control (behavioral), Focus Endurance (cognitive)
+  - Level 3 · Mastery: Flexible Planning (planning), Sticking to Plan (behavioral), Cognitive Recovery (cognitive)
+- **Dimensions**: planning (pre-session, cyan), behavioral (starting session, amber), cognitive (during session, purple)
+- **Level unlock** — all 3 skills in a level must reach "stable" → next level auto-activates (no manual trigger)
+- **Each skill has its own independent 3-week cycle** (Stabilize → Express → Probe); same check-in data evaluated per skill
+- **No observation phase** — onboarding completion sets phase to `skill_training` and immediately activates all 3 Level 1 skills
 - **3-week skill deployment cycle**: Stabilize → Express → Probe
 - **User defines their own tasks** (time/place/action) — AI assists, never overrides
 - **Daily check-in < 2 minutes** — supports skipped days and backfilling (2–3 days)
