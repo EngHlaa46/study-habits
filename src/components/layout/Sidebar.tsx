@@ -15,7 +15,6 @@ import {
   LogOut,
   Menu,
   X,
-  Wrench,
   Timer,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
@@ -35,8 +34,7 @@ export function Sidebar() {
     { href: "/session", labelKey: "session", icon: Timer },
     { href: "/skills", labelKey: "skills", icon: GitBranch },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
-    { href: "/tools", labelKey: "tools", icon: Wrench },
-    { href: "/events", labelKey: "events", icon: CalendarDays },
+{ href: "/events", labelKey: "events", icon: CalendarDays },
     { href: "/history", labelKey: "history", icon: History },
     { href: "/settings", labelKey: "settings", icon: Settings },
   ];
