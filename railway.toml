@@ -1,0 +1,2 @@
+[deploy]
+preDeployCommand = "npx prisma db push --schema=prisma/schema.prisma --skip-generate --accept-data-loss"
