@@ -15,11 +15,11 @@ Most students know they need to study better — they just don't know how to cha
 The system is grounded in the paper *"Developing Study Skills and Cognitive Behavior Using AI: Study Skill Builder Platform"*, which defines:
 
 **Three Dimensions of Study Skills:**
-| Dimension | What It Trains |
-|-----------|---------------|
-| **Behavioral** | Showing up — initiation, task clarity, consistency |
-| **Cognitive** | Session quality — focus depth, environment, recovery |
-| **Metacognitive** | Planning — sequencing, deadline calibration, reflection |
+| Dimension | Role in Session | What It Trains |
+|-----------|----------------|---------------|
+| **Planning & Prep** | Pre-session | Task clarity, time estimation, flexible replanning |
+| **Behavioral** | Starting session | Initiation, environment control, sticking to plan |
+| **Cognitive** | During session | Focus containment, focus endurance, cognitive recovery |
 
 **Cognitive-Behavioral Model:** perception → emotion → behavior. The AI uses this chain to interpret why a student acts the way they do, not just what they did.
 
@@ -32,31 +32,27 @@ The system is grounded in the paper *"Developing Study Skills and Cognitive Beha
 ### 1. Onboarding
 Student sets their study goal, identifies their biggest challenges (multi-select + free text), and enters the system.
 
-### 2. Observation Phase (~7 days)
-No skill training yet. The student does daily check-ins to establish a behavioral baseline. After 5+ check-ins, they can advance to skill training. The AI observes and patterns — procrastination patterns, focus correlations, miss reasons — are computed and fed into every AI conversation.
-
-### 3. Skill Training
-Students work through 8 skills across 4 tiers. Each skill follows a **3-week deployment cycle**:
+### 2. Skill Training
+Onboarding completion immediately activates all 3 Level 1 skills — no waiting period. Check-in data from day one builds a behavioral baseline that feeds the AI context. Students work through 9 skills across 3 levels, with all 3 skills in a level trained simultaneously. Each skill follows a **3-week deployment cycle**:
 - **Week 1 — Stabilize:** Build the habit at a fixed time, place, and action
 - **Week 2 — Express:** Adapt the skill to fit real-world schedule variation
 - **Week 3 — Probe:** Stress-test and generalize the skill under pressure
 
 A skill advances when it reaches a **stability score ≥ 0.70** — computed from check-in data (initiation rate, focus rate, atypical day handling). Brief sessions (under 15 min) count as 0.5 toward focus rate, because the hardest behavioral act is starting.
 
-### 4. Skill Progression Tree
-Skills unlock in dependency order:
+### 3. Skill Progression Tree
+Skills are organised in a 3 × 3 grid — three levels, one skill per dimension per level. All 3 skills in a level train in parallel. When every skill in a level reaches "stable", the next level auto-activates.
 
 ```
-Tier 1: Task Clarity ──→ Initiation
-              ↓                ↓
-Tier 2: Focus Containment ──→ Environment Control
-              ↓                        ↓
-Tier 3: Focus Endurance ──→ Cognitive Recovery
-              ↓                      ↓
-Tier 4: Planning & Sequencing ──→ Deadline Calibration
+                Planning & Prep     Behavioral          Cognitive
+Level 1 · Beginner   Task Clarity       Initiation          Focus Containment
+                         ↓                  ↓                     ↓
+Level 2 · Intermediate  Estimating Time  Environment Control  Focus Endurance
+                         ↓                  ↓                     ↓
+Level 3 · Mastery    Flexible Planning  Sticking to Plan    Cognitive Recovery
 ```
 
-### 5. AI Coaching (DCS v2 — Multi-Agent Pipeline)
+### 4. AI Coaching (DCS v2 — Multi-Agent Pipeline)
 The chat runs a **Distributed Cognitive Scaffolding (DCS)** pipeline before each response:
 
 1. **Sentinel agents** (rule-based, no LLM) extract behavioral, cognitive, and metacognitive signals from check-in data
@@ -64,7 +60,7 @@ The chat runs a **Distributed Cognitive Scaffolding (DCS)** pipeline before each
 3. **InterventionOrchestrator** (llama-3.3-70b-versatile, streaming) synthesises all signals into one calibrated response
 
 The orchestrator receives the student's full context before every message:
-- Current phase and skill
+- Current level and all active skills (up to 3 in parallel)
 - Last 14 check-ins (with focus level, methods, miss reasons, session intentions)
 - Procrastination pattern analysis (repeated miss reasons flagged)
 - Dimension profile (Behavioral / Cognitive / Metacognitive scores)
@@ -79,7 +75,7 @@ The orchestrator receives the student's full context before every message:
 
 ### Core
 - **Daily Check-in** (< 2 min) — session type (full / brief / no), focus level, energy, mood, study methods, miss reason, pre-session intention
-- **Skill Tree** — visual tier-based graph with SVG dependency lines, color-coded status, stability bars
+- **Skill Tree** — 3 × 3 level/dimension grid, color-coded by dimension, stability bars per active skill
 - **Skill Detail** — training timeline, stats, user-defined task (time + place + action), growth narrative
 - **AI Chat** — three-mode DCS pipeline:
   - *Skills Coach* (default) — habit coaching, check-in review, planning; AI can update your skill task directly
@@ -92,9 +88,9 @@ The orchestrator receives the student's full context before every message:
 
 ### Dashboard
 - **Phase banner** — shows current phase and day count
-- **Active Plan Card** — skill, week phase, challenge summary, recovery tip
-- **Skill Radar Chart** — visual skill status across all 8 skills
-- **Dimension Profile Card** — Behavioral / Cognitive / Metacognitive progress bars with expandable explanations
+- **Active Plan Card** — current level, all 3 active skills with week phase and dimension color, challenge summary
+- **Skill Radar Chart** — visual skill status across all 9 skills
+- **Dimension Profile Card** — Planning & Prep / Behavioral / Cognitive progress bars with expandable explanations
 - **Weekly Trend Chart** — 14-day check-in heatmap
 - **Today's Note** — AI-generated daily inspiration + personal affirmation field
 - **Check-in Widget** — quick status and 14-day calendar dots
@@ -131,7 +127,7 @@ The system prompt enforces strict behavioral guidelines:
 - **Mindset detection** — detects "I always fail", "I can't help it", "nothing works" → reframes once using the student's own check-in evidence
 - **Procrastination interpretation** — emotional miss reasons (overwhelmed, not in mood) = cognitive structure signal; logistical reasons = scheduling friction
 - **Dimension-aware advice** — behavioral weak → initiation framing; cognitive weak → session quality; metacognitive locked → no planning-level advice
-- **Brief session reinforcement** — a 7-minute session that started counts as a behavioral win, especially in Tier 1
+- **Brief session reinforcement** — a 7-minute session that started counts as a behavioral win, especially in Level 1
 - **One recommendation at a time** — never floods with advice
 - **Context overrides** — atypical days marked by user; AI adjusts without penalizing
 
@@ -163,9 +159,9 @@ Key models:
 |-------|---------|
 | `User` | Auth identity |
 | `UserProfile` | Goals, challenges, theme, banner, onboarding state |
-| `ActivePhase` | Current phase (observation / skill_training) + start date |
-| `Skill` | 8 skills with tier, dimension, slug, dependencies |
-| `SkillProgress` | Per-user skill status, stability score, week phase, user task, completion narrative |
+| `ActivePhase` | Current phase (onboarding / skill_training) + start date |
+| `Skill` | 9 skills with level (1–3), dimension (planning/behavioral/cognitive), slug |
+| `SkillProgress` | Per-user skill status, stability score, week phase, user task, completion narrative — up to 3 active records simultaneously |
 | `CheckIn` | Daily check-in data — initiated, focus, energy, mood, methods, miss reason, session intention |
 | `ChatMessage` | AI conversation history |
 | `Event` | Upcoming exams/deadlines |
@@ -209,7 +205,7 @@ VAPID_SUBJECT="mailto:you@email.com"
 NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."     # same as VAPID_PUBLIC_KEY
 ```
 
-First-time setup (push SQLite schema + seed 8 skills):
+First-time setup (push SQLite schema + seed 9 skills):
 
 ```bash
 npm run db:setup
@@ -268,9 +264,9 @@ x-cron-secret: <CRON_SECRET>
 
 ```
 prisma/
-  schema.prisma          — PostgreSQL schema (production/Supabase)
+  schema.prisma          — PostgreSQL schema (production/Railway)
   schema.dev.prisma      — SQLite schema (local dev)
-  seed.ts                — 8 skills with tiers, dimensions, dependency edges
+  seed.ts                — 9 skills: 3 levels × 3 dimensions, no dependency edges
 
 public/
   manifest.json          — PWA manifest (installable app)
@@ -327,6 +323,8 @@ The project maintains two Prisma schemas:
 |--------|----------|---------|
 | `prisma/schema.dev.prisma` | SQLite | `npm run dev` (local) |
 | `prisma/schema.prisma` | PostgreSQL | Railway build + Railway PostgreSQL |
+
+> After any schema change to `schema.prisma`, push it manually using the Railway public proxy URL before deploying, as Railway's internal URL (`postgres.railway.internal`) is not reachable from outside.
 
 This allows local development without a cloud database while keeping production on PostgreSQL.
 
