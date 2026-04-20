@@ -8,10 +8,22 @@ const WORK_SECS = 25 * 60;
 const BREAK_SECS = 5 * 60;
 const FREE_PRESETS = [15, 20, 30, 45, 60];
 
-function fmt(secs: number) {
-  return `${Math.floor(secs / 60).toString().padStart(2, "0")}:${(secs % 60).toString().padStart(2, "0")}`;
+// MM:SS for countdowns; HH:MM:SS for stopwatch when over an hour
+function fmtCountdown(secs: number) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+function fmtStopwatch(secs: number) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0)
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
+type Mode = "stopwatch" | "free" | "pomodoro";
 type Phase = "idle" | "working" | "break" | "stopped";
 
 interface CheckInTimerProps {
@@ -19,15 +31,21 @@ interface CheckInTimerProps {
   onReset: () => void;
 }
 
+const MODES: { key: Mode; label: string }[] = [
+  { key: "stopwatch", label: "Stopwatch" },
+  { key: "free",      label: "Set duration" },
+  { key: "pomodoro",  label: "Pomodoro" },
+];
+
 export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"free" | "pomodoro">("free");
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [running, setRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);   // total study seconds (for final report)
-  const [countdown, setCountdown] = useState(0);
+  const [open, setOpen]               = useState(false);
+  const [mode, setMode]               = useState<Mode>("stopwatch");
+  const [phase, setPhase]             = useState<Phase>("idle");
+  const [running, setRunning]         = useState(false);
+  const [elapsed, setElapsed]         = useState(0);
+  const [countdown, setCountdown]     = useState(0);
   const [pomodoroCount, setPomodoroCount] = useState(0);
-  const [freeMins, setFreeMins] = useState(30);
+  const [freeMins, setFreeMins]       = useState(30);
   const [customInput, setCustomInput] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -38,17 +56,21 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
     }
 
     intervalRef.current = setInterval(() => {
-      setElapsed((e) => e + 1);
+      // Stopwatch: just count up
+      if (mode === "stopwatch") {
+        setElapsed((e) => e + 1);
+        return;
+      }
 
+      // Free / Pomodoro: track elapsed + tick countdown
+      setElapsed((e) => e + 1);
       setCountdown((c) => {
         if (c > 1) return c - 1;
 
-        // Countdown hit zero
         setRunning(false);
         clearInterval(intervalRef.current!);
 
         if (mode === "free") {
-          // Free timer done — auto stop
           setPhase("stopped");
           setElapsed((e) => {
             onStop(Math.floor((e + 1) / 60), 0);
@@ -57,7 +79,7 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
           return 0;
         }
 
-        // Pomodoro interval done
+        // Pomodoro
         if (phase === "working") {
           setPomodoroCount((n) => n + 1);
           setPhase("break");
@@ -73,12 +95,15 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
   }, [running, mode, phase, onStop]);
 
   const start = () => {
-    const secs = mode === "pomodoro" ? WORK_SECS : freeMins * 60;
     setElapsed(0);
     setPomodoroCount(0);
-    setCountdown(secs);
     setPhase("working");
-    setRunning(true);
+    if (mode === "stopwatch") {
+      setRunning(true);
+    } else {
+      setCountdown(mode === "pomodoro" ? WORK_SECS : freeMins * 60);
+      setRunning(true);
+    }
   };
 
   const stop = () => {
@@ -108,7 +133,7 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
     if (!isNaN(n) && n > 0 && n <= 300) setFreeMins(n);
   };
 
-  // Collapsed toggle
+  // ── Collapsed toggle ──────────────────────────────────────
   if (!open && phase === "idle") {
     return (
       <button
@@ -122,13 +147,15 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
     );
   }
 
-  // Stopped — compact summary
+  // ── Stopped summary ───────────────────────────────────────
   if (phase === "stopped") {
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
+    const color = mode === "stopwatch" ? "text-[#4ade80]" : "text-primary";
+    const bg    = mode === "stopwatch" ? "bg-[#4ade80]/10 border-[#4ade80]/20" : "bg-primary/10 border-primary/20";
     return (
-      <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm">
-        <div className="flex items-center gap-2 text-primary">
+      <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${bg}`}>
+        <div className={`flex items-center gap-2 ${color}`}>
           <Timer size={14} />
           <span>
             <strong>{mins > 0 ? `${mins}m` : ""}{(secs > 0 || mins === 0) ? ` ${secs}s` : ""}</strong> timed
@@ -142,15 +169,43 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
     );
   }
 
+  // ── Main card ─────────────────────────────────────────────
+  const isStopwatch = mode === "stopwatch";
+  const isBreak     = phase === "break";
+
+  // Accent colours per state
+  const accentText  = isBreak ? "text-[#fbbf24]" : isStopwatch ? "text-[#4ade80]" : "text-foreground";
+  const accentBorder = isStopwatch && phase === "working"
+    ? "border-[#4ade80]/20"
+    : isBreak ? "border-[#fbbf24]/20" : "border-border";
+
+  // Display value
+  const displayValue = () => {
+    if (phase === "idle") {
+      if (isStopwatch) return "00:00";
+      if (mode === "free") return fmtCountdown(freeMins * 60);
+      return fmtCountdown(WORK_SECS);
+    }
+    if (isStopwatch) return fmtStopwatch(elapsed);
+    return fmtCountdown(countdown);
+  };
+
   return (
-    <Card>
+    <Card className={`transition-colors ${accentBorder}`}>
       <CardContent className="pt-4 pb-4 space-y-3">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Timer size={14} className="text-primary" />
-            <span className="text-foreground text-sm font-medium">Session Timer</span>
+            {/* Pulsing dot while running */}
+            {running ? (
+              <span className={`inline-block w-2 h-2 rounded-full ${isBreak ? "bg-[#fbbf24]" : isStopwatch ? "bg-[#4ade80]" : "bg-primary"} animate-pulse`} />
+            ) : (
+              <Timer size={14} className="text-muted-foreground/60" />
+            )}
+            <span className="text-foreground text-sm font-medium">
+              {isBreak ? "Break" : isStopwatch && phase === "working" ? "Stopwatch running" : "Session Timer"}
+            </span>
           </div>
           {phase === "idle" && (
             <button type="button" onClick={() => setOpen(false)} className="text-muted-foreground/40 hover:text-muted-foreground text-xs">
@@ -159,19 +214,23 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
           )}
         </div>
 
-        {/* Mode selector (idle only) */}
+        {/* Mode tabs (idle only) */}
         {phase === "idle" && (
-          <div className="flex gap-2">
-            {(["free", "pomodoro"] as const).map((m) => (
+          <div className="flex gap-1.5">
+            {MODES.map(({ key, label }) => (
               <button
-                key={m}
+                key={key}
                 type="button"
-                onClick={() => setMode(m)}
+                onClick={() => setMode(key)}
                 className={`flex-1 py-1.5 rounded-md border text-xs font-medium transition-colors ${
-                  mode === m ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground hover:border-muted-foreground"
+                  mode === key
+                    ? key === "stopwatch"
+                      ? "border-[#4ade80]/60 text-[#4ade80] bg-[#4ade80]/10"
+                      : "border-primary text-primary bg-primary/10"
+                    : "border-border text-muted-foreground hover:border-muted-foreground"
                 }`}
               >
-                {m === "pomodoro" ? "Pomodoro (25/5)" : "Set duration"}
+                {label}
               </button>
             ))}
           </div>
@@ -202,10 +261,7 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
                   min={1}
                   max={300}
                   value={customInput}
-                  onChange={(e) => {
-                    setCustomInput(e.target.value);
-                    applyCustomMins(e.target.value);
-                  }}
+                  onChange={(e) => { setCustomInput(e.target.value); applyCustomMins(e.target.value); }}
                   placeholder="—"
                   className="w-12 px-2 py-1 rounded-md border border-border bg-surface-inset text-foreground text-xs text-center focus:border-primary outline-none"
                 />
@@ -215,37 +271,58 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
           </div>
         )}
 
+        {/* Stopwatch idle hint */}
+        {phase === "idle" && isStopwatch && (
+          <p className="text-muted-foreground/50 text-xs">Counts up while you study. Stop it when you&apos;re done.</p>
+        )}
+
+        {/* Pomodoro idle hint */}
+        {phase === "idle" && mode === "pomodoro" && (
+          <p className="text-muted-foreground/50 text-xs">25 min focus · 5 min break, repeating.</p>
+        )}
+
         {/* Timer display + controls */}
         <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            {phase === "break" && (
-              <span className="text-[10px] text-[#fbbf24] uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                <Coffee size={10} /> Break
+          <div className="flex flex-col gap-0.5">
+            {/* Sub-label */}
+            {isBreak && (
+              <span className="text-[10px] text-[#fbbf24] uppercase tracking-wider flex items-center gap-1">
+                <Coffee size={10} /> Break time
               </span>
             )}
             {phase === "working" && mode === "pomodoro" && pomodoroCount > 0 && (
-              <span className="text-[10px] text-primary/60 uppercase tracking-wider mb-0.5">
+              <span className="text-[10px] text-primary/60 uppercase tracking-wider">
                 {pomodoroCount} 🍅 done
               </span>
             )}
-            <span className={`font-mono text-3xl font-bold tracking-wide ${phase === "break" ? "text-[#fbbf24]" : "text-foreground"}`}>
-              {phase === "idle"
-                ? fmt(mode === "free" ? freeMins * 60 : WORK_SECS)
-                : fmt(countdown)}
+            {isStopwatch && phase === "working" && (
+              <span className="text-[10px] text-[#4ade80]/60 uppercase tracking-wider">elapsed</span>
+            )}
+
+            {/* Main time display */}
+            <span className={`font-mono font-bold tracking-wide ${accentText} ${
+              isStopwatch ? "text-4xl" : "text-3xl"
+            }`}>
+              {displayValue()}
             </span>
           </div>
 
+          {/* Controls */}
           <div className="flex items-center gap-2">
             {phase === "idle" ? (
               <button
                 type="button"
                 onClick={start}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/80 transition-colors"
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isStopwatch
+                    ? "bg-[#4ade80]/15 border border-[#4ade80]/40 text-[#4ade80] hover:bg-[#4ade80]/25"
+                    : "bg-primary text-primary-foreground hover:bg-primary/80"
+                }`}
               >
                 <Play size={14} />
                 Start
               </button>
-            ) : phase === "break" ? (
+            ) : isBreak ? (
               <>
                 <button type="button" onClick={skipBreak} className="px-3 py-1.5 rounded-lg border border-border text-muted-foreground text-xs hover:border-muted-foreground transition-colors">
                   Skip
@@ -264,7 +341,11 @@ export function CheckInTimer({ onStop, onReset }: CheckInTimerProps) {
                 <button
                   type="button"
                   onClick={() => setRunning((r) => !r)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 text-primary text-xs font-medium hover:bg-primary/10 transition-colors"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                    isStopwatch
+                      ? "border-[#4ade80]/30 text-[#4ade80] hover:bg-[#4ade80]/10"
+                      : "border-primary/30 text-primary hover:bg-primary/10"
+                  }`}
                 >
                   {running ? <Pause size={12} /> : <Play size={12} />}
                   {running ? "Pause" : "Resume"}
