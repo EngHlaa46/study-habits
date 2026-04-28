@@ -25,12 +25,18 @@ export async function POST(req: Request) {
   const ext = audioMime.includes("mp4") ? "mp4" : "webm";
   const file = await toFile(buffer, `recording.${ext}`, { type: audioMime });
 
-  const result = await groq.audio.transcriptions.create({
-    file,
-    model: "whisper-large-v3-turbo",
-    language: lang === "ar" ? "ar" : "en",
-    response_format: "json",
-  });
+  let result;
+  try {
+    result = await groq.audio.transcriptions.create({
+      file,
+      model: "whisper-large-v3-turbo",
+      language: lang === "ar" ? "ar" : "en",
+      response_format: "json",
+    });
+  } catch (err) {
+    console.error("[transcribe] Groq error:", err);
+    return NextResponse.json({ error: "Transcription failed" }, { status: 500 });
+  }
 
   return NextResponse.json({ transcript: result.text });
 }

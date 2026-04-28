@@ -18,6 +18,12 @@ export function useVoiceInput({
   const baseRef = useRef("");
   const liveTranscribingRef = useRef(false);
 
+  // Keep refs current so the memoized toggle always calls the latest versions
+  const getBaseRef = useRef(getBase);
+  getBaseRef.current = getBase;
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
+
   const toggle = useCallback(async () => {
     if (listening) {
       mediaRecorderRef.current?.stop();
@@ -33,7 +39,7 @@ export function useVoiceInput({
     }
 
     audioChunksRef.current = [];
-    baseRef.current = getBase();
+    baseRef.current = getBaseRef.current();
     liveTranscribingRef.current = false;
 
     const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -50,7 +56,7 @@ export function useVoiceInput({
 
     const applyTranscript = (transcript: string) => {
       const base = baseRef.current;
-      onResult(base.trimEnd() ? base.trimEnd() + " " + transcript : transcript);
+      onResultRef.current(base.trimEnd() ? base.trimEnd() + " " + transcript : transcript);
     };
 
     const transcribeAccumulated = async () => {
@@ -62,9 +68,10 @@ export function useVoiceInput({
         fd.append("audio", blob, `recording.${fileExt}`);
         fd.append("lang", lang === "ar" ? "ar" : "en");
         const res = await fetch("/api/chat/transcribe", { method: "POST", body: fd });
+        if (!res.ok) { console.error("[voice] transcribe error", res.status); return; }
         const { transcript } = await res.json();
         if (transcript) applyTranscript(transcript.trim());
-      } catch { /* ignore */ } finally {
+      } catch (err) { console.error("[voice] fetch error", err); } finally {
         liveTranscribingRef.current = false;
       }
     };
@@ -86,9 +93,10 @@ export function useVoiceInput({
         fd.append("audio", blob, `recording.${fileExt}`);
         fd.append("lang", lang === "ar" ? "ar" : "en");
         const res = await fetch("/api/chat/transcribe", { method: "POST", body: fd });
+        if (!res.ok) { console.error("[voice] onstop transcribe error", res.status, await res.text()); return; }
         const { transcript } = await res.json();
         if (transcript) applyTranscript(transcript.trim());
-      } catch { /* ignore */ } finally {
+      } catch (err) { console.error("[voice] onstop fetch error", err); } finally {
         setTranscribing(false);
       }
     };
