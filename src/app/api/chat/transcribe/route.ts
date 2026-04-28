@@ -25,12 +25,17 @@ export async function POST(req: Request) {
   const ext = audioMime.includes("mp4") ? "mp4" : "webm";
   const file = await toFile(buffer, `recording.${ext}`, { type: audioMime });
 
+  const prompt = lang === "ar"
+    ? "ملاحظة جلسة الدراسة. الطالب يتحدث عن عاداته الدراسية ومستويات التركيز والمواد التي يدرسها."
+    : "Study session note. Student describing study habits, focus levels, subjects studied, exam preparation, and learning progress.";
+
   let result;
   try {
     result = await groq.audio.transcriptions.create({
       file,
-      model: "whisper-large-v3-turbo",
+      model: "whisper-large-v3",
       language: lang === "ar" ? "ar" : "en",
+      prompt,
       response_format: "json",
     });
   } catch (err) {
