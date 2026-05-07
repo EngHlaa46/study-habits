@@ -70,14 +70,15 @@
   }
 }
 
-/* Dark mode body — depth gradient so glass cards have something to blur through */
+/* Dark mode body — rich color blobs that bleed through the frosted glass cards */
 .dark body {
-  background:
-    radial-gradient(ellipse 100% 55% at 15% -10%, rgba(56, 189, 248, 0.13) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 45% at 85% 110%, rgba(74, 222, 128, 0.09) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(168, 85, 247, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 35% at 90% 10%, rgba(251, 191, 36, 0.04) 0%, transparent 50%),
-    hsl(var(--background));
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(ellipse 80% 70% at 8% 12%,  rgba(56, 189, 248, 0.30) 0%, transparent 65%),
+    radial-gradient(ellipse 65% 60% at 88% 85%, rgba(74, 222, 128, 0.22) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 65% at 68% 22%, rgba(168, 85, 247, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 45% at 22% 82%, rgba(251, 191, 36, 0.12) 0%, transparent 55%);
+  background-attachment: fixed;
   min-height: 100vh;
 }
 
@@ -126,16 +127,16 @@
 .glass-card {
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: hsl(var(--card) / 0.5);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: hsl(var(--card) / 0.3);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   color: hsl(var(--card-foreground));
 }
 
 /* Sidebar / top-bar */
 .glass-sidebar {
-  background: hsl(var(--card) / 0.6);
+  background: hsl(var(--card) / 0.4);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
 }
