@@ -92,7 +92,7 @@ export function DimensionProfileCard({ skills }: DimensionProfileCardProps) {
         </div>
 
         {expanded && (
-          <div className="mb-4 space-y-2 border border-border rounded-lg p-3 bg-surface-inset">
+          <div className="mb-4 space-y-2 border border-white/[0.08] rounded-xl p-3 bg-white/[0.04]">
             {dimensions.map(({ key, label, desc }) => (
               <div key={key}>
                 <p className="text-xs font-medium text-foreground/70">{label}</p>
@@ -114,9 +114,9 @@ export function DimensionProfileCard({ skills }: DimensionProfileCardProps) {
                     {scoreLabel(score, t)}
                   </span>
                 </div>
-                <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    className="h-full rounded-full bg-primary transition-all duration-500 shadow-[0_0_6px_rgba(56,189,248,0.5)]"
                     style={{ width: `${pct}%`, opacity: score < 0 ? 0.2 : 1 }}
                   />
                 </div>

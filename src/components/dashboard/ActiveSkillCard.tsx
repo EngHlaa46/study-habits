@@ -54,7 +54,7 @@ export function ActiveSkillCard({
         </div>
 
         {userTask && (
-          <div className="bg-white/[0.04] border border-white/[0.06] rounded-lg p-3">
+          <div className="bg-white/[0.06] border border-white/[0.1] rounded-xl p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
             <p className="text-xs text-muted-foreground/70 mb-1">{t("skills.yourTask")}</p>
             <p className="text-foreground/80 text-sm">{userTask}</p>
           </div>
