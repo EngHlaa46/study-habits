@@ -116,7 +116,7 @@ export function DimensionProfileCard({ skills }: DimensionProfileCardProps) {
                 </div>
                 <div className="h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-primary transition-all duration-500 shadow-[0_0_6px_rgba(56,189,248,0.5)]"
+                    className="h-full rounded-full bg-primary transition-all duration-500 glow-bar-sm"
                     style={{ width: `${pct}%`, opacity: score < 0 ? 0.2 : 1 }}
                   />
                 </div>

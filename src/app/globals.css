@@ -96,7 +96,9 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* Glass light-edge shimmer applied via ::before on glass panels */
+/* ── Glassmorphism utility classes ─────────────────────────────────────── */
+
+/* Shared shimmer overlay — diagonal light-edge that simulates glass surface */
 .glass-panel {
   position: relative;
   overflow: hidden;
@@ -118,4 +120,61 @@
 .glass-panel > * {
   position: relative;
   z-index: 2;
+}
+
+/* Main card glass — used by Card component */
+.glass-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: hsl(var(--card) / 0.5);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: hsl(var(--card-foreground));
+}
+
+/* Sidebar / top-bar */
+.glass-sidebar {
+  background: hsl(var(--card) / 0.6);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+}
+
+/* Phase / status banner */
+.glass-banner {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(to right, rgba(56, 189, 248, 0.12), rgba(74, 222, 128, 0.08));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0 32px rgba(56, 189, 248, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Active nav item */
+.glass-nav-active {
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(56, 189, 248, 0.1);
+}
+
+/* Glassy input field */
+.glass-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.glass-input:focus-visible {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Glowing filled progress bar */
+.glow-bar {
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.55);
+}
+.glow-bar-sm {
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
 }

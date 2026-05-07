@@ -47,7 +47,7 @@ export function Sidebar() {
               onClick={() => setOpen(false)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 transition-all duration-200 ${
                 isActive
-                  ? "bg-primary/20 text-primary border border-primary/25 shadow-[0_0_20px_rgba(56,189,248,0.22),inset_0_1px_0_rgba(56,189,248,0.1)]"
+                  ? "glass-nav-active text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/[0.08] border border-transparent"
               }`}
             >
@@ -77,7 +77,7 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-card/60 backdrop-blur-2xl border-b border-white/[0.08] flex items-center justify-between px-4 z-50">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 glass-sidebar border-b border-white/[0.08] flex items-center justify-between px-4 z-50">
         <Link href="/dashboard" className="text-lg font-bold text-foreground">
           Study <span className="text-primary">Habits</span>
         </Link>
@@ -97,7 +97,7 @@ export function Sidebar() {
         />
       )}
       <aside
-        className={`md:hidden fixed top-14 left-0 bottom-0 w-64 bg-card/60 backdrop-blur-2xl border-r border-white/[0.08] flex flex-col z-50 transition-transform ${
+        className={`md:hidden fixed top-14 left-0 bottom-0 w-64 glass-sidebar border-r border-white/[0.08] flex flex-col z-50 transition-transform ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -105,7 +105,7 @@ export function Sidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-card/60 backdrop-blur-2xl border-r border-white/[0.08] flex-col z-50">
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 glass-sidebar border-r border-white/[0.08] flex-col z-50">
         <div className="p-6">
           <Link href="/dashboard" className="text-xl font-bold text-foreground">
             Study <span className="text-primary">Habits</span>
