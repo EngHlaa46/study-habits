@@ -126,7 +126,7 @@ export function CheckInForm({
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-foreground">{t("checkin.title")}</h1>
-        <p className="text-sm text-muted-foreground/60 mt-1">Answer what feels relevant — skip what doesn't apply.</p>
+        <p className="text-sm text-muted-foreground/60 mt-1">Answer what feels relevant — skip what doesn&apos;t apply.</p>
       </div>
 
       {/* Session timer badge */}

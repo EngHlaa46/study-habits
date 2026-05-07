@@ -144,7 +144,7 @@ export default function OnboardingPage() {
                 <CardTitle className="text-foreground text-xl">What do you want to master?</CardTitle>
               </div>
               <p className="text-sm text-muted-foreground/70">
-                We'll build a personalized skill tree from your subject so you can be tested and guided step by step.
+                We&apos;ll build a personalized skill tree from your subject so you can be tested and guided step by step.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
