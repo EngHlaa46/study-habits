@@ -27,6 +27,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
   const [suggestion, setSuggestion] = useState("");
   const [taskToast, setTaskToast] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [suggestedTools, setSuggestedTools] = useState<string[]>([]);
   const suggestTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { listening, transcribing, toggle: toggleVoice } = useVoiceInput({
     getBase: () => input,
@@ -115,7 +116,11 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
             if (data === "[DONE]") continue;
             try {
               const parsed = JSON.parse(data);
-              if (parsed.action === "task_updated" && parsed.task) {
+              if (parsed.action === "tool_suggestions" && parsed.tools) {
+                  const keys = JSON.parse(parsed.tools) as string[];
+                  setSuggestedTools(keys);
+                  setToolsOpen(true);
+                } else if (parsed.action === "task_updated" && parsed.task) {
                 setTaskToast(parsed.task as string);
                 setTimeout(() => setTaskToast(null), 5000);
               } else if (parsed.step && parsed.label) {
@@ -217,21 +222,37 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
             </button>
           </div>
           <div className="divide-y divide-border">
-            {TOOLS.map((tool) => (
-              <a
-                key={tool.key}
-                href={tool.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-secondary/50 transition-colors"
-              >
-                <div className="min-w-0">
-                  <span className="text-sm font-medium text-foreground">{tool.name}</span>
-                  <span className="text-xs text-muted-foreground/60 ml-2">{tool.badge}</span>
-                </div>
-                <ExternalLink size={12} className="text-muted-foreground/40 shrink-0" />
-              </a>
-            ))}
+            {[...TOOLS].sort((a, b) => {
+              const aS = suggestedTools.includes(a.key) ? 0 : 1;
+              const bS = suggestedTools.includes(b.key) ? 0 : 1;
+              return aS - bS;
+            }).map((tool) => {
+              const suggested = suggestedTools.includes(tool.key);
+              return (
+                <a
+                  key={tool.key}
+                  href={tool.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center justify-between gap-3 px-4 py-2.5 transition-colors ${
+                    suggested
+                      ? "bg-primary/[0.06] hover:bg-primary/[0.1]"
+                      : "hover:bg-secondary/50"
+                  }`}
+                >
+                  <div className="min-w-0 flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{tool.name}</span>
+                    <span className="text-xs text-muted-foreground/60">{tool.badge}</span>
+                    {suggested && (
+                      <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                        Suggested
+                      </span>
+                    )}
+                  </div>
+                  <ExternalLink size={12} className="text-muted-foreground/40 shrink-0" />
+                </a>
+              );
+            })}
           </div>
         </div>
       )}

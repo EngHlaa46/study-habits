@@ -6,27 +6,52 @@ import { analyzeAndUpdateKnowledge } from "./knowledgeAnalyzer";
 import { SYSTEM_PROMPT } from "@/lib/ai/systemPrompt";
 import type { CoachOutputs } from "./types";
 
-const SKILL_TOOLS: Groq.Chat.Completions.ChatCompletionTool[] = [
-  {
-    type: "function",
-    function: {
-      name: "update_skill_task",
-      description:
-        "Set or update the student's personal task/habit for their active skill. Only call when the student explicitly asks to set, change, or update their study task, goal, or habit commitment.",
-      parameters: {
-        type: "object",
-        properties: {
-          task: {
-            type: "string",
-            description:
-              "The complete task commitment: when (time), where (place), what action. E.g. 'Study at 8pm in my room for 30 minutes'.",
-          },
+const UPDATE_SKILL_TASK_TOOL: Groq.Chat.Completions.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "update_skill_task",
+    description:
+      "Set or update the student's personal task/habit for their active skill. Only call when the student explicitly asks to set, change, or update their study task, goal, or habit commitment.",
+    parameters: {
+      type: "object",
+      properties: {
+        task: {
+          type: "string",
+          description:
+            "The complete task commitment: when (time), where (place), what action. E.g. 'Study at 8pm in my room for 30 minutes'.",
         },
-        required: ["task"],
       },
+      required: ["task"],
     },
   },
-];
+};
+
+const SUGGEST_TOOLS_TOOL: Groq.Chat.Completions.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "suggest_study_tools",
+    description:
+      "Surface 1-2 relevant study tools to the student based on their current question, subject, or learning need. Call this when a specific tool would genuinely help right now — not on every message.",
+    parameters: {
+      type: "object",
+      properties: {
+        tools: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["studyfetch", "notebooklm", "napkin", "consensus", "magicschool"],
+          },
+          description: "Keys of the 1-2 most relevant tools for this moment.",
+        },
+        reason: {
+          type: "string",
+          description: "One sentence explaining why these tools fit right now.",
+        },
+      },
+      required: ["tools", "reason"],
+    },
+  },
+};
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
@@ -54,7 +79,7 @@ STRICT RULES:
 RULES:
 - Answer subject-matter questions directly and clearly: math, science, history, language, exam content — any academic subject.
 - Explain step by step. Use examples. Break down complexity.
-- When relevant, suggest tools by name: StudyFetch (flashcards/quizzes), NotebookLM (summaries/mind maps), Napkin (visual diagrams), Consensus (research answers).
+- When a specific tool would genuinely help (e.g. flashcards for memorisation, diagrams for a visual concept, research for an evidence question), call suggest_study_tools with the 1-2 most relevant keys. Do not suggest tools on every message.
 - Keep responses clear and actionable.`
     : `\n## ACTIVE MODE: SKILLS COACH
 - Your primary role is helping the student build their active skill through habit coaching and check-in review.
@@ -111,12 +136,17 @@ export async function runDCSPipeline(
           { role: "user", content: message },
         ];
 
+        const activeTools = chatMode === "skills"
+          ? [UPDATE_SKILL_TASK_TOOL, SUGGEST_TOOLS_TOOL]
+          : [SUGGEST_TOOLS_TOOL];
+
         const stream = await groq.chat.completions.create({
           model: "llama-3.3-70b-versatile",
           messages,
           max_tokens: 1024,
           stream: true,
-          ...(chatMode === "skills" ? { tools: SKILL_TOOLS, tool_choice: "auto" as const } : {}),
+          tools: activeTools,
+          tool_choice: "auto" as const,
         });
 
         let fullResponse = "";
@@ -146,7 +176,42 @@ export async function runDCSPipeline(
         }
 
         // Handle tool call if one was requested
-        if (toolCallName === "update_skill_task" && toolCallArgs) {
+        if (toolCallName === "suggest_study_tools" && toolCallArgs) {
+          try {
+            const { tools: suggestedKeys } = JSON.parse(toolCallArgs) as { tools: string[]; reason: string };
+            controller.enqueue(sseEvent({ action: "tool_suggestions", tools: JSON.stringify(suggestedKeys) }));
+
+            const followUpMessages: { role: "system" | "user" | "assistant" | "tool"; content: string; tool_call_id?: string; name?: string }[] = [
+              ...messages,
+              {
+                role: "assistant",
+                content: "",
+                // @ts-expect-error tool_calls not in simplified type
+                tool_calls: [{ id: toolCallId, type: "function", function: { name: "suggest_study_tools", arguments: toolCallArgs } }],
+              },
+              {
+                role: "tool",
+                tool_call_id: toolCallId,
+                name: "suggest_study_tools",
+                content: `Tools surfaced to student: ${suggestedKeys.join(", ")}`,
+              },
+            ];
+
+            const followUp = await groq.chat.completions.create({
+              model: "llama-3.3-70b-versatile",
+              messages: followUpMessages as Parameters<typeof groq.chat.completions.create>[0]["messages"],
+              max_tokens: 512,
+              stream: true,
+            });
+
+            for await (const chunk of followUp) {
+              const text = chunk.choices[0]?.delta?.content || "";
+              if (text) { fullResponse += text; controller.enqueue(sseEvent({ text })); }
+            }
+          } catch {
+            // tool call failed silently
+          }
+        } else if (toolCallName === "update_skill_task" && toolCallArgs) {
           try {
             const { task } = JSON.parse(toolCallArgs) as { task: string };
             const { prisma: db } = await import("@/lib/db/prisma");
