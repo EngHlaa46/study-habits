@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import type { ActivePhase, CheckIn, Event, SkillProgress, Skill, UserProfile, KnowledgeEntry } from "@prisma/client";
+import type { ActivePhase, CheckIn, Event, SkillProgress, Skill, UserProfile, KnowledgeEntry, SkillNode, SkillTree, AssessmentSession, CheckInEntry } from "@prisma/client";
 
 export interface UserData {
   userName: string | null;
@@ -9,32 +9,46 @@ export interface UserData {
   upcomingEvents: Event[];
   profile: UserProfile | null;
   knowledgeProfile: KnowledgeEntry[];
+  skillTrees: (SkillTree & { nodes: SkillNode[] })[];
+  recentAssessments: (AssessmentSession & { node: SkillNode })[];
+  recentCheckInEntries: CheckInEntry[];
 }
 
 export async function fetchUserData(userId: string): Promise<UserData> {
-  const [user, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile, knowledgeProfile] =
+  const [user, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile, knowledgeProfile, skillTrees, recentAssessments, recentCheckInEntries] =
     await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
       prisma.activePhase.findUnique({ where: { userId } }),
-      prisma.checkIn.findMany({
-        where: { userId },
-        orderBy: { date: "desc" },
-        take: 14,
-      }),
-      prisma.skillProgress.findMany({
-        where: { userId },
-        include: { skill: true },
-      }),
-      prisma.event.findMany({
-        where: { userId, status: "upcoming" },
-        orderBy: { date: "asc" },
-        take: 3,
-      }),
+      prisma.checkIn.findMany({ where: { userId }, orderBy: { date: "desc" }, take: 14 }),
+      prisma.skillProgress.findMany({ where: { userId }, include: { skill: true } }),
+      prisma.event.findMany({ where: { userId, status: "upcoming" }, orderBy: { date: "asc" }, take: 3 }),
       prisma.userProfile.findUnique({ where: { userId } }),
       (prisma.knowledgeEntry as { findMany: (args: object) => Promise<KnowledgeEntry[]> }).findMany({
         where: { userId },
         orderBy: { updatedAt: "desc" },
         take: 30,
+      }),
+      prisma.skillTree.findMany({
+        where: { userId },
+        include: { nodes: { orderBy: { masteryScore: "desc" } } },
+        orderBy: { generatedAt: "desc" },
+        take: 3,
+      }),
+      (async () => {
+        const sessions = await prisma.assessmentSession.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        });
+        const nodeIds = Array.from(new Set(sessions.map((s) => s.nodeId)));
+        const nodes = await prisma.skillNode.findMany({ where: { id: { in: nodeIds } } });
+        const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+        return sessions.map((s) => ({ ...s, node: nodeMap.get(s.nodeId) as SkillNode }));
+      })() as Promise<(AssessmentSession & { node: SkillNode })[]>,
+      prisma.checkInEntry.findMany({
+        where: { userId },
+        orderBy: { date: "desc" },
+        take: 7,
       }),
     ]);
 
@@ -46,6 +60,9 @@ export async function fetchUserData(userId: string): Promise<UserData> {
     upcomingEvents,
     profile,
     knowledgeProfile: knowledgeProfile ?? [],
+    skillTrees: skillTrees as (SkillTree & { nodes: SkillNode[] })[],
+    recentAssessments: recentAssessments ?? [],
+    recentCheckInEntries: recentCheckInEntries ?? [],
   };
 }
 
@@ -230,6 +247,51 @@ export function buildContextFromData(data: UserData): string {
         const note = e.notes ? ` — ${e.notes}` : "";
         lines.push(`  - ${subject} / ${e.topic}: ${e.status}${note}`);
       }
+    }
+  }
+
+  // Skill trees (AI-generated from uploaded material)
+  const { skillTrees, recentAssessments, recentCheckInEntries } = data;
+  if (skillTrees.length > 0) {
+    lines.push("\nAI skill trees (from uploaded materials):");
+    for (const tree of skillTrees) {
+      const active = tree.nodes.filter((n) => n.masteryStatus === "active" || n.masteryStatus === "developing");
+      const mastered = tree.nodes.filter((n) => n.masteryStatus === "mastered" || n.masteryStatus === "maintenance");
+      lines.push(`  [${tree.materialName}] ${tree.nodes.length} nodes — ${active.length} active, ${mastered.length} mastered`);
+      for (const node of tree.nodes.slice(0, 6)) {
+        lines.push(`    - ${node.name}: ${node.masteryStatus} (${Math.round(node.masteryScore * 100)}%)`);
+      }
+    }
+  }
+
+  if (recentAssessments.length > 0) {
+    lines.push("\nRecent assessment sessions:");
+    for (const s of recentAssessments.slice(0, 5)) {
+      const date = s.createdAt.toISOString().split("T")[0];
+      lines.push(`  ${date} | ${s.node.name} | score delta: ${s.masteryDelta > 0 ? "+" : ""}${s.masteryDelta.toFixed(2)} | calibration: ${Math.round(s.calibrationScore * 100)}%`);
+      if (s.weaknesses) lines.push(`    Weakness: ${s.weaknesses}`);
+    }
+  }
+
+  if (recentCheckInEntries.length > 0) {
+    lines.push("\nRecent check-ins (AI-interpreted):");
+    for (const entry of recentCheckInEntries.slice(0, 5)) {
+      const date = entry.date.toISOString().split("T")[0];
+      try {
+        const signals = JSON.parse(entry.inferredSignals) as {
+          studyInitiated?: boolean | null;
+          focusQuality?: string | null;
+          energyProxy?: string | null;
+          summary?: string;
+        };
+        const parts = [
+          `date=${date}`,
+          signals.studyInitiated != null ? `studied=${signals.studyInitiated}` : null,
+          signals.focusQuality ? `focus=${signals.focusQuality}` : null,
+          signals.energyProxy ? `energy=${signals.energyProxy}` : null,
+        ].filter(Boolean);
+        lines.push(`  ${parts.join(", ")}${signals.summary ? ` — ${signals.summary}` : ""}`);
+      } catch { /* ignore */ }
     }
   }
 

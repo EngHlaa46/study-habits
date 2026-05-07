@@ -1,69 +1,154 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Dumbbell, Lock, CheckCircle2, CircleDot, BookOpen } from "lucide-react";
 
-const WEEK_CONFIG: Record<number, { label: string; color: string }> = {
-  1: { label: "Stabilize", color: "text-primary" },
-  2: { label: "Express",   color: "text-[#fbbf24]" },
-  3: { label: "Probe",     color: "text-[#4ade80]" },
-};
-
-const DIMENSION_CONFIG: Record<string, { color: string; dot: string; label: string }> = {
-  planning:   { color: "text-primary",    dot: "bg-primary",    label: "Planning" },
-  behavioral: { color: "text-[#fbbf24]",  dot: "bg-[#fbbf24]",  label: "Behavioural" },
-  cognitive:  { color: "text-[#a855f7]",  dot: "bg-[#a855f7]",  label: "Cognitive" },
-};
-
-const LEVEL_NAMES: Record<number, string> = {
-  1: "Beginner",
-  2: "Intermediate",
-  3: "Mastery",
-};
-
-interface ActiveSkillInfo {
+interface NodeSummary {
+  id: string;
   name: string;
-  dimension: string;
-  weekPhase: number;
+  masteryScore: number;
+  masteryStatus: string;
+  isDue: boolean;
+}
+
+interface TreeSummary {
+  id: string;
+  materialName: string;
+  totalNodes: number;
+  masteredNodes: number;
+  activeNodes: NodeSummary[];
 }
 
 interface PlanWidgetProps {
-  activeSkills: ActiveSkillInfo[];
-  levelNumber: number;
+  skillTrees: TreeSummary[];
 }
 
-export function PlanWidget({ activeSkills, levelNumber }: PlanWidgetProps) {
-  const levelName = LEVEL_NAMES[levelNumber] ?? `Level ${levelNumber}`;
+const STATUS_ICON: Record<string, React.ElementType> = {
+  locked: Lock,
+  active: CircleDot,
+  developing: CircleDot,
+  mastered: CheckCircle2,
+  maintenance: CheckCircle2,
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  locked: "text-muted-foreground/30",
+  active: "text-primary",
+  developing: "text-amber-400",
+  mastered: "text-accent",
+  maintenance: "text-accent/60",
+};
+
+export function PlanWidget({ skillTrees }: PlanWidgetProps) {
+  if (skillTrees.length === 0) {
+    return (
+      <Link
+        href="/materials"
+        className="block bg-card/60 backdrop-blur-md border border-dashed border-white/[0.12] rounded-xl px-5 py-5 mb-6 hover:bg-card/80 transition-colors group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <BookOpen size={16} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">No skill plan yet</p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">Upload your course material to generate a personalised skill tree</p>
+          </div>
+          <ChevronRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0" />
+        </div>
+      </Link>
+    );
+  }
+
+  // Show the most recently updated tree that has active nodes, or the first tree
+  const primaryTree =
+    skillTrees.find((t) => t.activeNodes.length > 0) ?? skillTrees[0];
+
+  const dueNodes = primaryTree.activeNodes.filter((n) => n.isDue);
+  const progressPct = primaryTree.totalNodes > 0
+    ? Math.round((primaryTree.masteredNodes / primaryTree.totalNodes) * 100)
+    : 0;
 
   return (
-    <Link
-      href="/skills"
-      className="block bg-card/60 backdrop-blur-md border border-white/[0.1] rounded-xl px-5 py-4 mb-6 hover:bg-card/80 transition-colors shadow-lg shadow-black/20 group"
-    >
+    <div className="bg-card/60 backdrop-blur-md border border-white/[0.1] rounded-xl px-5 py-4 mb-6 shadow-lg shadow-black/20">
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-0.5">Current Plan</p>
-          <p className="text-sm font-semibold text-foreground">Level {levelNumber} · {levelName}</p>
+          <p className="text-sm font-semibold text-foreground truncate">{primaryTree.materialName}</p>
         </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground/50 group-hover:text-muted-foreground shrink-0 transition-colors">
-          View Skills <ChevronRight size={13} />
+        <Link
+          href="/materials"
+          className="flex items-center gap-1 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors shrink-0 ml-3"
+        >
+          View all <ChevronRight size={13} />
+        </Link>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground/50 mb-1">
+          <span>{primaryTree.masteredNodes}/{primaryTree.totalNodes} nodes mastered</span>
+          <span>{progressPct}%</span>
+        </div>
+        <div className="h-1.5 bg-secondary/60 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
       </div>
 
+      {/* Due for practice */}
+      {dueNodes.length > 0 && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-primary/8 border border-primary/20">
+          <p className="text-[10px] font-semibold text-primary/70 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+            <Dumbbell size={10} />
+            Ready to practice
+          </p>
+          <div className="space-y-1">
+            {dueNodes.slice(0, 2).map((node) => (
+              <div key={node.id} className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                <span className="text-xs text-foreground/80 truncate flex-1">{node.name}</span>
+                <span className="text-[10px] text-primary shrink-0">{Math.round(node.masteryScore * 100)}%</span>
+              </div>
+            ))}
+            {dueNodes.length > 2 && (
+              <p className="text-[10px] text-muted-foreground/50">+{dueNodes.length - 2} more</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Active nodes */}
       <div className="space-y-1.5">
-        {activeSkills.map((skill) => {
-          const dim = DIMENSION_CONFIG[skill.dimension] ?? DIMENSION_CONFIG.planning;
-          const week = WEEK_CONFIG[skill.weekPhase] ?? WEEK_CONFIG[1];
-          return (
-            <div key={skill.name} className="flex items-center gap-2">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dim.dot}`} />
-              <span className={`text-xs font-medium ${dim.color} w-20 shrink-0`}>{dim.label}</span>
-              <span className="text-xs text-foreground/70 flex-1 truncate">{skill.name}</span>
-              <span className={`text-[10px] ${week.color} shrink-0`}>W{skill.weekPhase} · {week.label}</span>
-            </div>
-          );
-        })}
+        {primaryTree.activeNodes
+          .filter((n) => !n.isDue)
+          .slice(0, 4)
+          .map((node) => {
+            const Icon = STATUS_ICON[node.masteryStatus] ?? CircleDot;
+            const color = STATUS_COLOR[node.masteryStatus] ?? "text-primary";
+            return (
+              <div key={node.id} className="flex items-center gap-2">
+                <Icon size={11} className={`${color} shrink-0`} />
+                <span className="text-xs text-foreground/70 flex-1 truncate">{node.name}</span>
+                {node.masteryScore > 0 && (
+                  <span className="text-[10px] text-muted-foreground/50 shrink-0">
+                    {Math.round(node.masteryScore * 100)}%
+                  </span>
+                )}
+              </div>
+            );
+          })}
       </div>
-    </Link>
+
+      {/* Other trees if any */}
+      {skillTrees.length > 1 && (
+        <p className="text-[10px] text-muted-foreground/40 mt-3 pt-3 border-t border-border/40">
+          +{skillTrees.length - 1} other subject{skillTrees.length - 1 !== 1 ? "s" : ""} in your library
+        </p>
+      )}
+    </div>
   );
 }

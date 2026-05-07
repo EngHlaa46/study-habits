@@ -24,6 +24,11 @@ model User {
   pushSubscriptions PushSubscription[]
   feedbacks         Feedback[]
   knowledgeProfile  KnowledgeEntry[]
+  skillTrees         SkillTree[]
+  assessmentSessions AssessmentSession[]
+  queuedActivities   QueuedActivity[]
+  weeklyInsights     WeeklyInsight[]
+  checkInEntries     CheckInEntry[]
 }
 
 model UserProfile {
@@ -195,4 +200,82 @@ model KnowledgeEntry {
   createdAt DateTime @default(now())
 
   @@unique([userId, subject, topic])
+}
+
+model SkillTree {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  materialName String
+  generatedAt  DateTime    @default(now())
+  nodes        SkillNode[]
+}
+
+model SkillNode {
+  id                   String    @id @default(cuid())
+  skillTreeId          String
+  skillTree            SkillTree @relation(fields: [skillTreeId], references: [id], onDelete: Cascade)
+  localId              String
+  name                 String
+  description          String
+  whatMasteryLooksLike String
+  prerequisites        String    @default("[]")
+  suggestedEvalFormat  String
+  masteryStatus        String    @default("locked")
+  masteryScore         Float     @default(0)
+  lastPracticedAt      DateTime?
+  nextReviewAt         DateTime?
+  reviewInterval       Int       @default(1)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model AssessmentSession {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodeId           String
+  createdAt        DateTime @default(now())
+  activity         String
+  studentResponse  String   @default("")
+  masteryDelta     Float    @default(0)
+  calibrationScore Float    @default(0)
+  strengths        String   @default("")
+  weaknesses       String   @default("")
+  aiNotes          String   @default("")
+}
+
+model QueuedActivity {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodeId    String
+  activity  String
+  createdAt DateTime  @default(now())
+  servedAt  DateTime?
+}
+
+model WeeklyInsight {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekOf         DateTime
+  nodesMastered  Int      @default(0)
+  weakestConcept String   @default("")
+  summary        String
+  createdAt      DateTime @default(now())
+}
+
+model CheckInEntry {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime
+  questions       String   @default("[]")
+  responses       String   @default("[]")
+  inferredSignals String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, date])
 }

@@ -13,20 +13,26 @@ export default async function DashboardPage() {
   const session = await requireAuth();
   const userId = session.user.id;
 
-  // Check if onboarding is complete
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId },
-  });
+  const profile = await prisma.userProfile.findUnique({ where: { userId } });
   if (!profile?.onboardingComplete) {
     redirect("/onboarding");
   }
 
-  const [activePhase, skillProgresses, recentCheckIns, upcomingEvents] =
+  const now = new Date();
+
+  const [activePhase, skillTrees, recentCheckIns, upcomingEvents] =
     await Promise.all([
       prisma.activePhase.findUnique({ where: { userId } }),
-      prisma.skillProgress.findMany({
+      prisma.skillTree.findMany({
         where: { userId },
-        include: { skill: true },
+        include: {
+          nodes: {
+            where: { masteryStatus: { in: ["active", "developing", "mastered", "maintenance"] } },
+            orderBy: { masteryScore: "desc" },
+          },
+        },
+        orderBy: { generatedAt: "desc" },
+        take: 5,
       }),
       prisma.checkIn.findMany({
         where: { userId },
@@ -42,16 +48,33 @@ export default async function DashboardPage() {
 
   const phase = activePhase?.phase || "onboarding";
   const dayCount = activePhase
-    ? Math.ceil(
-        (Date.now() - activePhase.phaseStart.getTime()) /
-          (1000 * 60 * 60 * 24)
-      )
+    ? Math.ceil((Date.now() - activePhase.phaseStart.getTime()) / (1000 * 60 * 60 * 24))
     : 0;
 
-  const activeSkillProgresses = skillProgresses.filter(
-    (sp) => sp.status === "active"
+  // Build skill tree summaries for PlanWidget
+  const skillTreeSummaries = await Promise.all(
+    skillTrees.map(async (tree) => {
+      const totalNodes = await prisma.skillNode.count({ where: { skillTreeId: tree.id } });
+      const masteredNodes = await prisma.skillNode.count({
+        where: { skillTreeId: tree.id, masteryStatus: { in: ["mastered", "maintenance"] } },
+      });
+      return {
+        id: tree.id,
+        materialName: tree.materialName,
+        totalNodes,
+        masteredNodes,
+        activeNodes: tree.nodes
+          .filter((n) => n.masteryStatus === "active" || n.masteryStatus === "developing")
+          .map((n) => ({
+            id: n.id,
+            name: n.name,
+            masteryScore: n.masteryScore,
+            masteryStatus: n.masteryStatus,
+            isDue: n.nextReviewAt != null && n.nextReviewAt <= now,
+          })),
+      };
+    })
   );
-  const activeLevel = activeSkillProgresses[0]?.skill.level ?? 1;
 
   const today = new Date().toISOString().split("T")[0];
   const todayCheckIn = recentCheckIns.find(
@@ -71,38 +94,22 @@ export default async function DashboardPage() {
     name: e.name,
     type: e.type,
     date: e.date.toISOString().split("T")[0],
-    daysUntil: Math.ceil(
-      (e.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-    ),
+    daysUntil: Math.ceil((e.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
   }));
 
   return (
     <div className="max-w-6xl mx-auto">
       <DashboardBanner />
-      <PhaseBanner
-        phase={phase}
-        dayCount={dayCount}
-        activeLevel={activeLevel}
-      />
+      <PhaseBanner phase={phase} dayCount={dayCount} activeLevel={1} />
 
-      {/* Compact plan widget — links to skill tree */}
-      {phase === "skill_training" && activeSkillProgresses.length > 0 && (
-        <PlanWidget
-          activeSkills={activeSkillProgresses.map((sp) => ({
-            name: sp.skill.name,
-            dimension: sp.skill.dimension ?? "behavioral",
-            weekPhase: sp.weekPhase,
-          }))}
-          levelNumber={activeLevel}
-        />
-      )}
+      {/* Skill tree plan widget */}
+      <PlanWidget skillTrees={skillTreeSummaries} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <CheckInWidget
           todayCompleted={!!todayCheckIn}
           recentCheckIns={formattedCheckIns}
         />
-
         <EventCard events={formattedEvents} />
       </div>
 

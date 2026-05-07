@@ -117,7 +117,6 @@ The old Render URL (`study-skills-builder.onrender.com`) redirects 301 to `study
 
 ## What Is NOT Yet Implemented
 - Phone usage data integration (full) — `phoneUsageHours` self-report exists; CSV/JSON upload from iOS Screen Time / Android Digital Wellbeing not built
-- Voice notes in check-in
 - Minimum 5–7 day event distance enforcement (events page exists, validation not enforced)
 - Brevo email (currently using Resend — only works with verified domain, not arbitrary emails)
 - AI proactively surfacing bad habits during observation (waits for user to ask)
@@ -125,10 +124,12 @@ The old Render URL (`study-skills-builder.onrender.com`) redirects 301 to `study
 - SkillProgressionAgent / ProgressNarratorAgent (Layer 4 longitudinal intelligence — architecture defined, not built)
 
 ## Voice Input (Whisper)
-- `/api/chat/transcribe` — receives `multipart/form-data` (audio blob + `lang`), calls `groq.audio.transcriptions.create` with `whisper-large-v3-turbo`
-- `ChatInterface` uses `MediaRecorder.start(2500)` for live transcription every 2.5s; full accumulated audio blob sent on each chunk
-- `liveTranscribingRef` prevents overlapping calls; `baseInputRef` preserves pre-voice text
-- Final transcription on `onstop` catches trailing audio; mic button pulses cyan while finalizing
+- `/api/chat/transcribe` — receives `multipart/form-data` (audio blob + `lang`), calls `groq.audio.transcriptions.create` with `whisper-large-v3` (not turbo — accuracy over speed); includes a domain `prompt` for study/academic vocabulary biasing
+- `src/hooks/useVoiceInput.ts` — reusable hook used in both `ChatInterface` and `CheckInForm`; accepts `getBase` (returns current field text) + `onResult` callback + `lang`; uses refs so callbacks never go stale even inside memoized `toggle`
+- `MediaRecorder.start(2500)` for live transcription every 2.5s; full accumulated audio blob sent on each chunk; `liveTranscribingRef` prevents overlapping calls
+- Final transcription fires on `onstop` to catch trailing audio
+- MIME detection: `audio/webm;codecs=opus` → `audio/webm` → `audio/mp4` fallback (Safari)
+- Voice input available in `CheckInForm` (contextNote, sessionIntention, missReason fields) and `ChatInterface`
 
 ## Calendar Sync
 - `/api/events/sync-calendar` POST — fetches iCal feed URL, parses with inline ICS parser (no npm dep), imports VEVENT entries in next 90 days

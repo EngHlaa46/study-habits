@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import Groq from "groq-sdk";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { generateCheckInQuestions } from "@/lib/ai/dcs/checkInAgent";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
@@ -15,55 +16,48 @@ export async function GET() {
   const userId = session.user.id;
 
   try {
-    const [activeSkill, recentCheckIns] = await Promise.all([
+    const [activeSkill, recentCheckIns, upcomingEvent] = await Promise.all([
       prisma.skillProgress.findFirst({
         where: { userId, status: "active" },
         include: { skill: true },
+        orderBy: { updatedAt: "desc" },
       }),
       prisma.checkIn.findMany({
         where: { userId },
         orderBy: { date: "desc" },
-        take: 5,
+        take: 7,
+        select: { initiated: true, date: true },
+      }),
+      prisma.event.findFirst({
+        where: { userId, status: "upcoming", date: { gte: new Date() } },
+        orderBy: { date: "asc" },
       }),
     ]);
 
-    // Need enough context to generate useful questions
-    if (!activeSkill && recentCheckIns.length < 2) {
-      return NextResponse.json({ questions: [] });
-    }
-
     const weekLabels: Record<number, string> = { 1: "Stabilize", 2: "Express", 3: "Probe" };
-    const skillContext = activeSkill
-      ? `Active skill: ${activeSkill.skill.name} — Week ${activeSkill.weekPhase} (${weekLabels[activeSkill.weekPhase] ?? ""})`
-      : "No active skill yet (observation phase)";
 
-    const recentSummary = recentCheckIns
-      .map((ci) => {
-        const date = ci.date.toISOString().split("T")[0];
-        return `${date}: studied=${ci.initiated}, focus=${ci.focusLevel ?? "n/a"}`;
-      })
-      .join("\n");
+    const missedDays = recentCheckIns.filter((c) => !c.initiated).length;
+    const recentPattern =
+      recentCheckIns.length === 0
+        ? undefined
+        : missedDays >= 3
+        ? `missed ${missedDays} of last ${recentCheckIns.length} days`
+        : missedDays === 0
+        ? "studied consistently recently"
+        : `${recentCheckIns.length - missedDays}/${recentCheckIns.length} days studied recently`;
 
-    const prompt = `You are a study coach. Based on this student's context, write exactly 2 short reflection questions for their daily check-in. Each question should be specific to their current skill or recent patterns — not generic. Keep each question under 15 words. Output only the 2 questions, one per line, no numbering, no preamble.
+    const daysToEvent = upcomingEvent
+      ? Math.ceil((upcomingEvent.date.getTime() - Date.now()) / 86400000)
+      : null;
 
-${skillContext}
-
-Recent check-ins:
-${recentSummary}`;
-
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 100,
-      stream: false,
+    const questions = await generateCheckInQuestions(groq, {
+      activeSkillName: activeSkill
+        ? `${activeSkill.skill.name} (Week ${activeSkill.weekPhase} — ${weekLabels[activeSkill.weekPhase] ?? ""})`
+        : undefined,
+      weekPhase: activeSkill?.weekPhase ?? undefined,
+      recentPattern,
+      upcomingEvent: daysToEvent !== null ? `${upcomingEvent!.name} in ${daysToEvent} day${daysToEvent !== 1 ? "s" : ""}` : undefined,
     });
-
-    const raw = completion.choices[0]?.message?.content?.trim() ?? "";
-    const questions = raw
-      .split("\n")
-      .map((q) => q.trim())
-      .filter((q) => q.length > 0)
-      .slice(0, 2);
 
     return NextResponse.json({ questions });
   } catch {

@@ -1,17 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, BookOpen } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
+const TOTAL_STEPS = 5; // 0=subject, 1=goal/hours, 2=challenges, 3=time, 4=event
+
 export default function OnboardingPage() {
-  const router = useRouter();
   const { t } = useLanguage();
   const [step, setStep] = useState(0);
+
+  // Step 0 — subject selection
+  const [subjectName, setSubjectName] = useState("");
+  const [subjectDescription, setSubjectDescription] = useState("");
+  const [generatingTree, setGeneratingTree] = useState(false);
+  const [treeError, setTreeError] = useState("");
+
+  // Steps 1–4 — existing onboarding fields
   const [studyGoal, setStudyGoal] = useState("");
   const [selectedChallenges, setSelectedChallenges] = useState<string[]>([]);
   const [otherChallenge, setOtherChallenge] = useState("");
@@ -22,7 +32,6 @@ export default function OnboardingPage() {
   const [eventType, setEventType] = useState("exam");
   const [submitting, setSubmitting] = useState(false);
 
-  // Challenge options use translation keys; store key as value, display via t()
   const challengeKeys = [
     "onboarding.challenge.starting",
     "onboarding.challenge.distracted",
@@ -49,12 +58,42 @@ export default function OnboardingPage() {
   };
 
   const buildBiggestChallenge = () => {
-    const items = selectedChallenges.map((key) =>
-      key === "onboarding.challenge.other"
-        ? otherChallenge.trim() || "Other"
-        : t(key)
-    ).filter(Boolean);
+    const items = selectedChallenges
+      .map((key) =>
+        key === "onboarding.challenge.other"
+          ? otherChallenge.trim() || "Other"
+          : t(key)
+      )
+      .filter(Boolean);
     return JSON.stringify(items);
+  };
+
+  // Step 0: generate skill tree then advance
+  const handleSubjectNext = async () => {
+    if (!subjectName.trim()) return;
+    setGeneratingTree(true);
+    setTreeError("");
+
+    const materialText = subjectDescription.trim()
+      ? `${subjectName}\n\n${subjectDescription}`
+      : subjectName;
+
+    try {
+      const res = await fetch("/api/materials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: materialText, name: subjectName.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Failed to generate plan");
+      }
+      setStep(1);
+    } catch (e) {
+      setTreeError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setGeneratingTree(false);
+    }
   };
 
   const handleComplete = async () => {
@@ -74,8 +113,7 @@ export default function OnboardingPage() {
         }),
       });
       if (res.ok) {
-        router.push("/dashboard");
-        router.refresh();
+        window.location.href = "/dashboard";
       }
     } catch {
       setSubmitting(false);
@@ -87,17 +125,84 @@ export default function OnboardingPage() {
       <div className="max-w-lg w-full">
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-8">
-          {[0, 1, 2, 3].map((i) => (
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-full ${
+              className={`w-2 h-2 rounded-full transition-colors ${
                 i <= step ? "bg-primary" : "bg-secondary"
               }`}
             />
           ))}
         </div>
 
+        {/* ── Step 0: Subject selection ── */}
         {step === 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2 mb-1">
+                <BookOpen size={20} className="text-primary" />
+                <CardTitle className="text-foreground text-xl">What do you want to master?</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground/70">
+                We'll build a personalized skill tree from your subject so you can be tested and guided step by step.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-foreground/80">Subject or course name</Label>
+                <Input
+                  value={subjectName}
+                  onChange={(e) => setSubjectName(e.target.value)}
+                  placeholder="e.g. Calculus, Python Programming, Organic Chemistry…"
+                  className="bg-surface-inset border-border text-foreground"
+                  disabled={generatingTree}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground/80">
+                  What topics or concepts are you studying?{" "}
+                  <span className="text-muted-foreground/50 font-normal">(optional but helps)</span>
+                </Label>
+                <Textarea
+                  value={subjectDescription}
+                  onChange={(e) => setSubjectDescription(e.target.value)}
+                  placeholder="e.g. Derivatives, integrals, limits, the chain rule — preparing for a final exam…"
+                  className="bg-surface-inset border-border text-foreground resize-none"
+                  rows={3}
+                  disabled={generatingTree}
+                />
+              </div>
+
+              {treeError && (
+                <p className="text-sm text-destructive">{treeError}</p>
+              )}
+
+              <Button
+                onClick={handleSubjectNext}
+                disabled={!subjectName.trim() || generatingTree}
+                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-5"
+              >
+                {generatingTree ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    Building your skill tree…
+                  </span>
+                ) : (
+                  "Build my plan →"
+                )}
+              </Button>
+
+              {generatingTree && (
+                <p className="text-xs text-center text-muted-foreground/50">
+                  Analysing your subject and mapping mastery paths — takes about 20 seconds
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Step 1: Study goal + hours ── */}
+        {step === 1 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
@@ -115,9 +220,7 @@ export default function OnboardingPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-foreground/80">
-                  {t("onboarding.hoursLabel")}
-                </Label>
+                <Label className="text-foreground/80">{t("onboarding.hoursLabel")}</Label>
                 <Input
                   type="number"
                   value={typicalHours}
@@ -130,7 +233,7 @@ export default function OnboardingPage() {
                 />
               </div>
               <Button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
               >
                 {t("common.next")}
@@ -139,7 +242,8 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {step === 1 && (
+        {/* ── Step 2: Challenges ── */}
+        {step === 2 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
@@ -171,7 +275,7 @@ export default function OnboardingPage() {
                 />
               )}
               <Button
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 disabled={selectedChallenges.length === 0}
                 className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold mt-2"
               >
@@ -181,7 +285,8 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {step === 2 && (
+        {/* ── Step 3: Preferred time ── */}
+        {step === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
@@ -196,7 +301,7 @@ export default function OnboardingPage() {
                     variant="outline"
                     onClick={() => {
                       setPreferredTime(key);
-                      setStep(3);
+                      setStep(4);
                     }}
                     className={`py-4 ${
                       preferredTime === key
@@ -212,7 +317,8 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {step === 3 && (
+        {/* ── Step 4: Upcoming event ── */}
+        {step === 4 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">

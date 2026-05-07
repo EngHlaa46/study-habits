@@ -3,45 +3,10 @@ import { prisma } from "@/lib/db/prisma";
 import { CheckInForm } from "@/components/check-in/CheckInForm";
 import { redirect } from "next/navigation";
 import Groq from "groq-sdk";
+import { generateCheckInQuestions } from "@/lib/ai/dcs/checkInAgent";
+import type { CheckInQuestion } from "@/lib/ai/dcs/checkInAgent";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
-
-async function fetchAiQuestions(userId: string, activeSkillId?: string): Promise<string[]> {
-  try {
-    const [activeSkill, recentCheckIns] = await Promise.all([
-      activeSkillId
-        ? prisma.skillProgress.findFirst({ where: { userId, status: "active" }, include: { skill: true } })
-        : Promise.resolve(null),
-      prisma.checkIn.findMany({ where: { userId }, orderBy: { date: "desc" }, take: 5 }),
-    ]);
-
-    if (!activeSkill && recentCheckIns.length < 2) return [];
-
-    const weekLabels: Record<number, string> = { 1: "Stabilize", 2: "Express", 3: "Probe" };
-    const skillContext = activeSkill
-      ? `Active skill: ${activeSkill.skill.name} — Week ${activeSkill.weekPhase} (${weekLabels[activeSkill.weekPhase] ?? ""})`
-      : "Observation phase";
-
-    const recentSummary = recentCheckIns
-      .map((ci) => `${ci.date.toISOString().split("T")[0]}: studied=${ci.initiated}, focus=${ci.focusLevel ?? "n/a"}`)
-      .join("\n");
-
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{
-        role: "user",
-        content: `You are a study coach. Write exactly 2 short reflection questions for a student's daily check-in. Be specific to their skill or patterns — not generic. Each under 15 words. Output only the 2 questions, one per line, no numbering.\n\n${skillContext}\n\nRecent check-ins:\n${recentSummary}`,
-      }],
-      max_tokens: 100,
-      stream: false,
-    });
-
-    const raw = completion.choices[0]?.message?.content?.trim() ?? "";
-    return raw.split("\n").map((q) => q.trim()).filter((q) => q.length > 0).slice(0, 2);
-  } catch {
-    return [];
-  }
-}
 
 export default async function CheckInPage({
   searchParams,
@@ -51,34 +16,76 @@ export default async function CheckInPage({
   const session = await requireAuth();
   const userId = session.user.id;
 
-  // Check if already checked in today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const [existing, activeSkill] = await Promise.all([
-    prisma.checkIn.findFirst({ where: { userId, date: { gte: today, lt: tomorrow } } }),
-    prisma.skillProgress.findFirst({ where: { userId, status: "active" }, include: { skill: true } }),
-  ]);
+  const [existingEntry, existingLegacy, activeSkill, upcomingEvent, recentCheckIns] =
+    await Promise.all([
+      prisma.checkInEntry.findUnique({ where: { userId_date: { userId, date: today } } }),
+      prisma.checkIn.findFirst({ where: { userId, date: { gte: today, lt: tomorrow } } }),
+      prisma.skillProgress.findFirst({
+        where: { userId, status: "active" },
+        include: { skill: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.event.findFirst({
+        where: { userId, status: "upcoming", date: { gte: new Date() } },
+        orderBy: { date: "asc" },
+      }),
+      prisma.checkIn.findMany({
+        where: { userId },
+        orderBy: { date: "desc" },
+        take: 7,
+        select: { initiated: true },
+      }),
+    ]);
 
-  if (existing) {
-    redirect("/dashboard");
+  if (existingEntry || existingLegacy) redirect("/dashboard");
+
+  const missedDays = recentCheckIns.filter((c) => !c.initiated).length;
+  const recentPattern =
+    recentCheckIns.length === 0
+      ? undefined
+      : missedDays >= 3
+      ? `missed ${missedDays} of last ${recentCheckIns.length} days`
+      : missedDays === 0
+      ? "studied consistently recently"
+      : `${recentCheckIns.length - missedDays}/${recentCheckIns.length} days studied recently`;
+
+  const daysToEvent = upcomingEvent
+    ? Math.ceil((upcomingEvent.date.getTime() - Date.now()) / 86400000)
+    : null;
+
+  const weekLabels: Record<number, string> = { 1: "Stabilize", 2: "Express", 3: "Probe" };
+
+  let baselineQuestions: CheckInQuestion[] = [];
+  try {
+    baselineQuestions = await generateCheckInQuestions(groq, {
+      activeSkillName: activeSkill
+        ? `${activeSkill.skill.name} (Week ${activeSkill.weekPhase} — ${weekLabels[activeSkill.weekPhase] ?? ""})`
+        : undefined,
+      weekPhase: activeSkill?.weekPhase ?? undefined,
+      recentPattern,
+      upcomingEvent:
+        daysToEvent !== null
+          ? `${upcomingEvent!.name} in ${daysToEvent} day${daysToEvent !== 1 ? "s" : ""}`
+          : undefined,
+    });
+  } catch {
+    // falls back to default questions in the form
   }
 
-  const aiQuestions = await fetchAiQuestions(userId, activeSkill?.id);
   const params = await searchParams;
-
-  const initialIntention = params.intention?.slice(0, 300) ?? undefined;
   const initialDuration = params.duration ? parseInt(params.duration, 10) || undefined : undefined;
   const initialPomodoros = params.pomodoros ? parseInt(params.pomodoros, 10) || undefined : undefined;
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-lg mx-auto">
       <CheckInForm
+        baselineQuestions={baselineQuestions}
         activeSkillSlug={activeSkill?.skill.slug}
-        aiQuestions={aiQuestions}
-        initialIntention={initialIntention}
         initialDuration={initialDuration}
         initialPomodoros={initialPomodoros}
       />

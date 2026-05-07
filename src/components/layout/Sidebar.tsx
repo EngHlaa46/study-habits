@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   X,
+  BookOpen,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
@@ -30,6 +31,7 @@ export function Sidebar() {
     { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
     { href: "/check-in", labelKey: "checkIn", icon: CheckSquare },
     { href: "/skills", labelKey: "skills", icon: GitBranch },
+    { href: "/materials", label: "Materials", icon: BookOpen },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
     { href: "/history", labelKey: "history", icon: CalendarDays },
     { href: "/settings", labelKey: "settings", icon: Settings },
@@ -52,7 +54,7 @@ export function Sidebar() {
               }`}
             >
               <item.icon size={18} />
-              <span className="text-sm font-medium">{t(item.labelKey)}</span>
+              <span className="text-sm font-medium">{"label" in item ? item.label : t(item.labelKey)}</span>
             </Link>
           );
         })}
