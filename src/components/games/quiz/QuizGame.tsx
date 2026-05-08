@@ -133,9 +133,26 @@ export function QuizGame() {
             />
 
             {phase === "feedback" && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                <div className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10">
-                  <p className="text-xs text-muted-foreground">{q.explanation}</p>
+              <div className="space-y-3 animate-in fade-in duration-300">
+                {/* Wrong pick explanation */}
+                {selectedIndex !== null && selectedIndex !== q.correctIndex && (
+                  <div className="px-4 py-3 rounded-xl bg-red-400/10 border border-red-400/20">
+                    <p className="text-[10px] font-semibold text-red-400/80 uppercase tracking-wider mb-1.5">
+                      Why {String.fromCharCode(65 + selectedIndex)} is wrong
+                    </p>
+                    <p className="text-xs text-red-300/90 leading-relaxed">
+                      {q.optionExplanations?.[selectedIndex] ?? "This option doesn't match the concept as described."}
+                    </p>
+                  </div>
+                )}
+                {/* Correct answer explanation */}
+                <div className={`px-4 py-3 rounded-xl border ${selectedIndex === q.correctIndex ? "bg-[#4ade80]/10 border-[#4ade80]/20" : "bg-white/[0.04] border-white/10"}`}>
+                  {selectedIndex !== null && selectedIndex !== q.correctIndex && (
+                    <p className="text-[10px] font-semibold text-[#4ade80]/80 uppercase tracking-wider mb-1.5">
+                      Correct answer ({String.fromCharCode(65 + q.correctIndex)})
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground leading-relaxed">{q.explanation}</p>
                 </div>
                 <button
                   onClick={() => void handleNext()}

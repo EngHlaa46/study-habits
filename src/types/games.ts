@@ -9,7 +9,8 @@ export interface QuizQuestion {
   question: string;
   options: string[];
   correctIndex: number;
-  explanation: string;
+  explanation: string;        // why the correct answer is right
+  optionExplanations?: string[]; // one entry per option: why each is right/wrong
   isRetentionCheck: boolean;   // true = mastered node being checked for longevity
   currentMasteryScore: number; // 0-1, used to calibrate question difficulty
 }

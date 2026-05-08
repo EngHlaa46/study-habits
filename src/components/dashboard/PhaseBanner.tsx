@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/lib/language";
 
@@ -26,7 +27,12 @@ export function PhaseBanner({ phase, dayCount, activeLevel }: PhaseBannerProps) 
   const label = phaseLabels[phase] || phase;
 
   return (
-    <div className="glass-banner glass-panel w-full p-4 mb-6">
+    <motion.div
+      className="glass-banner glass-panel w-full p-4 mb-6 glow-pulse"
+      initial={{ opacity: 0, y: -12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="border-[#38bdf8] text-[#38bdf8] text-xs">
@@ -34,12 +40,17 @@ export function PhaseBanner({ phase, dayCount, activeLevel }: PhaseBannerProps) 
           </Badge>
           {activeLevel && phase === "skill_training" && (
             <span className="text-foreground/80 text-sm">
-              Level {activeLevel} — <span className="text-[#38bdf8]">{LEVEL_NAMES[activeLevel] ?? ""}</span>
+              Level {activeLevel} —{" "}
+              <span className="gradient-text font-semibold">
+                {LEVEL_NAMES[activeLevel] ?? ""}
+              </span>
             </span>
           )}
         </div>
-        <span className="text-muted-foreground/70 text-sm">{t("phase.day")} {dayCount}</span>
+        <span className="text-muted-foreground/70 text-sm">
+          {t("phase.day")} {dayCount}
+        </span>
       </div>
-    </div>
+    </motion.div>
   );
 }

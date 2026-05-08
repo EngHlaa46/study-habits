@@ -1,6 +1,9 @@
+"use client"
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import { motion, useReducedMotion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 
@@ -42,12 +45,42 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+    const prefersReduced = useReducedMotion()
+
+    if (asChild) {
+      const Comp = Slot
+      return (
+        <Comp
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        />
+      )
+    }
+
+    const isDefault = !variant || variant === "default"
+    const isDestructive = variant === "destructive"
+
     return (
-      <Comp
+      <motion.button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        {...props}
+        whileHover={
+          prefersReduced
+            ? undefined
+            : {
+                scale: 1.04,
+                ...(isDefault && {
+                  boxShadow: "0 0 18px rgba(56,189,248,0.45)",
+                }),
+                ...(isDestructive && {
+                  boxShadow: "0 0 14px rgba(239,68,68,0.4)",
+                }),
+              }
+        }
+        whileTap={prefersReduced ? undefined : { scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 500, damping: 22 }}
+        {...(props as React.ComponentProps<typeof motion.button>)}
       />
     )
   }

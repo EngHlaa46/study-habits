@@ -1,8 +1,11 @@
 "use client";
 
+import { motion } from "framer-motion";
+import CountUp from "react-countup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarDays } from "lucide-react";
 import { useLanguage } from "@/lib/language";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 
 interface EventCardProps {
   events: {
@@ -26,21 +29,25 @@ export function EventCard({ events }: EventCardProps) {
         {events.length === 0 ? (
           <p className="text-muted-foreground/70 text-sm">{t("dashboard.noUpcomingEvents")}</p>
         ) : (
-          <div className="space-y-3">
+          <motion.div
+            className="space-y-3"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
             {events.map((event) => (
-              <div
+              <motion.div
                 key={event.id}
+                variants={staggerItem}
                 className="flex items-center justify-between p-3 bg-white/[0.04] border border-white/[0.06] rounded-lg"
+                whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.06)" }}
+                transition={{ type: "spring", stiffness: 400, damping: 28 }}
               >
                 <div className="flex items-center gap-3">
                   <CalendarDays size={16} className="text-[#fbbf24]" />
                   <div>
-                    <p className="text-foreground/80 text-sm font-medium">
-                      {event.name}
-                    </p>
-                    <p className="text-muted-foreground/70 text-xs capitalize">
-                      {event.type}
-                    </p>
+                    <p className="text-foreground/80 text-sm font-medium">{event.name}</p>
+                    <p className="text-muted-foreground/70 text-xs capitalize">{event.type}</p>
                   </div>
                 </div>
                 <span
@@ -52,11 +59,11 @@ export function EventCard({ events }: EventCardProps) {
                         : "text-muted-foreground"
                   }`}
                 >
-                  {event.daysUntil}d
+                  <CountUp end={event.daysUntil} duration={1.2} suffix="d" />
                 </span>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </CardContent>
     </Card>

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -121,18 +123,25 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
   const focusedDays = checkIns.filter((c) => c.focusLevel === "focused" || c.focusLevel === "deep").length;
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
       {/* Back link */}
-      <Link
-        href="/skills"
-        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm transition-colors"
-      >
-        <ArrowLeft size={16} />
-        {t("skills.backToSkillTree")}
-      </Link>
+      <motion.div variants={staggerItem}>
+        <Link
+          href="/skills"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm transition-colors"
+        >
+          <ArrowLeft size={16} />
+          {t("skills.backToSkillTree")}
+        </Link>
+      </motion.div>
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <motion.div variants={staggerItem} className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-2xl font-bold text-foreground">{skill.name}</h1>
@@ -146,10 +155,10 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
             {DIMENSION_LABELS[skill.dimension] ?? skill.dimension}
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Description & Purpose */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <motion.div variants={staggerItem} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-foreground text-sm">{t("skills.description")}</CardTitle>
@@ -166,10 +175,11 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
             <p className="text-muted-foreground text-sm">{skill.purpose}</p>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
       {/* Active skill training section */}
       {status === "active" && progress && (
+        <motion.div variants={staggerItem}>
         <Card className="border-primary/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-primary text-lg">{t("skills.trainingProgress")}</CardTitle>
@@ -251,6 +261,7 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
             )}
           </CardContent>
         </Card>
+        </motion.div>
       )}
 
       {/* Completed skill summary */}
@@ -309,6 +320,6 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
           </p>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

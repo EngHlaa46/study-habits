@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { ChevronRight, Dumbbell, Lock, CheckCircle2, CircleDot, BookOpen } from "lucide-react";
 
 interface NodeSummary {
@@ -92,9 +93,11 @@ export function PlanWidget({ skillTrees }: PlanWidgetProps) {
           <span>{progressPct}%</span>
         </div>
         <div className="h-1.5 bg-secondary/60 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all"
-            style={{ width: `${progressPct}%` }}
+          <motion.div
+            className="h-full bg-primary rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPct}%` }}
+            transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
           />
         </div>
       </div>

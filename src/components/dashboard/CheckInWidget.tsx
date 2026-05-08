@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, X } from "lucide-react";
@@ -22,10 +23,21 @@ const focusColors: Record<string, string> = {
   deep: "bg-[#4ade80]",
 };
 
-export function CheckInWidget({
-  todayCompleted,
-  recentCheckIns,
-}: CheckInWidgetProps) {
+const barContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
+};
+
+const barItem = {
+  hidden: { scaleY: 0, opacity: 0 },
+  show: {
+    scaleY: 1,
+    opacity: 0.8,
+    transition: { type: "spring" as const, stiffness: 320, damping: 24 },
+  },
+};
+
+export function CheckInWidget({ todayCompleted, recentCheckIns }: CheckInWidgetProps) {
   const { t } = useLanguage();
 
   return (
@@ -35,10 +47,15 @@ export function CheckInWidget({
       </CardHeader>
       <CardContent className="space-y-4">
         {todayCompleted ? (
-          <div className="flex items-center gap-2 text-[#4ade80]">
+          <motion.div
+            className="flex items-center gap-2 text-[#4ade80]"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 22 }}
+          >
             <CheckSquare size={18} />
             <span className="text-sm">{t("dashboard.completedToday")}</span>
-          </div>
+          </motion.div>
         ) : (
           <Link href="/check-in">
             <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold">
@@ -49,31 +66,40 @@ export function CheckInWidget({
 
         <div>
           <p className="text-xs text-muted-foreground/70 mb-2">{t("dashboard.last7days")}</p>
-          <div className="flex gap-1">
+          <motion.div
+            className="flex gap-1"
+            variants={barContainer}
+            initial="hidden"
+            animate="show"
+          >
             {Array.from({ length: 7 }).map((_, i) => {
               const checkIn = recentCheckIns[6 - i];
               if (!checkIn) {
                 return (
-                  <div
+                  <motion.div
                     key={i}
+                    variants={barItem}
+                    style={{ transformOrigin: "bottom" }}
                     className="w-full h-8 rounded bg-white/[0.04] border border-white/[0.06] flex items-center justify-center"
                   >
                     <X size={10} className="text-muted-foreground/50" />
-                  </div>
+                  </motion.div>
                 );
               }
               const color = checkIn.initiated
                 ? focusColors[checkIn.focusLevel || "none"]
                 : "bg-gray-700";
               return (
-                <div
+                <motion.div
                   key={i}
-                  className={`w-full h-8 rounded ${color} opacity-80`}
+                  variants={barItem}
+                  style={{ transformOrigin: "bottom" }}
+                  className={`w-full h-8 rounded ${color}`}
                   title={`${checkIn.date}: ${checkIn.focusLevel || "no data"}`}
                 />
               );
             })}
-          </div>
+          </motion.div>
           <div className="flex justify-between text-[10px] text-muted-foreground/60 mt-1">
             <span>{t("dashboard.7dAgo")}</span>
             <span>{t("dashboard.today")}</span>

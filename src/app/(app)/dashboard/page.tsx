@@ -8,6 +8,7 @@ import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
 import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
 import { PlanWidget } from "@/components/dashboard/PlanWidget";
+import { DashboardGrid, DashboardItem } from "@/components/dashboard/DashboardGrid";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -105,23 +106,29 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <DashboardBanner />
-      <PhaseBanner phase={phase} dayCount={dayCount} activeLevel={1} />
-
-      {/* Skill tree plan widget */}
-      <PlanWidget skillTrees={skillTreeSummaries} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <CheckInWidget
-          todayCompleted={!!todayCheckIn}
-          recentCheckIns={formattedCheckIns}
-        />
-        <EventCard events={formattedEvents} />
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AssessmentWidget />
-        <InspirationWidget />
-      </div>
+      <DashboardGrid>
+        <DashboardItem>
+          <PhaseBanner phase={phase} dayCount={dayCount} activeLevel={1} />
+        </DashboardItem>
+        <DashboardItem>
+          <PlanWidget skillTrees={skillTreeSummaries} />
+        </DashboardItem>
+        <DashboardItem>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CheckInWidget
+              todayCompleted={!!todayCheckIn}
+              recentCheckIns={formattedCheckIns}
+            />
+            <EventCard events={formattedEvents} />
+          </div>
+        </DashboardItem>
+        <DashboardItem>
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <AssessmentWidget />
+            <InspirationWidget />
+          </div>
+        </DashboardItem>
+      </DashboardGrid>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -155,7 +156,12 @@ export function SkillTree({ skills }: SkillTreeProps) {
         return (
           <div key={level}>
             {/* Level header */}
-            <div className="flex items-center gap-2 mb-3">
+            <motion.div
+              className="flex items-center gap-2 mb-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: level * 0.1, duration: 0.4 }}
+            >
               <div className="h-px flex-1 bg-white/[0.06]" />
               <span className={`text-[11px] font-bold uppercase tracking-widest px-2 ${
                 isLevelLocked
@@ -168,10 +174,18 @@ export function SkillTree({ skills }: SkillTreeProps) {
               </span>
               {isLevelComplete && <CheckCircle2 size={11} className="text-[#4ade80]/70" />}
               <div className="h-px flex-1 bg-white/[0.06]" />
-            </div>
+            </motion.div>
 
             {/* 3-column skill grid */}
-            <div className="grid grid-cols-3 gap-3 mb-2">
+            <motion.div
+              className="grid grid-cols-3 gap-3 mb-2"
+              initial="hidden"
+              animate="show"
+              variants={{
+                hidden: {},
+                show: { transition: { staggerChildren: 0.08, delayChildren: level * 0.12 } },
+              }}
+            >
               {DIMENSIONS.map((dim) => {
                 const skill = levelSkills.find((s) => s.dimension === dim);
                 if (!skill) return <div key={dim} />;
@@ -184,10 +198,16 @@ export function SkillTree({ skills }: SkillTreeProps) {
                 const isLocked = skill.currentStatus === "locked";
 
                 return (
-                  <button
+                  <motion.button
                     key={skill.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 20, scale: 0.92 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 360, damping: 26 } },
+                    }}
+                    whileHover={{ scale: 1.04, boxShadow: `0 0 20px ${dc.color}30` }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => { setSelected(skill); setUserTask(skill.progress?.userTask ?? ""); }}
-                    className="relative rounded-xl p-3 text-left transition-all hover:scale-[1.02] border"
+                    className="relative rounded-xl p-3 text-left border"
                     style={{
                       borderColor: s.borderColor,
                       backgroundColor: s.bg || "transparent",
@@ -198,7 +218,18 @@ export function SkillTree({ skills }: SkillTreeProps) {
                       <Lock size={10} className="absolute top-2 right-2" style={{ color: "rgba(150,150,160,0.3)" }} />
                     )}
 
-                    <Icon size={16} className="mb-2" style={{ color: s.textColor }} />
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={skill.currentStatus}
+                        initial={{ opacity: 0, scale: 0.6 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.6 }}
+                        transition={{ duration: 0.2 }}
+                        className="mb-2"
+                      >
+                        <Icon size={16} style={{ color: s.textColor }} />
+                      </motion.div>
+                    </AnimatePresence>
 
                     <p className="text-xs font-semibold leading-snug" style={{ color: s.textColor }}>
                       {skill.name}
@@ -207,12 +238,12 @@ export function SkillTree({ skills }: SkillTreeProps) {
                     {isActive && skill.progress && (
                       <div className="mt-2">
                         <div className="h-0.5 bg-secondary rounded-full overflow-hidden mb-1">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${skill.progress.stabilityScore * 100}%`,
-                              backgroundColor: dc.color,
-                            }}
+                          <motion.div
+                            className="h-full rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${skill.progress.stabilityScore * 100}%` }}
+                            transition={{ duration: 0.7, ease: "easeOut", delay: 0.3 }}
+                            style={{ backgroundColor: dc.color }}
                           />
                         </div>
                         <p className="text-[10px]" style={{ color: dc.color + "99" }}>
@@ -224,10 +255,10 @@ export function SkillTree({ skills }: SkillTreeProps) {
                     {isStable && (
                       <CheckCircle2 size={12} className="mt-1.5" style={{ color: s.textColor }} />
                     )}
-                  </button>
+                  </motion.button>
                 );
               })}
-            </div>
+            </motion.div>
 
             {/* Arrow to next level */}
             {level < 3 && (

@@ -83,7 +83,13 @@ Return ONLY valid JSON object:
       "question": "question text (under 35 words)",
       "options": ["A", "B", "C", "D"],
       "correctIndex": 0,
-      "explanation": "1 clear sentence: why the correct answer is right and what distinguishes it from the best distractor"
+      "explanation": "1 clear sentence: why the correct answer is right",
+      "optionExplanations": [
+        "Option A: correct — [one sentence why it is right]",
+        "Option B: incorrect — [one sentence: what the student likely assumed and why it fails]",
+        "Option C: incorrect — [one sentence: what sounds plausible but is actually wrong]",
+        "Option D: incorrect — [one sentence: why this is ruled out]"
+      ]
     }
   ]
 }
@@ -93,6 +99,8 @@ Rules:
 - correctIndex is the 0-based index of the correct option
 - All 4 options must be plausible — no obviously absurd distractors
 - Match the difficulty band exactly as specified for each node
+- optionExplanations must have exactly 4 entries matching the options array order
+- Wrong-option explanations should name the specific misconception, not just say "it is wrong"
 - Explanations must be educational, not just restatements of the answer`,
       },
       {
