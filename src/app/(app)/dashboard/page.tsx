@@ -88,10 +88,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Palm hero — first thing you see */}
-      <PalmWidget variant="hero" />
-
       <DashboardBanner />
+
+      <PalmWidget variant="hero" />
 
       <PlanWidget skillTrees={skillTreeSummaries} />
 
