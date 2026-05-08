@@ -89,6 +89,19 @@ The chat uses a **Distributed Cognitive Scaffolding** pipeline before each respo
 - **AI chat** — three-mode DCS pipeline with voice input, autocomplete, and tool calling
 - **Event tracking** — exams, deadlines, projects with days-until countdown
 
+### Games
+Low-pressure mini-games that reinforce mastery without self-report or session tracking. Results feed directly into `SkillNode.masteryScore` and `SkillProgress.stabilityScore`.
+
+| Game | Mechanic | Accent |
+|------|----------|--------|
+| **Knowledge Quiz** | Adaptive MCQ grounded in your uploaded material. Difficulty scales with Bloom's taxonomy per node (Recognition → Comprehension → Application → Analysis → Synthesis). Mastered nodes appear as retention checks — wrong answers register a mastery slip. | Purple |
+| **Memory Sprint** | Flash a concept card for 12s, then recall it in text. AI scores recall quality and updates mastery. | Cyan |
+| **Task Breakdown** | AI gives a vague study goal drawn from your actual skills. You decompose it into steps with time estimates. Scored on specificity, realism, and coverage — nudges planning skill stability. | Green |
+
+**Materials → Quiz pipeline:** Every uploaded PDF/file is stored as source material. Hitting **Quiz** on any material card routes directly to a Knowledge Quiz grounded in that file's exact terminology and examples — not generic textbook questions.
+
+**Coach Challenges:** The AI coach can assign targeted game instances from chat (e.g. *"I've set up a Memory Sprint on Fourier transforms in your Games section"*). Challenges appear on the Games page with difficulty, due date, and a Play button.
+
 ### Dashboard
 - **Plan widget** — all your skill trees with mastery progress bars and due/active nodes
 - **Check-in widget** — 14-day calendar dots + quick status
@@ -151,6 +164,9 @@ The chat uses a **Distributed Cognitive Scaffolding** pipeline before each respo
 | `PushSubscription` | Web push endpoint per device |
 | `KnowledgeEntry` | Persistent subject/topic knowledge profile |
 | `Feedback` | User-submitted feedback |
+| `GameChallenge` | Coach-assigned or self-started game instance (gameType, difficulty, dueBy, status) |
+| `GameSession` | Completed game result: score, duration, per-node deltas, detailsJson |
+| `MaterialSource` | Raw markdown content of uploaded files, used to ground quiz questions |
 
 ---
 
@@ -235,8 +251,18 @@ src/
       assessment/        — activity generation and submission
       check-in/          — daily check-in submission
       chat/              — streaming AI chat + voice transcription
+      games/
+        generate/        — POST: generate quiz questions / memory card / task goal
+        submit/          — POST: evaluate responses, update mastery, save GameSession
+        challenges/      — GET: list PENDING/IN_PROGRESS GameChallenges
+        history/         — GET: last 20 GameSessions
       onboarding/        — complete onboarding profile
       notifications/     — push notification generation (cron)
+  components/
+    games/
+      quiz/              — QuizGame, QuizQuestion, QuizResults
+      memory-sprint/     — MemorySprintGame, ConceptCard, RecallInput, MemorySprintResults
+      task-breakdown/    — TaskBreakdownGame, GoalCard, StepBuilder, TaskBreakdownResults
   lib/
     ai/
       systemPrompt.ts    — single source of truth for AI behavior
@@ -245,6 +271,15 @@ src/
         pipeline.ts      — DCS pipeline (sentinels → coaches → orchestrator)
         skillTreeAgent.ts — SkillTreeAgent, validateMaterial, generateStudyGoals
         knowledgeAnalyzer.ts
+      games/
+        generateQuiz.ts       — adaptive MCQ with Bloom's taxonomy difficulty bands
+        generateMemorySprint.ts
+        generateTaskBreakdown.ts
+        evaluateRecall.ts
+        evaluateTaskBreakdown.ts
+    games/
+      masteryUpdate.ts   — applyGameMasteryDelta (weight by isRetentionCheck)
+      stabilityUpdate.ts — applyPlanningStabilityNudge (Task Breakdown → SkillProgress)
     skills/
       progression.ts     — skill unlock thresholds
 ```

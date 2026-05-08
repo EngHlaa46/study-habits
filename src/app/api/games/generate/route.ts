@@ -18,11 +18,12 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = session.user.id;
-  const { gameType, nodeIds, challengeId, difficulty } = (await req.json()) as {
+  const { gameType, nodeIds, challengeId, difficulty, skillTreeId } = (await req.json()) as {
     gameType: string;
     nodeIds?: string[];
     challengeId?: string;
     difficulty?: string;
+    skillTreeId?: string;
   };
 
   // Resolve explicit challenge node IDs if provided
@@ -38,14 +39,16 @@ export async function POST(req: NextRequest) {
 
   try {
     if (gameType === "QUIZ") {
-      const quizNodes = await resolveQuizNodes(userId, targetNodeIds, difficulty);
+      const quizNodes = await resolveQuizNodes(userId, targetNodeIds, difficulty, skillTreeId);
       if (quizNodes.length === 0) {
         return NextResponse.json(
           { error: "No study materials found. Upload a material first to play." },
           { status: 422 }
         );
       }
-      const questions = await generateQuiz(quizNodes);
+      // Fetch material content for grounded question generation
+      const materialContent = await resolveMaterialContent(userId, skillTreeId, targetNodeIds, quizNodes);
+      const questions = await generateQuiz(quizNodes, materialContent ?? undefined);
       return NextResponse.json({ gameType: "QUIZ", questions });
     }
 
@@ -90,7 +93,8 @@ export async function POST(req: NextRequest) {
 async function resolveQuizNodes(
   userId: string,
   targetNodeIds: string[],
-  difficulty?: string
+  difficulty?: string,
+  skillTreeId?: string
 ): Promise<QuizNode[]> {
   // If specific node IDs were given (e.g. from a challenge), fetch those and tag by mastery
   if (targetNodeIds.length > 0) {
@@ -109,9 +113,11 @@ async function resolveQuizNodes(
     }));
   }
 
-  // Smart selection: fetch all user nodes with mastery data
+  // Smart selection: fetch nodes (optionally scoped to a specific skill tree)
   const allNodes = await prisma.skillNode.findMany({
-    where: { skillTree: { userId } },
+    where: skillTreeId
+      ? { skillTreeId, skillTree: { userId } }
+      : { skillTree: { userId } },
     select: {
       id: true,
       name: true,
@@ -150,6 +156,43 @@ async function resolveQuizNodes(
 
   // Edge case: all nodes mastered — quiz is a full retention run
   return result;
+}
+
+async function resolveMaterialContent(
+  userId: string,
+  skillTreeId?: string,
+  targetNodeIds?: string[],
+  quizNodes?: QuizNode[]
+): Promise<string | null> {
+  // If a specific tree was targeted, fetch its sources
+  if (skillTreeId) {
+    const sources = await prisma.materialSource.findMany({
+      where: { skillTreeId, skillTree: { userId } },
+      select: { markdownContent: true },
+    });
+    if (sources.length > 0) {
+      return sources.map((s) => s.markdownContent).join("\n\n").slice(0, 8000);
+    }
+    return null;
+  }
+
+  // If targeting specific nodes, find which tree they belong to
+  const nodeIds = targetNodeIds?.length ? targetNodeIds : (quizNodes?.map((n) => n.id) ?? []);
+  if (nodeIds.length === 0) return null;
+
+  const node = await prisma.skillNode.findFirst({
+    where: { id: { in: nodeIds } },
+    select: { skillTreeId: true },
+  });
+  if (!node) return null;
+
+  const sources = await prisma.materialSource.findMany({
+    where: { skillTreeId: node.skillTreeId, skillTree: { userId } },
+    select: { markdownContent: true },
+  });
+  if (sources.length === 0) return null;
+
+  return sources.map((s) => s.markdownContent).join("\n\n").slice(0, 8000);
 }
 
 async function resolveSimpleNodes(

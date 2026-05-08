@@ -11,6 +11,7 @@ type Phase = "loading" | "question" | "feedback" | "submitting" | "results" | "e
 export function QuizGame() {
   const searchParams = useSearchParams();
   const challengeId = searchParams.get("challengeId") ?? undefined;
+  const skillTreeId = searchParams.get("skillTreeId") ?? undefined;
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [questions, setQuestions] = useState<QuizQuestionType[]>([]);
@@ -27,7 +28,7 @@ export function QuizGame() {
       const res = await fetch("/api/games/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameType: "QUIZ", challengeId }),
+        body: JSON.stringify({ gameType: "QUIZ", challengeId, skillTreeId }),
       });
       const data = await res.json() as { questions?: QuizQuestionType[]; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Failed to load quiz");
@@ -40,7 +41,7 @@ export function QuizGame() {
       setError(e instanceof Error ? e.message : "Failed to load quiz");
       setPhase("error");
     }
-  }, [challengeId]);
+  }, [challengeId, skillTreeId]);
 
   useEffect(() => { void loadQuiz(); }, [loadQuiz]);
 

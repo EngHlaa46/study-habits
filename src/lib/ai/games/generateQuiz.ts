@@ -47,7 +47,7 @@ function difficultyBand(score: number, isRetentionCheck: boolean): string {
   - Distractors must be sophisticated; only deep knowledge should distinguish them.`;
 }
 
-export async function generateQuiz(nodes: QuizNode[]): Promise<QuizQuestion[]> {
+export async function generateQuiz(nodes: QuizNode[], materialContent?: string): Promise<QuizQuestion[]> {
   if (nodes.length === 0) return [];
 
   const nodeInstructions = nodes.map((n) => {
@@ -61,6 +61,10 @@ Mastery looks like: ${n.whatMasteryLooksLike}
 Question difficulty required: ${band}`;
   }).join("\n\n---\n\n");
 
+  const materialSection = materialContent
+    ? `\n\n---\nSOURCE MATERIAL (ground your questions in specific facts, terminology, examples, and phrasing from this content — do NOT invent details not present here):\n${materialContent.slice(0, 5000)}`
+    : "";
+
   const response = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
     messages: [
@@ -69,7 +73,7 @@ Question difficulty required: ${band}`;
         content: `You generate adaptive multiple-choice quiz questions for a study mastery system.
 
 Each node specifies an exact difficulty level based on the student's current mastery score. You MUST match the difficulty described — questions that are too easy for a high-mastery node or too hard for a low-mastery node are wrong.
-
+${materialContent ? "\nWhen source material is provided, every question must reference specific content from it — exact terminology, examples, formulas, or facts. Never ask generic questions that could apply to any textbook." : ""}
 Return ONLY valid JSON object:
 {
   "questions": [
@@ -93,7 +97,7 @@ Rules:
       },
       {
         role: "user",
-        content: `Generate one question per node:\n\n${nodeInstructions}`,
+        content: `Generate one question per node:\n\n${nodeInstructions}${materialSection}`,
       },
     ],
     response_format: { type: "json_object" },

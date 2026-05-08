@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, FileText, ChevronDown, ChevronRight, Lock, CircleDot, CheckCircle2, Loader2, BookOpen, X, Dumbbell } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Upload, FileText, ChevronDown, ChevronRight, Lock, CircleDot, CheckCircle2, Loader2, BookOpen, X, Dumbbell, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AssessmentPanel } from "./AssessmentPanel";
 
@@ -105,26 +106,38 @@ function NodeCard({ node, onPractice }: { node: SkillNode; onPractice: (id: stri
   );
 }
 
-function SkillTreeView({ tree, onPractice }: { tree: SkillTree; onPractice: (id: string, name: string) => void }) {
+function SkillTreeView({ tree, onPractice, onQuiz }: { tree: SkillTree; onPractice: (id: string, name: string) => void; onQuiz: (treeId: string) => void }) {
   const [expanded, setExpanded] = useState(true);
   const activeCount = tree.nodes.filter((n) => n.masteryStatus === "active" || n.masteryStatus === "developing").length;
   const masteredCount = tree.nodes.filter((n) => n.masteryStatus === "mastered" || n.masteryStatus === "maintenance").length;
 
   return (
     <div className="glass-card glass-panel p-5 mb-4">
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-3 text-left mb-4"
-      >
-        <BookOpen size={18} className="text-primary shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground">{tree.materialName}</p>
-          <p className="text-xs text-muted-foreground/60 mt-0.5">
-            {tree.nodes.length} skills · {activeCount} active · {masteredCount} mastered
-          </p>
-        </div>
-        {expanded ? <ChevronDown size={16} className="text-muted-foreground/50" /> : <ChevronRight size={16} className="text-muted-foreground/50" />}
-      </button>
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex-1 flex items-center gap-3 text-left"
+        >
+          <BookOpen size={18} className="text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-foreground">{tree.materialName}</p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">
+              {tree.nodes.length} skills · {activeCount} active · {masteredCount} mastered
+            </p>
+          </div>
+          {expanded ? <ChevronDown size={16} className="text-muted-foreground/50" /> : <ChevronRight size={16} className="text-muted-foreground/50" />}
+        </button>
+        {tree.nodes.length > 0 && (
+          <button
+            onClick={() => onQuiz(tree.id)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#a855f7]/10 hover:bg-[#a855f7]/20 border border-[#a855f7]/30 text-[#a855f7] text-xs font-semibold transition-all hover:scale-105 shrink-0"
+            title="Quiz this material"
+          >
+            <Zap size={12} />
+            Quiz
+          </button>
+        )}
+      </div>
 
       {expanded && (
         <div className="space-y-2">
@@ -138,6 +151,7 @@ function SkillTreeView({ tree, onPractice }: { tree: SkillTree; onPractice: (id:
 }
 
 export function MaterialsClient({ initialSkillTrees }: MaterialsClientProps) {
+  const router = useRouter();
   const [skillTrees, setSkillTrees] = useState<SkillTree[]>(initialSkillTrees);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -245,6 +259,7 @@ export function MaterialsClient({ initialSkillTrees }: MaterialsClientProps) {
             key={tree.id}
             tree={tree}
             onPractice={(id, name) => setAssessingNode({ id, name })}
+            onQuiz={(treeId) => router.push(`/games/quiz?skillTreeId=${treeId}`)}
           />
         ))
       )}
