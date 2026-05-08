@@ -50,14 +50,25 @@ export interface TaskBreakdownScores {
   feedback: string;
 }
 
+export interface GameXPResult {
+  xpAwarded: number;
+  streakMultiplier: number;
+  dailyBonus: boolean;
+  newStreak: number;
+  newPalmStage: number;
+  palmStageChanged: boolean;
+  datesEarned: number;
+}
+
 export interface GameSubmitResult {
   sessionId: string;
   score: number;
-  activeScore?: number;      // score on active/developing nodes only
-  retentionScore?: number;   // score on mastered-node retention checks
+  activeScore?: number;
+  retentionScore?: number;
   feedback: string;
   perNodeDeltas: NodeMasteryDelta[];
   breakdown?: TaskBreakdownScores;
+  xp?: GameXPResult | null;
 }
 
 export interface GameChallengeClient {

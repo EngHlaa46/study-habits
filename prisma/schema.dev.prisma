@@ -31,6 +31,8 @@ model User {
   checkInEntries     CheckInEntry[]
   gameChallenges     GameChallenge[]
   gameSessions       GameSession[]
+  gameProfile        UserGameProfile?
+  skillPalms         SkillPalm[]
 }
 
 model UserProfile {
@@ -212,6 +214,7 @@ model SkillTree {
   generatedAt  DateTime         @default(now())
   nodes        SkillNode[]
   sources      MaterialSource[]
+  palm         SkillPalm?
 }
 
 model MaterialSource {
@@ -317,12 +320,42 @@ model GameSession {
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   challengeId      String?
   challenge        GameChallenge? @relation(fields: [challengeId], references: [id])
-  gameType         String         // QUIZ, MEMORY_SPRINT, TASK_BREAKDOWN
+  gameType         String         // QUIZ, MEMORY_SPRINT, TASK_BREAKDOWN, SCENARIO, SPEED_ROUND
   nodeIds          String         @default("[]") // JSON array
   score            Float
   durationSeconds  Int            @default(0)
   questionsTotal   Int?
   questionsCorrect Int?
   detailsJson      String         @default("{}") // JSON
+  xpAwarded        Int            @default(0)
+  streakMultiplier Int            @default(1)
+  skillTreeId      String?
   createdAt        DateTime       @default(now())
+}
+
+model UserGameProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalXP          Int       @default(0)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastPlayedAt     DateTime?
+  dailyBonusUsedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model SkillPalm {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillTreeId   String    @unique
+  skillTree     SkillTree @relation(fields: [skillTreeId], references: [id], onDelete: Cascade)
+  palmXP        Int       @default(0)
+  totalDates    Int       @default(0)
+  health        Int       @default(100)
+  lastWateredAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

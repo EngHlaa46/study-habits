@@ -6,7 +6,7 @@ import { applyGameMasteryDelta } from "@/lib/games/masteryUpdate";
 import { applyPlanningStabilityNudge } from "@/lib/games/stabilityUpdate";
 import { evaluateRecall } from "@/lib/ai/games/evaluateRecall";
 import { evaluateTaskBreakdown } from "@/lib/ai/games/evaluateTaskBreakdown";
-import type { QuizQuestion, MemoryCard, GameStep, GameSubmitResult } from "@/types/games";
+import type { QuizQuestion, MemoryCard, GameStep, GameSubmitResult, GameXPResult } from "@/types/games";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as {
     gameType: string;
     challengeId?: string;
+    skillTreeId?: string;
     questions?: QuizQuestion[];
     answers?: number[];
     card?: MemoryCard;
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     steps?: GameStep[];
   };
 
-  const { gameType, challengeId } = body;
+  const { gameType, challengeId, skillTreeId } = body;
 
   let score = 0;
   let activeScore: number | undefined;
@@ -123,6 +124,19 @@ export async function POST(req: NextRequest) {
 
     const durationSeconds = Math.round((Date.now() - startedAt) / 1000);
 
+    // Award XP if a skill tree is associated with this session
+    let xpResult: GameXPResult | null = null;
+    if (skillTreeId && questionsCorrect !== undefined && questionsTotal !== undefined) {
+      try {
+        const xpRes = await fetch(`${process.env.NEXTAUTH_URL}/api/gamification/xp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", cookie: req.headers.get("cookie") ?? "" },
+          body: JSON.stringify({ skillTreeId, correctAnswers: questionsCorrect, totalAnswers: questionsTotal, gameType }),
+        });
+        if (xpRes.ok) xpResult = (await xpRes.json()) as GameXPResult;
+      } catch { /* non-blocking */ }
+    }
+
     const gameSession = await prisma.gameSession.create({
       data: {
         userId,
@@ -134,6 +148,9 @@ export async function POST(req: NextRequest) {
         questionsTotal,
         questionsCorrect,
         detailsJson: JSON.stringify(detailsJson),
+        xpAwarded: xpResult?.xpAwarded ?? 0,
+        streakMultiplier: xpResult?.streakMultiplier ?? 1,
+        skillTreeId: skillTreeId ?? null,
       },
     });
 
@@ -144,7 +161,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const result: GameSubmitResult = {
+    const result: GameSubmitResult & { xp?: typeof xpResult } = {
       sessionId: gameSession.id,
       score,
       activeScore,
@@ -152,6 +169,7 @@ export async function POST(req: NextRequest) {
       feedback,
       perNodeDeltas,
       breakdown,
+      xp: xpResult,
     };
 
     return NextResponse.json(result);
