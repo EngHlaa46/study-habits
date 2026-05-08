@@ -70,7 +70,10 @@ export default function OnboardingPage() {
 
   // Step 0: generate skill tree then advance
   const handleSubjectNext = async () => {
-    if (!subjectName.trim()) return;
+    if (subjectName.trim().length < 3) {
+      setTreeError("Please enter a subject name (at least 3 characters).");
+      return;
+    }
     setGeneratingTree(true);
     setTreeError("");
 
@@ -179,7 +182,7 @@ export default function OnboardingPage() {
 
               <Button
                 onClick={handleSubjectNext}
-                disabled={!subjectName.trim() || generatingTree}
+                disabled={subjectName.trim().length < 3 || generatingTree}
                 className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-5"
               >
                 {generatingTree ? (
