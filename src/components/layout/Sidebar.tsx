@@ -7,7 +7,6 @@ import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
-  CheckSquare,
   GitBranch,
   MessageSquare,
   CalendarDays,
@@ -31,12 +30,11 @@ export function Sidebar() {
 
   const navItems = [
     { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
-    { href: "/check-in", labelKey: "checkIn", icon: CheckSquare },
     { href: "/skills", labelKey: "skills", icon: GitBranch },
     { href: "/materials", label: "Materials", icon: BookOpen },
     { href: "/games", label: "Games", icon: Gamepad2 },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
-    { href: "/history", labelKey: "history", icon: CalendarDays },
+    { href: "/events", label: "Events", icon: CalendarDays },
     { href: "/settings", labelKey: "settings", icon: Settings },
   ];
 

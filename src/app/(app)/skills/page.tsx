@@ -1,112 +1,52 @@
 import { requireAuth } from "@/lib/session";
-import { getAvailableSkills } from "@/lib/skills/progression";
 import { prisma } from "@/lib/db/prisma";
-import { SkillTree } from "@/components/skills/SkillTree";
-import { SkillsPageHeader } from "@/components/skills/SkillsPageHeader";
-import { ActivePlanCard } from "@/components/dashboard/ActivePlanCard";
-import { DimensionProfileCard } from "@/components/dashboard/DimensionProfileCard";
-import dynamic from "next/dynamic";
-import Link from "next/link";
-import { MessageSquare } from "lucide-react";
-
-const WeeklyTrendChart = dynamic(
-  () => import("@/components/dashboard/WeeklyTrendChart").then((m) => ({ default: m.WeeklyTrendChart })),
-  { ssr: false, loading: () => <div className="h-48 bg-card rounded-xl animate-pulse" /> }
-);
+import { redirect } from "next/navigation";
+import { SkillTreeView } from "@/components/skills/SkillTreeView";
 
 export default async function SkillsPage() {
   const session = await requireAuth();
   const userId = session.user.id;
 
-  const [skills, activePhase, profile, skillProgresses, recentCheckIns] = await Promise.all([
-    getAvailableSkills(userId),
-    prisma.activePhase.findUnique({ where: { userId } }),
-    prisma.userProfile.findUnique({ where: { userId } }),
-    prisma.skillProgress.findMany({ where: { userId }, include: { skill: true } }),
-    prisma.checkIn.findMany({ where: { userId }, orderBy: { date: "desc" }, take: 14 }),
-  ]);
+  const skillTrees = await prisma.skillTree.findMany({
+    where: { userId },
+    include: {
+      nodes: { orderBy: { createdAt: "asc" } },
+    },
+    orderBy: { generatedAt: "desc" },
+  });
 
-  const phase = activePhase?.phase || "onboarding";
-
-  const activeSkillProgresses = skillProgresses.filter((sp) => sp.status === "active");
-  const activeLevel = activeSkillProgresses[0]?.skill.level ?? 1;
-
-  let challenges: string[] = [];
-  if (profile?.biggestChallenge) {
-    try {
-      const parsed = JSON.parse(profile.biggestChallenge);
-      challenges = Array.isArray(parsed) ? parsed : [profile.biggestChallenge];
-    } catch {
-      challenges = [profile.biggestChallenge];
-    }
+  if (skillTrees.length === 0) {
+    redirect("/onboarding?returning=true");
   }
 
-  const trendCheckIns = recentCheckIns.map((ci) => ({
-    date: ci.date.toISOString().split("T")[0],
-    initiated: ci.initiated,
-    focusLevel: ci.focusLevel,
-  }));
-
-  const dimensionSkills = skillProgresses.map((sp) => ({
-    dimension: sp.skill.dimension ?? null,
-    status: sp.status,
-    stabilityScore: sp.stabilityScore,
-  }));
-
-  // Serialize skills for SkillTree (new shape: level + dimension, no tier/prereqs)
-  const serialized = skills.map((s) => ({
-    id: s.id,
-    slug: s.slug,
-    name: s.name,
-    level: s.level,
-    dimension: s.dimension ?? "behavioral",
-    description: s.description,
-    purpose: s.purpose,
-    currentStatus: s.currentStatus,
-    progress: s.progress
-      ? {
-          weekPhase: s.progress.weekPhase,
-          stabilityScore: s.progress.stabilityScore,
-          userTask: s.progress.userTask,
-        }
-      : null,
+  const serialized = skillTrees.map((tree) => ({
+    id: tree.id,
+    materialName: tree.materialName,
+    generatedAt: tree.generatedAt.toISOString(),
+    nodes: tree.nodes.map((node) => ({
+      id: node.id,
+      localId: node.localId,
+      name: node.name,
+      description: node.description,
+      whatMasteryLooksLike: node.whatMasteryLooksLike,
+      suggestedEvalFormat: node.suggestedEvalFormat,
+      masteryStatus: node.masteryStatus,
+      masteryScore: node.masteryScore,
+      nextReviewAt: node.nextReviewAt?.toISOString() ?? null,
+      lastPracticedAt: node.lastPracticedAt?.toISOString() ?? null,
+      prerequisites: node.prerequisites,
+    })),
   }));
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <SkillsPageHeader />
-
-      {/* Level plan — visible during active skill training */}
-      {phase === "skill_training" && activeSkillProgresses.length > 0 && (
-        <>
-          <ActivePlanCard
-            activeSkills={activeSkillProgresses.map((sp) => ({
-              name: sp.skill.name,
-              dimension: sp.skill.dimension ?? "behavioral",
-              weekPhase: sp.weekPhase,
-              userTask: sp.userTask ?? null,
-            }))}
-            levelNumber={activeLevel}
-            challenges={challenges}
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <DimensionProfileCard skills={dimensionSkills} />
-            <div className="flex flex-col gap-3">
-              <WeeklyTrendChart checkIns={trendCheckIns} />
-              <Link
-                href="/chat"
-                className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-primary transition-colors self-end"
-              >
-                <MessageSquare size={12} />
-                Discuss performance with AI
-              </Link>
-            </div>
-          </div>
-        </>
-      )}
-
-      <SkillTree skills={serialized} />
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Skills</h1>
+        <p className="text-muted-foreground/70 mt-1 text-sm">
+          Your mastery map — built from your course material
+        </p>
+      </div>
+      <SkillTreeView skillTrees={serialized} />
     </div>
   );
 }

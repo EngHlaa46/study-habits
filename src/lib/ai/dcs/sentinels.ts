@@ -17,45 +17,23 @@ function getDimensionStrength(
 }
 
 export function runBehaviorSentinel(data: UserData): BehaviorSignals {
-  const { recentCheckIns, skillProgresses } = data;
-  const last7 = recentCheckIns.slice(0, 7);
+  const { skillProgresses, recentAssessments } = data;
 
-  const initiationRate7d = last7.length > 0
-    ? last7.filter((c) => c.initiated).length / last7.length
-    : 0;
-
-  // Count consecutive misses from most recent
-  let consecutiveMisses = 0;
-  for (const ci of recentCheckIns) {
-    if (!ci.initiated) consecutiveMisses++;
-    else break;
-  }
-
-  const emotionalReasons = new Set(["Felt overwhelmed", "Wasn't in the mood", "Felt anxious"]);
-  const logisticalReasons = new Set(["Too busy", "External event", "Forgot"]);
-  let emotionalProcrastination = false;
-  let logisticalProcrastination = false;
-
-  const missReasonCount: Record<string, number> = {};
-  for (const ci of recentCheckIns) {
-    if (ci.missReason) {
-      missReasonCount[ci.missReason] = (missReasonCount[ci.missReason] ?? 0) + 1;
-    }
-  }
-  for (const [reason, count] of Object.entries(missReasonCount)) {
-    if (count >= 3) {
-      if (emotionalReasons.has(reason)) emotionalProcrastination = true;
-      if (logisticalReasons.has(reason)) logisticalProcrastination = true;
-    }
-  }
+  // Derive engagement signal from recent assessment activity
+  const recentCount = recentAssessments.filter((s) => {
+    const age = Date.now() - new Date(s.createdAt).getTime();
+    return age < 7 * 24 * 60 * 60 * 1000;
+  }).length;
+  const initiationRate7d = Math.min(recentCount / 7, 1);
+  const consecutiveMisses = recentCount === 0 ? 3 : 0;
 
   const activeSkill = skillProgresses.find((sp) => sp.status === "active");
 
   return {
     initiationRate7d,
     consecutiveMisses,
-    emotionalProcrastination,
-    logisticalProcrastination,
+    emotionalProcrastination: false,
+    logisticalProcrastination: false,
     currentSkillWeek: activeSkill?.weekPhase ?? null,
     currentSkillName: activeSkill?.skill.name ?? null,
     dimensionStrength: getDimensionStrength(skillProgresses, "behavioral"),
@@ -63,63 +41,27 @@ export function runBehaviorSentinel(data: UserData): BehaviorSignals {
 }
 
 export function runCognitiveSentinel(data: UserData): CognitiveSignals {
-  const { recentCheckIns, skillProgresses } = data;
-  const last7 = recentCheckIns.slice(0, 7);
+  const { skillProgresses, recentAssessments } = data;
 
-  const focusRate7d = last7.length > 0
-    ? last7.filter((c) => c.focusLevel === "focused" || c.focusLevel === "deep").length / last7.length
-    : 0;
-
-  const energyValues = last7.map((c) => c.energy).filter((e): e is number => e !== null);
-  const moodValues = last7.map((c) => c.mood).filter((m): m is number => m !== null);
-  const avgEnergy = energyValues.length > 0
-    ? energyValues.reduce((a, b) => a + b, 0) / energyValues.length
-    : 3;
-  const avgMood = moodValues.length > 0
-    ? moodValues.reduce((a, b) => a + b, 0) / moodValues.length
-    : 3;
-
-  // Find top performing study method
-  const methodFocusMap: Record<string, { total: number; focused: number }> = {};
-  for (const ci of last7) {
-    let methods: string[] = [];
-    try {
-      if (ci.studyMethod) methods = JSON.parse(ci.studyMethod);
-    } catch { /* ignore */ }
-    for (const m of methods) {
-      if (!methodFocusMap[m]) methodFocusMap[m] = { total: 0, focused: 0 };
-      methodFocusMap[m].total++;
-      if (ci.focusLevel === "focused" || ci.focusLevel === "deep") {
-        methodFocusMap[m].focused++;
-      }
-    }
-  }
-  let topMethod: string | null = null;
-  let bestRate = -1;
-  for (const [method, { total, focused }] of Object.entries(methodFocusMap)) {
-    if (total >= 2) {
-      const rate = focused / total;
-      if (rate > bestRate) {
-        bestRate = rate;
-        topMethod = method;
-      }
-    }
-  }
+  // Derive focus proxy from calibration scores in recent assessments
+  const calibrations = recentAssessments
+    .filter((s) => s.calibrationScore != null)
+    .map((s) => s.calibrationScore);
+  const focusRate7d = calibrations.length > 0
+    ? calibrations.reduce((a, b) => a + b, 0) / calibrations.length
+    : 0.5;
 
   return {
     focusRate7d,
-    avgEnergy,
-    avgMood,
-    topMethod,
+    avgEnergy: 3,
+    avgMood: 3,
+    topMethod: null,
     dimensionStrength: getDimensionStrength(skillProgresses, "cognitive"),
   };
 }
 
 export function runMetacognitiveSentinel(data: UserData): MetacognitiveSignals {
-  const { recentCheckIns, skillProgresses, upcomingEvents } = data;
-  const last7 = recentCheckIns.slice(0, 7);
-
-  const usesIntentions = last7.some((c) => c.sessionIntention && c.sessionIntention.trim().length > 0);
+  const { skillProgresses, upcomingEvents } = data;
 
   const hasUpcomingEvents = upcomingEvents.length > 0;
   let daysToNearestEvent: number | null = null;
@@ -130,7 +72,7 @@ export function runMetacognitiveSentinel(data: UserData): MetacognitiveSignals {
   }
 
   return {
-    usesIntentions,
+    usesIntentions: false,
     hasUpcomingEvents,
     daysToNearestEvent,
     dimensionStrength: getDimensionStrength(skillProgresses, "metacognitive"),

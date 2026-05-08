@@ -1,14 +1,11 @@
 import { requireAuth } from "@/lib/session";
 import { prisma } from "@/lib/db/prisma";
 import { redirect } from "next/navigation";
-import { PhaseBanner } from "@/components/dashboard/PhaseBanner";
-import { CheckInWidget } from "@/components/dashboard/CheckInWidget";
 import { EventCard } from "@/components/dashboard/EventCard";
 import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
 import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
 import { PlanWidget } from "@/components/dashboard/PlanWidget";
-import { DashboardGrid, DashboardItem } from "@/components/dashboard/DashboardGrid";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -21,41 +18,28 @@ export default async function DashboardPage() {
 
   const now = new Date();
 
-  const [activePhase, skillTrees, recentCheckIns, upcomingEvents] =
-    await Promise.all([
-      prisma.activePhase.findUnique({ where: { userId } }),
-      prisma.skillTree.findMany({
-        where: { userId },
-        include: {
-          nodes: {
-            where: { masteryStatus: { in: ["active", "developing", "mastered", "maintenance"] } },
-            orderBy: { masteryScore: "desc" },
-          },
+  const [skillTrees, upcomingEvents] = await Promise.all([
+    prisma.skillTree.findMany({
+      where: { userId },
+      include: {
+        nodes: {
+          where: { masteryStatus: { in: ["active", "developing", "mastered", "maintenance"] } },
+          orderBy: { masteryScore: "desc" },
         },
-        orderBy: { generatedAt: "desc" },
-        take: 5,
-      }),
-      prisma.checkIn.findMany({
-        where: { userId },
-        orderBy: { date: "desc" },
-        take: 14,
-      }),
-      prisma.event.findMany({
-        where: { userId, status: "upcoming" },
-        orderBy: { date: "asc" },
-        take: 3,
-      }),
-    ]);
+      },
+      orderBy: { generatedAt: "desc" },
+      take: 5,
+    }),
+    prisma.event.findMany({
+      where: { userId, status: "upcoming" },
+      orderBy: { date: "asc" },
+      take: 3,
+    }),
+  ]);
 
-  // Existing users with no skill trees need to go through subject selection
   if (skillTrees.length === 0) {
     redirect("/onboarding?returning=true");
   }
-
-  const phase = activePhase?.phase || "onboarding";
-  const dayCount = activePhase
-    ? Math.ceil((Date.now() - activePhase.phaseStart.getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
 
   // Build skill tree summaries for PlanWidget
   const skillTreeSummaries = await Promise.all(
@@ -82,19 +66,6 @@ export default async function DashboardPage() {
     })
   );
 
-  const today = new Date().toISOString().split("T")[0];
-  const todayCheckIn = recentCheckIns.find(
-    (ci) => ci.date.toISOString().split("T")[0] === today
-  );
-
-  const formattedCheckIns = recentCheckIns
-    .map((ci) => ({
-      date: ci.date.toISOString().split("T")[0],
-      initiated: ci.initiated,
-      focusLevel: ci.focusLevel,
-    }))
-    .reverse();
-
   const formattedEvents = upcomingEvents.map((e) => ({
     id: e.id,
     name: e.name,
@@ -104,31 +75,17 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto space-y-6">
       <DashboardBanner />
-      <DashboardGrid>
-        <DashboardItem>
-          <PhaseBanner phase={phase} dayCount={dayCount} activeLevel={1} />
-        </DashboardItem>
-        <DashboardItem>
-          <PlanWidget skillTrees={skillTreeSummaries} />
-        </DashboardItem>
-        <DashboardItem>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CheckInWidget
-              todayCompleted={!!todayCheckIn}
-              recentCheckIns={formattedCheckIns}
-            />
-            <EventCard events={formattedEvents} />
-          </div>
-        </DashboardItem>
-        <DashboardItem>
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <AssessmentWidget />
-            <InspirationWidget />
-          </div>
-        </DashboardItem>
-      </DashboardGrid>
+
+      <PlanWidget skillTrees={skillTreeSummaries} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <AssessmentWidget />
+        <EventCard events={formattedEvents} />
+      </div>
+
+      <InspirationWidget />
     </div>
   );
 }

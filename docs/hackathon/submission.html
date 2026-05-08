@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agenticthon Submission — Study Skills Builder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.8; color: #1e293b; background: #fff; padding: 52px; max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 700; color: #0f172a; border-bottom: 3px solid #38bdf8; padding-bottom: 12px; margin-bottom: 16px; }
+  h2 { font-size: 17px; font-weight: 700; color: #0f172a; margin-top: 36px; margin-bottom: 10px; border-left: 4px solid #38bdf8; padding-left: 12px; }
+  h3 { font-size: 14px; font-weight: 600; color: #334155; margin-top: 20px; margin-bottom: 8px; }
+  p { margin-bottom: 13px; color: #334155; }
+  strong { color: #0f172a; }
+  ul, ol { padding-left: 22px; margin-bottom: 14px; }
+  li { margin-bottom: 5px; color: #334155; }
+  code { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1px 6px; font-family: monospace; font-size: 12px; color: #0f172a; }
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; font-size: 12px; line-height: 1.6; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+  th { background: #0f172a; color: #e2e8f0; padding: 10px 14px; text-align: left; font-weight: 600; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 28px 0; }
+</style>
+</head>
+<body><h1>Agenticthon Submission: Study Skills Builder</h1>
+<p><strong>Live demo:</strong> <a href="https://studyskillsbuilder.com">https://studyskillsbuilder.com</a><br><strong>GitHub:</strong> <em>(repo link)</em><br><strong>Team:</strong> SSB - Hala Dukhan - Sarah Alablan - Hanin Saleh</p>
+<hr>
+<h2>The Problem</h2>
+<p>Most students study — but very few study <em>effectively</em>. The gap isn&#39;t motivation; it&#39;s the absence of real-time, personalized coaching on <em>why</em> sessions fail and <em>which specific behavior</em> to change next.</p>
+<p>Traditional study apps track streaks and gamify effort. That treats the symptom, not the cause. Students don&#39;t need a reminder to study — they need a system that notices they always miss sessions on Wednesdays after a difficult class, that their best focus days are when they used the &quot;explain it out loud&quot; method, that their self-talk last week contained three fixed-mindset phrases.</p>
+<p>No app does that. So we built one with agents.</p>
+<hr>
+<h2>The Solution</h2>
+<p><strong>Study Skills Builder</strong> is a behavioral coaching system powered by a hierarchical multi-agent pipeline. It coaches students through <strong>one skill at a time</strong>, driven entirely by real behavioral data from daily check-ins.</p>
+<p>No gamification. No prescriptive habits. The AI observes, infers, and guides. The student decides.</p>
+<hr>
+<h2>What the Agent Does</h2>
+<p>The system has five behaviors:</p>
+<ol>
+<li><p><strong>Observes</strong> — Students log a 90-second daily check-in: Did you study? How focused? Which study method? What mood and energy level?</p>
+</li>
+<li><p><strong>Infers</strong> — The DCS pipeline extracts behavioral signals the student never explicitly narrates: initiation weakness, emotional vs logistical procrastination patterns, which study methods correlate with their best focus days.</p>
+</li>
+<li><p><strong>Coaches</strong> — The orchestrator synthesizes signals from three specialist coaches into a single personalized response, always under 150 words, always one question at a time.</p>
+</li>
+<li><p><strong>Advances</strong> — The system autonomously determines when a student has stabilized a skill and unlocks the next one — no manual selection required.</p>
+</li>
+<li><p><strong>Nudges</strong> — A cron-scheduled agent generates personalized daily and weekly insights and pushes them to the student&#39;s browser.</p>
+</li>
+</ol>
+<hr>
+<h2>Decisions the Agent Makes Autonomously</h2>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Procrastination classification</strong></td>
+<td>Sentiment analysis of miss-reason text → emotional (overwhelmed, anxious) vs logistical (busy, forgot) → different coaching angle</td>
+</tr>
+<tr>
+<td><strong>Best study method</strong></td>
+<td>Correlates study method usage against focus-level outcomes across last 14 check-ins</td>
+</tr>
+<tr>
+<td><strong>Mindset intervention</strong></td>
+<td>Regex detects fixed-mindset language (&quot;I always fail&quot;, &quot;I have no willpower&quot;) → routes message through MindsetInterventionAgent</td>
+</tr>
+<tr>
+<td><strong>Most Efficient Insight (MEI)</strong></td>
+<td>Orchestrator synthesises all coach signals → selects single highest-leverage insight for this student today</td>
+</tr>
+<tr>
+<td><strong>Skill week advancement</strong></td>
+<td>Rule-based: Week 1 needs ≥4/7 days initiated; Week 2 needs ≥5/7 focused; Week 3 needs stability score ≥0.7</td>
+</tr>
+<tr>
+<td><strong>Level unlock</strong></td>
+<td>When all 3 skills in current level reach stable status → automatically activates all 3 skills in next level</td>
+</tr>
+<tr>
+<td><strong>Notification type + content</strong></td>
+<td>Checks if today is the student&#39;s weekly signup anniversary → weekly insight vs daily nudge; generates content from 7–14 day behavioral history</td>
+</tr>
+<tr>
+<td><strong>Knowledge profile update</strong></td>
+<td>After every chat exchange, infers subject/topic/mastery state and upserts to KnowledgeEntry — silently, never blocking the response</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Multi-Agent Architecture</h2>
+<p><strong>System type:</strong> Multi-agent, hierarchical — rule-based tier + specialist LLM tier + synthesis tier + background tier</p>
+<h3>Tier 1 — Sentinels (rule-based, no LLM)</h3>
+<p>Three deterministic agents run first, reading the last 14 check-ins:</p>
+<ul>
+<li><strong>Behavior Sentinel</strong>: calculates 7-day initiation rate, classifies procrastination type, identifies consecutive miss streaks</li>
+<li><strong>Cognitive Sentinel</strong>: calculates 7-day focus rate, finds best-performing study method, reads energy and mood trends</li>
+<li><strong>Metacognitive Sentinel</strong>: checks pre-session intention usage, identifies upcoming exam anchors, calculates days to nearest event</li>
+<li><strong>Fixed-Mindset Detector</strong>: regex scan of the student&#39;s message — triggers MindsetInterventionAgent if matched</li>
+</ul>
+<p>Sentinels are fast (no network calls), deterministic, and produce structured signal objects consumed by the coach tier.</p>
+<h3>Tier 2 — Specialist Coaches (parallel LLM calls)</h3>
+<p>Four agents run simultaneously via <code>Promise.all</code> using <code>llama-3.1-8b-instant</code>:</p>
+<ul>
+<li><strong>BehavioralCoach</strong>: interprets initiation weakness, task scope mismatches, procrastination patterns</li>
+<li><strong>CognitiveCoach</strong>: interprets focus capacity, energy-mood-method correlations</li>
+<li><strong>MetacognitiveCoach</strong>: interprets event urgency, intention habits, planning readiness</li>
+<li><strong>MindsetInterventionAgent</strong> <em>(conditional)</em>: selects a single evidence-based reframing note when fixed-mindset language is detected</li>
+</ul>
+<p>Each coach outputs 2–3 internal bullet points (≤15 words each). They fail silently — if one times out, the orchestrator proceeds without it.</p>
+<h3>Tier 3 — Orchestrator (streaming, tool-use)</h3>
+<p>One large model (<code>llama-3.3-70b-versatile</code>) receives the full prompt: system philosophy + student state + all coach outputs. It:</p>
+<ul>
+<li>Selects the Most Efficient Insight across all dimensions</li>
+<li>Streams the response to the student via Server-Sent Events</li>
+<li>Detects and executes <code>update_skill_task</code> tool calls — directly modifying the student&#39;s active skill target in the database, closing the loop between conversation and behavior change</li>
+</ul>
+<h3>Tier 4 — Background Agents (fire-and-forget)</h3>
+<ul>
+<li><strong>Knowledge Analyzer</strong>: runs after every response; extracts subject/topic/mastery from the conversation and upserts to the student&#39;s knowledge profile. Never blocks the response.</li>
+<li><strong>Notification Generator</strong>: runs on a daily cron; reads 7–14 days of behavioral history; generates personalized push notifications; delivers via Web Push API (VAPID).</li>
+</ul>
+<hr>
+<h2>Agent Behavior Rules</h2>
+<p>The orchestrator operates under strict behavioral constraints defined in <code>src/lib/ai/systemPrompt.ts</code>:</p>
+<ul>
+<li>Max 150 words per response unless the student asks for detail</li>
+<li>One question per turn — never stacks multiple asks</li>
+<li>Never uses &quot;you should / must / need to&quot; — uses &quot;consider / might try / one option&quot;</li>
+<li>Never moralizes, shames, or compares students to one another</li>
+<li>Treats missed sessions as data, not failure</li>
+<li>Acknowledges fixed-mindset language once per conversation, then redirects to contradicting behavioral data — never lectures</li>
+<li>Skill coaching adapts to current week phase (Stabilize → Express → Probe) with different focus per phase</li>
+</ul>
+<hr>
+<h2>Interaction Workflow</h2>
+<pre><code>Student types or speaks a message
+  Voice input: Groq Whisper-large-v3 transcribes audio → text appended to field
+
+POST /api/chat { message, chatMode }
+
+  Step 1 · Context Builder
+    8 parallel Prisma queries:
+    user info · active phase · last 14 check-ins · skill progresses
+    upcoming events · user profile · knowledge entries (last 30) · chat history (last 20)
+    → assembled into 250-line user state string
+
+  Step 2 · Sentinels (synchronous, no LLM)
+    BehaviorSignals + CognitiveSignals + MetacognitiveSignals
+    + fixed-mindset flag
+
+  Step 3 · Specialist Coaches (parallel)
+    Promise.all([BehavioralCoach, CognitiveCoach, MetacognitiveCoach, MindsetAgent?])
+    Each: llama-3.1-8b-instant, temp 0.3, 2–3 internal bullets
+
+  Step 4 · Orchestrator (streaming)
+    llama-3.3-70b-versatile receives: system prompt + context + coach outputs
+    → streams SSE chunks to client
+    → if update_skill_task detected: execute DB upsert → confirmation message
+
+  Step 5 · Knowledge Analyzer (fire-and-forget)
+    llama-3.1-8b extracts subject/topic/status from last exchange
+    → upserts KnowledgeEntry
+
+SSE stream:
+  { step: &quot;sentinels&quot; }  →  { step: &quot;coaches&quot; }  →  { step: &quot;orchestrating&quot; }
+  →  { text: &quot;...&quot; }  →  [{ action: &quot;task_updated&quot; }]  →  [DONE]
+</code></pre>
+<hr>
+<h2>Three Chat Modes</h2>
+<p>The orchestrator runs in one of three pedagogical modes selectable by the student:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Behavior</th>
+<th>Tools</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Skills</strong> (default)</td>
+<td>Coaches active habit; helps student define/update their skill task</td>
+<td><code>update_skill_task</code></td>
+</tr>
+<tr>
+<td><strong>Study</strong></td>
+<td>Answers subject questions directly; recommends study tools</td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>Training</strong></td>
+<td>Socratic only — never answers, only asks questions to build retrieval</td>
+<td>None</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Tech Stack</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Framework</td>
+<td>Next.js 14 (App Router, TypeScript)</td>
+</tr>
+<tr>
+<td>LLM Inference</td>
+<td>Groq API — llama-3.3-70b-versatile, llama-3.1-8b-instant</td>
+</tr>
+<tr>
+<td>Voice</td>
+<td>Groq Whisper-large-v3</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>PostgreSQL via Prisma ORM (Railway)</td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td>Server-Sent Events (SSE)</td>
+</tr>
+<tr>
+<td>Push Notifications</td>
+<td>Web Push API + VAPID keys</td>
+</tr>
+<tr>
+<td>Auth</td>
+<td>NextAuth.js v4 (email/password)</td>
+</tr>
+<tr>
+<td>Hosting</td>
+<td>Railway (Node.js + PostgreSQL) + Cloudflare proxy</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>What Makes This Agentic</h2>
+<p>This is not a chatbot with a system prompt. It is a multi-agent system where:</p>
+<ol>
+<li><strong>Autonomous signal extraction</strong> — Agents classify student behavior without the student narrating it</li>
+<li><strong>Conditional agent routing</strong> — Fixed-mindset detector gates whether MindsetInterventionAgent activates</li>
+<li><strong>Tool use with real side effects</strong> — The orchestrator calls <code>update_skill_task</code> and modifies database state</li>
+<li><strong>Autonomous skill progression</strong> — The stability calculator and level unlock run without human triggers — check-ins drive advancement</li>
+<li><strong>Proactive outreach</strong> — The notification agent reaches students before they open the app</li>
+<li><strong>Persistent memory across sessions</strong> — Knowledge profile, behavioral history, and skill state persist and compound over time</li>
+</ol>
+<p>The system embodies the core agentic principle: <strong>observe → infer → act → remember</strong> — in a loop, every day, for every student.</p>
+</body>
+</html>
