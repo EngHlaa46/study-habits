@@ -83,9 +83,9 @@ export default async function GamesPage() {
         skillTreeName={mostRecentTree?.materialName}
       />
 
-      <WeaknessesSection nodes={weakNodes} />
       <CoachChallengesSection challenges={challenges} />
       <StandardGamesSection hasNodes={hasNodes} skillTreeId={mostRecentTree?.id} />
+      <WeaknessesSection nodes={weakNodes} />
     </div>
   );
 }
