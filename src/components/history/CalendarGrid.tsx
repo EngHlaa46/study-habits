@@ -4,100 +4,78 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useLanguage } from "@/lib/language";
 
-interface CheckInEntry {
-  id: string;
+interface GameDay {
   date: string;
-  initiated: boolean;
-  focusLevel: string | null;
-  decayPoint: string | null;
-  contextNote: string | null;
-  atypical: boolean;
-  energy: number | null;
-  mood: number | null;
-  backfilled: boolean;
+  sessionCount: number;
+  avgScore: number;
+  gameTypes: string[];
+  xp: number;
 }
 
 interface CalendarGridProps {
-  checkIns: CheckInEntry[];
+  gameDays: GameDay[];
 }
 
-const focusColors: Record<string, string> = {
-  none: "bg-gray-600",
-  brief: "bg-yellow-500",
-  focused: "bg-primary",
-  deep: "bg-[#4ade80]",
+const GAME_LABELS: Record<string, string> = {
+  QUIZ: "Quiz",
+  MEMORY_SPRINT: "Memory Sprint",
+  TASK_BREAKDOWN: "Task Breakdown",
+  SCENARIO: "Scenario",
+  SPEED_ROUND: "Speed Round",
 };
 
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function CalendarGrid({ checkIns }: CalendarGridProps) {
-  const { t } = useLanguage();
+function dayBg(avgScore: number): string {
+  if (avgScore >= 0.7) return "bg-[#4ade80]";
+  if (avgScore >= 0.4) return "bg-[#fbbf24]";
+  return "bg-[#38bdf8]";
+}
+
+export function CalendarGrid({ gameDays }: CalendarGridProps) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [selectedDay, setSelectedDay] = useState<CheckInEntry | null>(null);
+  const [selectedDay, setSelectedDay] = useState<GameDay | null>(null);
 
-  const ciMap = new Map<string, CheckInEntry>();
-  for (const ci of checkIns) {
-    ciMap.set(ci.date, ci);
-  }
+  const dayMap = new Map<string, GameDay>();
+  for (const d of gameDays) dayMap.set(d.date, d);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay();
 
-  const prevMonth = () => {
-    setCurrentMonth(new Date(year, month - 1, 1));
-    setSelectedDay(null);
-  };
-
-  const nextMonth = () => {
-    setCurrentMonth(new Date(year, month + 1, 1));
-    setSelectedDay(null);
-  };
-
-  const monthLabel = currentMonth.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   const cells = [];
-  // Empty cells for days before the 1st
   for (let i = 0; i < firstDayOfWeek; i++) {
     cells.push(<div key={`empty-${i}`} className="aspect-square" />);
   }
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const ci = ciMap.get(dateStr);
+    const gd = dayMap.get(dateStr);
     const isToday = dateStr === new Date().toISOString().split("T")[0];
     const isFuture = new Date(dateStr) > new Date();
-
-    let bgClass = "bg-surface-inset";
-    if (ci && ci.initiated) {
-      bgClass = focusColors[ci.focusLevel || "none"];
-    } else if (ci && !ci.initiated) {
-      bgClass = "bg-gray-700";
-    }
+    const isSelected = selectedDay?.date === dateStr;
 
     cells.push(
       <button
         key={day}
-        onClick={() => ci ? setSelectedDay(ci) : setSelectedDay(null)}
-        disabled={isFuture}
-        className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all ${bgClass} ${
-          isToday ? "ring-2 ring-primary" : ""
-        } ${ci ? "cursor-pointer hover:opacity-80" : "cursor-default"} ${
-          isFuture ? "opacity-30" : "opacity-80"
-        } ${ci?.atypical ? "ring-1 ring-[#fbbf24]" : ""}`}
+        onClick={() => gd ? setSelectedDay(isSelected ? null : gd) : null}
+        disabled={isFuture || !gd}
+        className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all
+          ${gd ? dayBg(gd.avgScore) : "bg-secondary/40"}
+          ${isToday ? "ring-2 ring-white/60" : ""}
+          ${isSelected ? "ring-2 ring-white/80 scale-105" : ""}
+          ${gd ? "cursor-pointer hover:opacity-80" : "cursor-default"}
+          ${isFuture ? "opacity-20" : gd ? "opacity-90" : "opacity-40"}
+        `}
       >
-        <span className={ci?.initiated ? "text-black/80" : "text-muted-foreground/70"}>
-          {day}
-        </span>
+        <span className={gd ? "text-black/80 font-semibold" : "text-muted-foreground/50"}>{day}</span>
       </button>
     );
   }
@@ -106,36 +84,28 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
     <div className="space-y-4">
       <Card>
         <CardContent className="pt-6">
-          {/* Month navigation */}
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={prevMonth}
+              onClick={() => { setCurrentMonth(new Date(year, month - 1, 1)); setSelectedDay(null); }}
               className="text-muted-foreground hover:text-foreground p-1"
             >
               <ChevronLeft size={20} />
             </button>
             <h3 className="text-foreground font-semibold">{monthLabel}</h3>
             <button
-              onClick={nextMonth}
+              onClick={() => { setCurrentMonth(new Date(year, month + 1, 1)); setSelectedDay(null); }}
               className="text-muted-foreground hover:text-foreground p-1"
             >
               <ChevronRight size={20} />
             </button>
           </div>
 
-          {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {dayNames.map((d) => (
-              <div
-                key={d}
-                className="text-center text-xs text-muted-foreground/60 font-medium py-1"
-              >
-                {d}
-              </div>
+              <div key={d} className="text-center text-xs text-muted-foreground/60 font-medium py-1">{d}</div>
             ))}
           </div>
 
-          {/* Calendar cells */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`${year}-${month}`}
@@ -149,94 +119,67 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
             </motion.div>
           </AnimatePresence>
 
-          {/* Legend */}
           <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-border">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-gray-700" />
-              <span className="text-muted-foreground/70 text-xs">{t("history.noFocus")}</span>
+              <div className="w-3 h-3 rounded-sm bg-[#38bdf8]" />
+              <span className="text-muted-foreground/70 text-xs">Practiced</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-yellow-500" />
-              <span className="text-muted-foreground/70 text-xs">{t("history.brief")}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-primary" />
-              <span className="text-muted-foreground/70 text-xs">{t("history.focused")}</span>
+              <div className="w-3 h-3 rounded-sm bg-[#fbbf24]" />
+              <span className="text-muted-foreground/70 text-xs">Good</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-[#4ade80]" />
-              <span className="text-muted-foreground/70 text-xs">{t("history.deep")}</span>
+              <span className="text-muted-foreground/70 text-xs">Strong</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Selected day detail */}
-      {selectedDay && (
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-foreground font-semibold mb-3">
-              {new Date(selectedDay.date + "T12:00:00").toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground/70">{t("history.studied")}</span>
-                <span className="text-foreground/80">
-                  {selectedDay.initiated ? t("common.yes") : t("common.no")}
-                </span>
-              </div>
-              {selectedDay.focusLevel && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground/70">{t("history.focusLevel")}</span>
-                  <span className="text-foreground/80 capitalize">
-                    {selectedDay.focusLevel}
-                  </span>
+      <AnimatePresence>
+        {selectedDay && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <h3 className="text-foreground font-semibold mb-3 text-sm">
+                  {new Date(selectedDay.date + "T12:00:00").toLocaleDateString("en-US", {
+                    weekday: "long", month: "long", day: "numeric",
+                  })}
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground/70">Sessions</span>
+                    <span className="text-foreground/80">{selectedDay.sessionCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground/70">Avg score</span>
+                    <span className="text-foreground/80">{Math.round(selectedDay.avgScore * 100)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground/70">XP earned</span>
+                    <span className="text-[#fbbf24]">+{selectedDay.xp}</span>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-muted-foreground/70">Games</span>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {selectedDay.gameTypes.map((gt) => (
+                        <span key={gt} className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                          {GAME_LABELS[gt] ?? gt}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              )}
-              {selectedDay.decayPoint && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground/70">{t("history.focusDecay")}</span>
-                  <span className="text-foreground/80">{selectedDay.decayPoint}</span>
-                </div>
-              )}
-              {selectedDay.energy && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground/70">{t("history.energy")}</span>
-                  <span className="text-foreground/80">{selectedDay.energy}/5</span>
-                </div>
-              )}
-              {selectedDay.mood && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground/70">{t("history.mood")}</span>
-                  <span className="text-foreground/80">{selectedDay.mood}/5</span>
-                </div>
-              )}
-              {selectedDay.contextNote && (
-                <div className="pt-2 border-t border-border">
-                  <p className="text-muted-foreground/70 text-xs mb-1">{t("history.note")}</p>
-                  <p className="text-foreground/80">{selectedDay.contextNote}</p>
-                </div>
-              )}
-              <div className="flex gap-2 pt-1">
-                {selectedDay.atypical && (
-                  <span className="text-xs bg-[#fbbf24]/10 text-[#fbbf24] px-2 py-0.5 rounded">
-                    {t("history.atypical")}
-                  </span>
-                )}
-                {selectedDay.backfilled && (
-                  <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
-                    {t("history.backfilled")}
-                  </span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
