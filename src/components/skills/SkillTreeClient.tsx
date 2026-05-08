@@ -54,9 +54,11 @@ const FORMAT_LABELS: Record<string, string> = {
 function NodeCard({
   node,
   onPractice,
+  isWeakness = false,
 }: {
   node: SkillNode;
   onPractice: (id: string, name: string) => void;
+  isWeakness?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [localStatus, setLocalStatus] = useState(node.masteryStatus);
@@ -74,7 +76,7 @@ function NodeCard({
   return (
     <motion.div
       layout
-      className={`rounded-xl border ${config.border} ${config.bg} overflow-hidden`}
+      className={`rounded-xl border overflow-hidden ${isWeakness ? "border-red-400/30 bg-red-400/[0.05]" : `${config.border} ${config.bg}`}`}
       whileHover={canPractice ? { scale: 1.015, transition: { type: "spring", stiffness: 400, damping: 28 } } : {}}
     >
       <button
@@ -377,7 +379,9 @@ export function SkillTreeClient({
     []
   );
 
-  const sections = activeTree
+  const WEAKNESS_THRESHOLD = 0.4;
+
+  const sections: { key: string; label: string; accent: string; description?: string; nodes: SkillNode[] }[] = activeTree
     ? [
         {
           key: "due",
@@ -393,12 +397,25 @@ export function SkillTreeClient({
           ),
         },
         {
+          key: "weaknesses",
+          label: "Weaknesses",
+          accent: "text-red-400",
+          description: "These topics need the most attention — mastery is low.",
+          nodes: activeTree.nodes.filter(
+            (n) =>
+              (n.masteryStatus === "active" || n.masteryStatus === "developing") &&
+              n.masteryScore < WEAKNESS_THRESHOLD &&
+              !(n.nextReviewAt != null && new Date(n.nextReviewAt) <= now)
+          ),
+        },
+        {
           key: "active",
           label: "In Progress",
           accent: "text-sky-400",
           nodes: activeTree.nodes.filter(
             (n) =>
               (n.masteryStatus === "active" || n.masteryStatus === "developing") &&
+              n.masteryScore >= WEAKNESS_THRESHOLD &&
               !(n.nextReviewAt != null && new Date(n.nextReviewAt) <= now)
           ),
         },
@@ -567,14 +584,24 @@ export function SkillTreeClient({
             ) : (
               sections.map((section) => (
                 <motion.div key={section.key} variants={staggerItem} className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h2 className={`text-[11px] font-semibold uppercase tracking-widest ${section.accent}`}>
                       {section.label}
                     </h2>
                     <span className="text-xs text-muted-foreground/30">
                       ({section.nodes.length})
                     </span>
+                    {"description" in section && section.description && (
+                      <span className="text-[11px] text-muted-foreground/50 normal-case tracking-normal">
+                        — {section.description}
+                      </span>
+                    )}
                   </div>
+                  {section.key === "weaknesses" && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-400/[0.07] border border-red-400/20 text-xs text-red-400/80">
+                      Focus on these first — they&apos;re dragging your overall mastery down.
+                    </div>
+                  )}
                   <motion.div
                     variants={{
                       hidden: {},
@@ -599,6 +626,7 @@ export function SkillTreeClient({
                         <NodeCard
                           node={node}
                           onPractice={(id, name) => setAssessingNode({ id, name })}
+                          isWeakness={section.key === "weaknesses"}
                         />
                       </motion.div>
                     ))}
