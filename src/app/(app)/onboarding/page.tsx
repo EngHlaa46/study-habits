@@ -1,23 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, BookOpen } from "lucide-react";
+import { Loader2, BookOpen, Upload, X } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 const TOTAL_STEPS = 5; // 0=subject, 1=goal/hours, 2=challenges, 3=time, 4=event
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
+  const returning = searchParams.get("returning") === "true";
+
   const [step, setStep] = useState(0);
 
   // Step 0 — subject selection
   const [subjectName, setSubjectName] = useState("");
   const [subjectDescription, setSubjectDescription] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [generatingTree, setGeneratingTree] = useState(false);
   const [treeError, setTreeError] = useState("");
 
@@ -28,7 +34,7 @@ export default function OnboardingPage() {
   const [selectedChallenges, setSelectedChallenges] = useState<string[]>([]);
   const [otherChallenge, setOtherChallenge] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
-  const [typicalHours, setTypicalHours] = useState("");
+  const [typicalHours] = useState("");
   const [eventName, setEventName] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventType, setEventType] = useState("exam");
@@ -70,6 +76,21 @@ export default function OnboardingPage() {
     return JSON.stringify(items);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setUploadedFile(file);
+    if (file && !subjectName.trim()) {
+      // Pre-fill subject name from filename (strip extension)
+      const name = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+      setSubjectName(name);
+    }
+  };
+
+  const clearFile = () => {
+    setUploadedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   // Step 0: generate skill tree then advance
   const handleSubjectNext = async () => {
     if (subjectName.trim().length < 3) {
@@ -79,16 +100,28 @@ export default function OnboardingPage() {
     setGeneratingTree(true);
     setTreeError("");
 
-    const materialText = subjectDescription.trim()
-      ? `${subjectName}\n\n${subjectDescription}`
-      : subjectName;
-
     try {
-      const res = await fetch("/api/materials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: materialText, name: subjectName.trim() }),
-      });
+      let res: Response;
+
+      if (uploadedFile) {
+        const formData = new FormData();
+        formData.append("file", uploadedFile);
+        formData.append("name", subjectName.trim());
+        if (subjectDescription.trim()) {
+          formData.append("description", subjectDescription.trim());
+        }
+        res = await fetch("/api/materials", { method: "POST", body: formData });
+      } else {
+        const materialText = subjectDescription.trim()
+          ? `${subjectName}\n\n${subjectDescription}`
+          : subjectName;
+        res = await fetch("/api/materials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: materialText, name: subjectName.trim() }),
+        });
+      }
+
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error ?? "Failed to generate plan");
@@ -96,7 +129,12 @@ export default function OnboardingPage() {
       if (Array.isArray(data.studyGoals) && data.studyGoals.length > 0) {
         setGoalOptions(data.studyGoals);
       }
-      setStep(1);
+
+      if (returning) {
+        window.location.href = "/dashboard";
+      } else {
+        setStep(1);
+      }
     } catch (e) {
       setTreeError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -131,17 +169,19 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="max-w-lg w-full">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-8">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div
-              key={i}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                i <= step ? "bg-primary" : "bg-secondary"
-              }`}
-            />
-          ))}
-        </div>
+        {/* Progress dots — hidden for returning users (they only do step 0) */}
+        {!returning && (
+          <div className="flex justify-center gap-2 mb-8">
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <div
+                key={i}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  i <= step ? "bg-primary" : "bg-secondary"
+                }`}
+              />
+            ))}
+          </div>
+        )}
 
         {/* ── Step 0: Subject selection ── */}
         {step === 0 && (
@@ -149,10 +189,14 @@ export default function OnboardingPage() {
             <CardHeader>
               <div className="flex items-center gap-2 mb-1">
                 <BookOpen size={20} className="text-primary" />
-                <CardTitle className="text-foreground text-xl">What do you want to master?</CardTitle>
+                <CardTitle className="text-foreground text-xl">
+                  {returning ? "Add a new subject" : "What do you want to master?"}
+                </CardTitle>
               </div>
               <p className="text-sm text-muted-foreground/70">
-                We&apos;ll build a personalized skill tree from your subject so you can be tested and guided step by step.
+                {returning
+                  ? "Upload your course material or describe a subject and we'll build a personalised skill tree."
+                  : "We'll build a personalized skill tree from your subject so you can be tested and guided step by step."}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -178,6 +222,44 @@ export default function OnboardingPage() {
                   className="bg-surface-inset border-border text-foreground resize-none"
                   rows={3}
                   disabled={generatingTree}
+                />
+              </div>
+
+              {/* File upload */}
+              <div className="space-y-2">
+                <Label className="text-foreground/80">
+                  Upload course material{" "}
+                  <span className="text-muted-foreground/50 font-normal">(PDF, .txt, .md — optional)</span>
+                </Label>
+                {uploadedFile ? (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-primary/40 bg-primary/5">
+                    <Upload size={14} className="text-primary shrink-0" />
+                    <span className="text-sm text-foreground/80 truncate flex-1">{uploadedFile.name}</span>
+                    <button
+                      onClick={clearFile}
+                      disabled={generatingTree}
+                      className="text-muted-foreground/60 hover:text-foreground/80 shrink-0"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={generatingTree}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-md border border-dashed border-border text-muted-foreground/60 hover:border-muted-foreground/40 hover:text-foreground/70 transition-colors text-sm"
+                  >
+                    <Upload size={14} />
+                    Upload syllabus, notes, or PDF
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.txt,.md,.markdown"
+                  className="hidden"
+                  onChange={handleFileChange}
                 />
               </div>
 
@@ -426,5 +508,13 @@ export default function OnboardingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingContent />
+    </Suspense>
   );
 }

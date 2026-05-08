@@ -46,6 +46,11 @@ export default async function DashboardPage() {
       }),
     ]);
 
+  // Existing users with no skill trees need to go through subject selection
+  if (skillTrees.length === 0) {
+    redirect("/onboarding?returning=true");
+  }
+
   const phase = activePhase?.phase || "onboarding";
   const dayCount = activePhase
     ? Math.ceil((Date.now() - activePhase.phaseStart.getTime()) / (1000 * 60 * 60 * 24))
