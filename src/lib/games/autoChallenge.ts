@@ -21,8 +21,8 @@ export async function autoAssignChallengeIfNeeded(userId: string): Promise<void>
     if (hoursSince < COOLDOWN_HOURS) return;
   }
 
-  // Find the weakest non-locked nodes
-  const weakNodes = await prisma.skillNode.findMany({
+  // Prefer non-locked nodes with low mastery; fall back to any nodes
+  let weakNodes = await prisma.skillNode.findMany({
     where: {
       skillTree: { userId },
       masteryStatus: { not: "locked" },
@@ -38,20 +38,39 @@ export async function autoAssignChallengeIfNeeded(userId: string): Promise<void>
     },
   });
 
+  if (weakNodes.length === 0) {
+    weakNodes = await prisma.skillNode.findMany({
+      where: { skillTree: { userId } },
+      orderBy: { masteryScore: "asc" },
+      take: MAX_NODES,
+      select: {
+        id: true,
+        name: true,
+        masteryScore: true,
+        skillTree: { select: { materialName: true } },
+      },
+    });
+  }
+
   if (weakNodes.length === 0) return;
 
   const nodeIds = weakNodes.map((n) => n.id);
   const materialName = weakNodes[0].skillTree.materialName;
   const lowestPct = Math.round(weakNodes[0].masteryScore * 100);
+  const allLocked = weakNodes.every((n) => n.masteryScore === 0);
   const difficulty = weakNodes[0].masteryScore < 0.30 ? "EASY" : "MEDIUM";
+  const title = allLocked ? "Get Started" : "Strengthen Your Weakest Areas";
+  const description = allLocked
+    ? `Jump into "${materialName}" — test yourself on ${weakNodes.length} concept${weakNodes.length > 1 ? "s" : ""} to start building mastery.`
+    : `Your coach spotted ${weakNodes.length} concept${weakNodes.length > 1 ? "s" : ""} in "${materialName}" that need more practice (lowest: ${lowestPct}% mastery). Quiz yourself to push them forward.`;
 
   await prisma.gameChallenge.create({
     data: {
       userId,
       createdBy: "AGENT",
       gameType: "QUIZ",
-      title: "Strengthen Your Weakest Areas",
-      description: `Your coach spotted ${weakNodes.length} concept${weakNodes.length > 1 ? "s" : ""} in "${materialName}" that need more practice (lowest: ${lowestPct}% mastery). Quiz yourself to push them forward.`,
+      title,
+      description,
       difficulty,
       nodeIds: JSON.stringify(nodeIds),
       status: "PENDING",
