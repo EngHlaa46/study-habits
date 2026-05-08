@@ -7,6 +7,7 @@ import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
 import { PlanWidget } from "@/components/dashboard/PlanWidget";
 import { PalmWidget } from "@/components/dashboard/PalmWidget";
+import { MiniChatWidget } from "@/components/dashboard/MiniChatWidget";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -19,7 +20,7 @@ export default async function DashboardPage() {
 
   const now = new Date();
 
-  const [skillTrees, upcomingEvents] = await Promise.all([
+  const [skillTrees, upcomingEvents, recentMessages] = await Promise.all([
     prisma.skillTree.findMany({
       where: { userId },
       include: {
@@ -36,13 +37,18 @@ export default async function DashboardPage() {
       orderBy: { date: "asc" },
       take: 3,
     }),
+    prisma.chatMessage.findMany({
+      where: { userId, role: { in: ["user", "assistant"] } },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: { id: true, role: true, content: true },
+    }),
   ]);
 
   if (skillTrees.length === 0) {
     redirect("/onboarding?returning=true");
   }
 
-  // Build skill tree summaries for PlanWidget
   const skillTreeSummaries = await Promise.all(
     skillTrees.map(async (tree) => {
       const totalNodes = await prisma.skillNode.count({ where: { skillTreeId: tree.id } });
@@ -75,19 +81,29 @@ export default async function DashboardPage() {
     daysUntil: Math.ceil((e.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
   }));
 
+  const initialMessages = [...recentMessages].reverse().map((m) => ({
+    id: m.id,
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* Palm hero — first thing you see */}
+      <PalmWidget variant="hero" />
+
       <DashboardBanner />
 
       <PlanWidget skillTrees={skillTreeSummaries} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <AssessmentWidget />
         <EventCard events={formattedEvents} />
-        <PalmWidget />
       </div>
 
       <InspirationWidget />
+
+      <MiniChatWidget initialMessages={initialMessages} />
     </div>
   );
 }
