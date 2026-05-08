@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -143,10 +145,16 @@ export function CheckInForm({
       {/* Baseline AI questions */}
       <Card>
         <CardContent className="pt-5 pb-5 space-y-5">
+          <motion.div
+            className="space-y-5"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
           {questions.map((q, i) => {
             const voice = voiceInputs[i];
             return (
-              <div key={q.id} className="space-y-2">
+              <motion.div key={q.id} variants={staggerItem} className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-medium text-foreground leading-snug">{q.question}</p>
                   {voice && (
@@ -174,9 +182,10 @@ export function CheckInForm({
                   className="bg-surface-inset border-border text-foreground resize-none text-sm"
                   rows={2}
                 />
-              </div>
+              </motion.div>
             );
           })}
+          </motion.div>
         </CardContent>
       </Card>
 

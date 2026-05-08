@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Mic, MicOff, Sparkles, Wrench, ExternalLink, X } from "lucide-react";
@@ -177,22 +178,27 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
             </p>
           </div>
         )}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[80%] rounded-xl px-4 py-3 ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-foreground/80 border border-border"
-              }`}
+        <AnimatePresence initial={false}>
+          {messages.map((msg) => (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-            </div>
-          </div>
-        ))}
+              <div
+                className={`max-w-[80%] rounded-xl px-4 py-3 ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-foreground/80 border border-border"
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
 
@@ -205,12 +211,29 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       )}
 
       {/* DCS pipeline status */}
-      {pipelineStep && (
-        <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground/60">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
-          {pipelineStep}
-        </div>
-      )}
+      <AnimatePresence>
+        {pipelineStep && (
+          <motion.div
+            key="pipeline"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="flex items-center gap-2 py-2 text-xs text-muted-foreground/60"
+          >
+            <div className="flex gap-0.5">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  className="inline-block w-1.5 h-1.5 rounded-full bg-[#38bdf8]"
+                  animate={{ y: [0, -4, 0] }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
+                />
+              ))}
+            </div>
+            {pipelineStep}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tools panel */}
       {toolsOpen && (

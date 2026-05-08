@@ -1,5 +1,8 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { staggerItem } from "@/lib/motion";
+
 interface GameCardProps {
   title: string;
   description: string;
@@ -12,7 +15,12 @@ interface GameCardProps {
 
 export function GameCard({ title, description, badge, actionLabel, onAction, stat, disabled }: GameCardProps) {
   return (
-    <div className="glass-card glass-panel p-6 flex flex-col gap-4 group hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
+    <motion.div
+      variants={staggerItem}
+      whileHover={!disabled ? { y: -6, boxShadow: `0 20px 40px ${badge.color}20` } : undefined}
+      transition={{ type: "spring", stiffness: 380, damping: 28 }}
+      className="glass-card glass-panel p-6 flex flex-col gap-4 group"
+    >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold text-foreground">{title}</h3>
         <span
@@ -25,14 +33,15 @@ export function GameCard({ title, description, badge, actionLabel, onAction, sta
 
       <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
 
-      {stat && (
-        <p className="text-xs text-muted-foreground/70">{stat}</p>
-      )}
+      {stat && <p className="text-xs text-muted-foreground/70">{stat}</p>}
 
-      <button
+      <motion.button
         onClick={onAction}
         disabled={disabled}
-        className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        whileHover={!disabled ? { scale: 1.03, boxShadow: `0 0 16px ${badge.color}40` } : undefined}
+        whileTap={!disabled ? { scale: 0.97 } : undefined}
+        transition={{ type: "spring", stiffness: 480, damping: 22 }}
+        className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         style={{
           background: disabled ? undefined : `linear-gradient(135deg, ${badge.color}30, ${badge.color}15)`,
           border: `1px solid ${badge.color}50`,
@@ -40,7 +49,7 @@ export function GameCard({ title, description, badge, actionLabel, onAction, sta
         }}
       >
         {disabled ? "No materials yet" : actionLabel}
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 }

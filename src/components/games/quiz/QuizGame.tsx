@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { QuizQuestion } from "./QuizQuestion";
 import { QuizResults } from "./QuizResults";
 import type { QuizQuestion as QuizQuestionType, GameSubmitResult } from "@/types/games";
@@ -124,16 +125,24 @@ export function QuizGame() {
 
         {(phase === "question" || phase === "feedback") && q && (
           <div className="space-y-5">
-            <QuizQuestion
-              question={q.question}
-              options={q.options}
-              selectedIndex={selectedIndex}
-              correctIndex={phase === "feedback" ? q.correctIndex : null}
-              onSelect={handleSelect}
-            />
+            <AnimatePresence mode="wait">
+              <QuizQuestion
+                key={currentIndex}
+                question={q.question}
+                options={q.options}
+                selectedIndex={selectedIndex}
+                correctIndex={phase === "feedback" ? q.correctIndex : null}
+                onSelect={handleSelect}
+              />
+            </AnimatePresence>
 
             {phase === "feedback" && (
-              <div className="space-y-3 animate-in fade-in duration-300">
+              <motion.div
+                className="space-y-3"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
                 {/* Wrong pick explanation */}
                 {selectedIndex !== null && selectedIndex !== q.correctIndex && (
                   <div className="px-4 py-3 rounded-xl bg-red-400/10 border border-red-400/20">
@@ -154,13 +163,15 @@ export function QuizGame() {
                   )}
                   <p className="text-xs text-muted-foreground leading-relaxed">{q.explanation}</p>
                 </div>
-                <button
+                <motion.button
                   onClick={() => void handleNext()}
+                  whileHover={{ scale: 1.02, boxShadow: "0 0 16px rgba(168,85,247,0.35)" }}
+                  whileTap={{ scale: 0.97 }}
                   className="w-full py-3 rounded-xl text-sm font-semibold bg-[#a855f7]/20 border border-[#a855f7]/40 text-[#a855f7] hover:bg-[#a855f7]/30 transition-colors"
                 >
                   {currentIndex + 1 < questions.length ? "Next Question →" : "See Results →"}
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             )}
           </div>
         )}

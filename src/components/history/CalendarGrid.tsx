@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/lib/language";
@@ -135,7 +136,18 @@ export function CalendarGrid({ checkIns }: CalendarGridProps) {
           </div>
 
           {/* Calendar cells */}
-          <div className="grid grid-cols-7 gap-1">{cells}</div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${year}-${month}`}
+              className="grid grid-cols-7 gap-1"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.25 }}
+            >
+              {cells}
+            </motion.div>
+          </AnimatePresence>
 
           {/* Legend */}
           <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-border">

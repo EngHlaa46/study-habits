@@ -215,7 +215,12 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
             {checkIns.length > 0 && (
               <div>
                 <p className="text-xs text-muted-foreground/70 mb-2">{t("skills.trainingTimeline")}</p>
-                <div className="flex gap-1">
+                <motion.div
+                  className="flex gap-1"
+                  variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
+                  initial="hidden"
+                  animate="show"
+                >
                   {checkIns.slice(-14).map((ci, i) => {
                     const focusColors: Record<string, string> = {
                       none: "bg-gray-600",
@@ -225,14 +230,16 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
                     };
                     const color = ci.initiated ? focusColors[ci.focusLevel || "none"] : "bg-gray-700";
                     return (
-                      <div
+                      <motion.div
                         key={i}
+                        variants={{ hidden: { opacity: 0, scaleY: 0 }, show: { opacity: 1, scaleY: 1 } }}
+                        style={{ transformOrigin: "bottom" }}
                         className={`flex-1 h-6 rounded ${color} ${ci.atypical ? "ring-1 ring-[#fbbf24]" : ""}`}
                         title={`${ci.date}: ${ci.initiated ? ci.focusLevel || "studied" : "did not study"}`}
                       />
                     );
                   })}
-                </div>
+                </motion.div>
               </div>
             )}
 
@@ -266,6 +273,7 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
 
       {/* Completed skill summary */}
       {(status === "stable" || status === "mastered") && progress && (
+        <motion.div variants={staggerItem}>
         <Card className="border-[#4ade80]/30">
           <CardContent className="pt-6">
             {narrative ? (
@@ -309,16 +317,19 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
             )}
           </CardContent>
         </Card>
+        </motion.div>
       )}
 
       {/* Locked */}
       {status === "locked" && (
-        <div className="bg-card border border-border rounded-xl p-5 flex items-center gap-3">
-          <Lock size={18} className="text-muted-foreground/60 shrink-0" />
-          <p className="text-muted-foreground/70 text-sm">
-            Complete all Level {skill.level - 1} skills to unlock Level {skill.level}.
-          </p>
-        </div>
+        <motion.div variants={staggerItem}>
+          <div className="bg-card border border-border rounded-xl p-5 flex items-center gap-3">
+            <Lock size={18} className="text-muted-foreground/60 shrink-0" />
+            <p className="text-muted-foreground/70 text-sm">
+              Complete all Level {skill.level - 1} skills to unlock Level {skill.level}.
+            </p>
+          </div>
+        </motion.div>
       )}
     </motion.div>
   );
