@@ -14,7 +14,6 @@ import {
   LogOut,
   Menu,
   X,
-  BookOpen,
   Gamepad2,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
@@ -30,8 +29,7 @@ export function Sidebar() {
 
   const navItems = [
     { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
-    { href: "/skills", labelKey: "skills", icon: GitBranch },
-    { href: "/materials", label: "Materials", icon: BookOpen },
+    { href: "/skills", label: "Skill Tree", icon: GitBranch },
     { href: "/games", label: "Games", icon: Gamepad2 },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
     { href: "/events", label: "Events", icon: CalendarDays },
