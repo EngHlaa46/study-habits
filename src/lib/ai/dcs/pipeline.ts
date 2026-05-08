@@ -53,6 +53,39 @@ const SUGGEST_TOOLS_TOOL: Groq.Chat.Completions.ChatCompletionTool = {
   },
 };
 
+const CREATE_GAME_CHALLENGE_TOOL: Groq.Chat.Completions.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "create_game_challenge",
+    description:
+      "Create a targeted game challenge for the student in their Games section. Use when you want to assign specific practice — for example, a quiz on a weak topic or a memory sprint before a review session. Only call when you have a clear reason tied to the student's current context.",
+    parameters: {
+      type: "object",
+      properties: {
+        gameType: {
+          type: "string",
+          enum: ["QUIZ", "MEMORY_SPRINT", "TASK_BREAKDOWN"],
+          description: "QUIZ for knowledge testing, MEMORY_SPRINT for recall practice, TASK_BREAKDOWN for planning skills.",
+        },
+        title: {
+          type: "string",
+          description: "Short challenge title, e.g. 'Photosynthesis Quick Quiz' or 'Pre-exam Memory Sprint'.",
+        },
+        description: {
+          type: "string",
+          description: "One sentence explaining why you're assigning this challenge.",
+        },
+        difficulty: {
+          type: "string",
+          enum: ["EASY", "MEDIUM", "HARD"],
+          description: "Difficulty level. Default MEDIUM.",
+        },
+      },
+      required: ["gameType", "title", "description"],
+    },
+  },
+};
+
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
 function buildOrchestratorSystem(context: string, coaches: CoachOutputs, chatMode: string): string {
@@ -137,7 +170,7 @@ export async function runDCSPipeline(
         ];
 
         const activeTools = chatMode === "skills"
-          ? [UPDATE_SKILL_TASK_TOOL, SUGGEST_TOOLS_TOOL]
+          ? [UPDATE_SKILL_TASK_TOOL, SUGGEST_TOOLS_TOOL, CREATE_GAME_CHALLENGE_TOOL]
           : [SUGGEST_TOOLS_TOOL];
 
         const stream = await groq.chat.completions.create({
@@ -259,6 +292,64 @@ export async function runDCSPipeline(
             }
           } catch {
             // tool call failed silently — response still sent
+          }
+        }
+
+        if (toolCallName === "create_game_challenge" && toolCallArgs) {
+          try {
+            const { gameType, title, description, difficulty = "MEDIUM" } = JSON.parse(toolCallArgs) as {
+              gameType: string;
+              title: string;
+              description: string;
+              difficulty?: string;
+            };
+            const { prisma: db } = await import("@/lib/db/prisma");
+            const challenge = await db.gameChallenge.create({
+              data: {
+                userId,
+                createdBy: "AGENT",
+                gameType,
+                title,
+                description,
+                difficulty,
+                nodeIds: "[]",
+                status: "PENDING",
+              },
+            });
+            controller.enqueue(sseEvent({ action: "game_challenge_created", challengeId: challenge.id, gameType, title }));
+
+            const followUpMessages: { role: "system" | "user" | "assistant" | "tool"; content: string; tool_call_id?: string; name?: string }[] = [
+              ...messages,
+              {
+                role: "assistant",
+                content: "",
+                // @ts-expect-error tool_calls not in simplified type
+                tool_calls: [{ id: toolCallId, type: "function", function: { name: "create_game_challenge", arguments: toolCallArgs } }],
+              },
+              {
+                role: "tool",
+                tool_call_id: toolCallId,
+                name: "create_game_challenge",
+                content: `Challenge created: "${title}" (${gameType}, ${difficulty}). It is now waiting in the student's Games section.`,
+              },
+            ];
+
+            const confirmStream = await groq.chat.completions.create({
+              model: "llama-3.3-70b-versatile",
+              messages: followUpMessages as Parameters<typeof groq.chat.completions.create>[0]["messages"],
+              max_tokens: 256,
+              stream: true,
+            });
+
+            for await (const chunk of confirmStream) {
+              const text = chunk.choices[0]?.delta?.content || "";
+              if (text) {
+                fullResponse += text;
+                controller.enqueue(sseEvent({ text }));
+              }
+            }
+          } catch {
+            // tool call failed silently
           }
         }
 

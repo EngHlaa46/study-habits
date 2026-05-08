@@ -29,6 +29,8 @@ model User {
   queuedActivities   QueuedActivity[]
   weeklyInsights     WeeklyInsight[]
   checkInEntries     CheckInEntry[]
+  gameChallenges     GameChallenge[]
+  gameSessions       GameSession[]
 }
 
 model UserProfile {
@@ -278,4 +280,39 @@ model CheckInEntry {
   updatedAt       DateTime @updatedAt
 
   @@unique([userId, date])
+}
+
+model GameChallenge {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy   String        @default("AGENT") // AGENT, SELF
+  gameType    String        // QUIZ, MEMORY_SPRINT, TASK_BREAKDOWN
+  title       String
+  description String
+  nodeIds     String        @default("[]") // JSON array of SkillNode IDs
+  difficulty  String        @default("MEDIUM") // EASY, MEDIUM, HARD
+  dueBy       DateTime?
+  status      String        @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, EXPIRED
+  score       Float?
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  sessions    GameSession[]
+}
+
+model GameSession {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId      String?
+  challenge        GameChallenge? @relation(fields: [challengeId], references: [id])
+  gameType         String         // QUIZ, MEMORY_SPRINT, TASK_BREAKDOWN
+  nodeIds          String         @default("[]") // JSON array
+  score            Float
+  durationSeconds  Int            @default(0)
+  questionsTotal   Int?
+  questionsCorrect Int?
+  detailsJson      String         @default("{}") // JSON
+  createdAt        DateTime       @default(now())
 }

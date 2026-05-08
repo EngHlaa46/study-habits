@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   BookOpen,
+  Gamepad2,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
@@ -32,6 +33,7 @@ export function Sidebar() {
     { href: "/check-in", labelKey: "checkIn", icon: CheckSquare },
     { href: "/skills", labelKey: "skills", icon: GitBranch },
     { href: "/materials", label: "Materials", icon: BookOpen },
+    { href: "/games", label: "Games", icon: Gamepad2 },
     { href: "/chat", labelKey: "aiCoach", icon: MessageSquare },
     { href: "/history", labelKey: "history", icon: CalendarDays },
     { href: "/settings", labelKey: "settings", icon: Settings },

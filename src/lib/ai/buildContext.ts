@@ -12,10 +12,11 @@ export interface UserData {
   skillTrees: (SkillTree & { nodes: SkillNode[] })[];
   recentAssessments: (AssessmentSession & { node: SkillNode })[];
   recentCheckInEntries: CheckInEntry[];
+  pendingChallenges: { gameType: string; title: string; dueBy: Date | null; difficulty: string }[];
 }
 
 export async function fetchUserData(userId: string): Promise<UserData> {
-  const [user, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile, knowledgeProfile, skillTrees, recentAssessments, recentCheckInEntries] =
+  const [user, activePhase, recentCheckIns, skillProgresses, upcomingEvents, profile, knowledgeProfile, skillTrees, recentAssessments, recentCheckInEntries, pendingChallenges] =
     await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
       prisma.activePhase.findUnique({ where: { userId } }),
@@ -50,6 +51,11 @@ export async function fetchUserData(userId: string): Promise<UserData> {
         orderBy: { date: "desc" },
         take: 7,
       }),
+      (prisma.gameChallenge as { findMany: (args: object) => Promise<{ gameType: string; title: string; dueBy: Date | null; difficulty: string }[]> }).findMany({
+        where: { userId, status: { in: ["PENDING", "IN_PROGRESS"] } },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }).catch(() => [] as { gameType: string; title: string; dueBy: Date | null; difficulty: string }[]),
     ]);
 
   return {
@@ -63,6 +69,7 @@ export async function fetchUserData(userId: string): Promise<UserData> {
     skillTrees: skillTrees as (SkillTree & { nodes: SkillNode[] })[],
     recentAssessments: recentAssessments ?? [],
     recentCheckInEntries: recentCheckInEntries ?? [],
+    pendingChallenges: pendingChallenges ?? [],
   };
 }
 
@@ -292,6 +299,16 @@ export function buildContextFromData(data: UserData): string {
         ].filter(Boolean);
         lines.push(`  ${parts.join(", ")}${signals.summary ? ` — ${signals.summary}` : ""}`);
       } catch { /* ignore */ }
+    }
+  }
+
+  // Pending game challenges assigned by agent
+  const { pendingChallenges } = data;
+  if (pendingChallenges.length > 0) {
+    lines.push("\nPending game challenges (you assigned these):");
+    for (const c of pendingChallenges) {
+      const due = c.dueBy ? ` — due ${c.dueBy.toISOString().split("T")[0]}` : "";
+      lines.push(`  - ${c.title} (${c.gameType}, ${c.difficulty})${due}`);
     }
   }
 
