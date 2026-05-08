@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import Groq from "groq-sdk";
-import { runSkillTreeAgent, validateMaterial } from "@/lib/ai/dcs/skillTreeAgent";
+import { runSkillTreeAgent, validateMaterial, generateStudyGoals } from "@/lib/ai/dcs/skillTreeAgent";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
@@ -66,8 +66,12 @@ export async function POST(req: NextRequest) {
   }
 
   let nodes;
+  let studyGoals: string[] = [];
   try {
-    nodes = await runSkillTreeAgent(groq, text, materialName);
+    [nodes, studyGoals] = await Promise.all([
+      runSkillTreeAgent(groq, text, materialName),
+      generateStudyGoals(groq, materialName, text.slice(0, 300)).catch(() => []),
+    ]);
   } catch (err) {
     console.error('[materials] SkillTreeAgent failed:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
@@ -103,7 +107,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 
-  return NextResponse.json({ skillTree });
+  return NextResponse.json({ skillTree, studyGoals });
 }
 
 export async function GET() {

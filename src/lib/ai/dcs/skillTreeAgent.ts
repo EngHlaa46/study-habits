@@ -50,6 +50,43 @@ Be lenient with abbreviations (e.g. "ML", "CS", "OOP" are valid). Reject only cl
   }
 }
 
+/**
+ * Generates 4 short, specific study goal options relevant to the subject.
+ * Runs in parallel with the SkillTreeAgent using the fast 8b model.
+ */
+export async function generateStudyGoals(
+  groq: Groq,
+  materialName: string,
+  materialDescription: string
+): Promise<string[]> {
+  const response = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [
+      {
+        role: "system",
+        content: `Generate exactly 4 short, distinct study goal options for a student studying the given subject.
+Each goal should be a concrete, realistic aim (8 words max). Cover different motivations: exam/grade, project/application, career, and deep understanding.
+Return ONLY valid JSON: { "goals": ["goal 1", "goal 2", "goal 3", "goal 4"] }`,
+      },
+      {
+        role: "user",
+        content: `Subject: "${materialName}"\nContext: "${materialDescription || "(none)"}"`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 120,
+  });
+
+  const content = response.choices[0]?.message?.content ?? "{}";
+  try {
+    const parsed = JSON.parse(content) as { goals?: string[] };
+    if (Array.isArray(parsed.goals) && parsed.goals.length > 0) {
+      return parsed.goals.slice(0, 4);
+    }
+  } catch { /* fall through */ }
+  return [];
+}
+
 export interface SkillNodeInput {
   id: string;
   name: string;

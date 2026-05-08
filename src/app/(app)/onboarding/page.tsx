@@ -23,6 +23,8 @@ export default function OnboardingPage() {
 
   // Steps 1–4 — existing onboarding fields
   const [studyGoal, setStudyGoal] = useState("");
+  const [goalOptions, setGoalOptions] = useState<string[]>([]);
+  const [goalOther, setGoalOther] = useState(false);
   const [selectedChallenges, setSelectedChallenges] = useState<string[]>([]);
   const [otherChallenge, setOtherChallenge] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
@@ -87,9 +89,12 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: materialText, name: subjectName.trim() }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error ?? "Failed to generate plan");
+      }
+      if (Array.isArray(data.studyGoals) && data.studyGoals.length > 0) {
+        setGoalOptions(data.studyGoals);
       }
       setStep(1);
     } catch (e) {
@@ -204,40 +209,61 @@ export default function OnboardingPage() {
           </Card>
         )}
 
-        {/* ── Step 1: Study goal + hours ── */}
+        {/* ── Step 1: Study goal ── */}
         {step === 1 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
                 {t("onboarding.studyGoalTitle")}
               </CardTitle>
+              <p className="text-sm text-muted-foreground/70">
+                What are you working toward with <span className="text-primary font-medium">{subjectName}</span>?
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-foreground/80">{t("onboarding.studyGoalLabel")}</Label>
+            <CardContent className="space-y-3">
+              {/* Generated goal chips */}
+              {goalOptions.map((goal) => (
+                <Button
+                  key={goal}
+                  variant="outline"
+                  onClick={() => { setStudyGoal(goal); setGoalOther(false); }}
+                  className={`w-full text-left justify-start py-4 ${
+                    studyGoal === goal && !goalOther
+                      ? "border-primary text-primary bg-primary/10"
+                      : "border-border text-muted-foreground hover:border-muted-foreground"
+                  }`}
+                >
+                  {goal}
+                </Button>
+              ))}
+
+              {/* Other option */}
+              <Button
+                variant="outline"
+                onClick={() => { setGoalOther(true); setStudyGoal(""); }}
+                className={`w-full text-left justify-start py-4 ${
+                  goalOther
+                    ? "border-primary text-primary bg-primary/10"
+                    : "border-border text-muted-foreground hover:border-muted-foreground"
+                }`}
+              >
+                Other — type my own goal
+              </Button>
+
+              {goalOther && (
                 <Input
+                  autoFocus
                   value={studyGoal}
                   onChange={(e) => setStudyGoal(e.target.value)}
-                  placeholder={t("onboarding.studyGoalPlaceholder")}
+                  placeholder="e.g. Pass my resit, build a portfolio project…"
                   className="bg-surface-inset border-border text-foreground"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground/80">{t("onboarding.hoursLabel")}</Label>
-                <Input
-                  type="number"
-                  value={typicalHours}
-                  onChange={(e) => setTypicalHours(e.target.value)}
-                  placeholder={t("onboarding.hoursPlaceholder")}
-                  min="0"
-                  max="16"
-                  step="0.5"
-                  className="bg-surface-inset border-border text-foreground"
-                />
-              </div>
+              )}
+
               <Button
                 onClick={() => setStep(2)}
-                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
+                disabled={!studyGoal.trim()}
+                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold mt-2"
               >
                 {t("common.next")}
               </Button>
