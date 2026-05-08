@@ -125,6 +125,51 @@ export function QuizResults({ result, total, correct }: QuizResultsProps) {
         </motion.div>
       )}
 
+      {/* XP + Streak reward */}
+      {result.xp && result.xp.xpAwarded > 0 && (
+        <motion.div
+          variants={staggerItem}
+          className="glass-card glass-panel px-5 py-4 flex items-center justify-between"
+          style={{ borderTop: "2px solid rgba(251,191,36,0.2)" }}
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">XP Earned</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-[#fbbf24]">+{result.xp.xpAwarded}</span>
+              {result.xp.streakMultiplier > 1 && (
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-[#fbbf24]/10 border border-[#fbbf24]/25 text-[#fbbf24]">
+                  ×{result.xp.streakMultiplier} streak
+                </span>
+              )}
+              {result.xp.dailyBonus && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-[#38bdf8]/10 border border-[#38bdf8]/25 text-[#38bdf8]">
+                  1.5× daily
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-xs text-muted-foreground">Streak</span>
+            <span className="text-sm font-bold text-[#f97316]">🔥 {result.xp.newStreak} day{result.xp.newStreak !== 1 ? "s" : ""}</span>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Palm stage-up notice */}
+      {result.xp?.palmStageChanged && (
+        <motion.div
+          variants={staggerItem}
+          className="text-center py-3 px-4 rounded-xl text-sm font-semibold"
+          style={{
+            background: "linear-gradient(135deg, rgba(212,160,23,0.12), rgba(251,191,36,0.06))",
+            border: "1px solid rgba(212,160,23,0.3)",
+            color: "#fbbf24",
+          }}
+        >
+          🌴 Your palm grew to Stage {result.xp.newPalmStage}!
+        </motion.div>
+      )}
+
       {/* Per-node deltas */}
       {result.perNodeDeltas.length > 0 && (
         <motion.div variants={staggerItem} className="space-y-2">
