@@ -6,6 +6,7 @@ import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
 import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
 import { PlanWidget } from "@/components/dashboard/PlanWidget";
+import { PalmWidget } from "@/components/dashboard/PalmWidget";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -80,9 +81,10 @@ export default async function DashboardPage() {
 
       <PlanWidget skillTrees={skillTreeSummaries} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <AssessmentWidget />
         <EventCard events={formattedEvents} />
+        <PalmWidget />
       </div>
 
       <InspirationWidget />
