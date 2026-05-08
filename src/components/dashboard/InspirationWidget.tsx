@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Pencil, Check } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 export function InspirationWidget() {
@@ -44,44 +46,83 @@ export function InspirationWidget() {
       </p>
 
       <div className="flex-1">
-        {phrase ? (
-          <blockquote className="text-foreground/90 text-sm leading-relaxed italic border-l-2 border-primary pl-3 mb-4">
-            {phrase}
-          </blockquote>
-        ) : (
-          <div className="h-10 bg-secondary rounded animate-pulse mb-4" />
-        )}
+        <AnimatePresence mode="wait">
+          {phrase ? (
+            <motion.blockquote
+              key="quote"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ type: "spring", stiffness: 340, damping: 26 }}
+              className="text-foreground/90 text-sm leading-relaxed italic border-l-2 border-primary pl-3 mb-4"
+            >
+              {phrase}
+            </motion.blockquote>
+          ) : (
+            <motion.div
+              key="skeleton"
+              className="h-10 bg-secondary rounded animate-pulse mb-4"
+              exit={{ opacity: 0 }}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="border-t border-border pt-3">
-        {editing ? (
-          <div className="flex gap-2">
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && saveAffirmation()}
-              placeholder={t("dashboard.personalStatementPlaceholder")}
-              maxLength={300}
-              className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
-            />
-            <button
-              onClick={saveAffirmation}
-              className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-xs font-medium hover:bg-primary/30 transition-colors"
+        <AnimatePresence mode="wait">
+          {editing ? (
+            <motion.div
+              key="edit"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              className="flex gap-2"
             >
-              {t("common.save")}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={startEdit}
-            className="text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors text-left w-full"
-          >
-            {affirmation || (
-              <span className="italic">{t("dashboard.addPersonalStatement")}</span>
-            )}
-          </button>
-        )}
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveAffirmation()}
+                placeholder={t("dashboard.personalStatementPlaceholder")}
+                maxLength={300}
+                className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-all"
+              />
+              <motion.button
+                onClick={saveAffirmation}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9, rotate: 10 }}
+                transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-xs font-medium hover:bg-primary/30 transition-colors flex items-center gap-1"
+              >
+                <Check size={12} />
+                {t("common.save")}
+              </motion.button>
+            </motion.div>
+          ) : (
+            <motion.button
+              key="view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={startEdit}
+              whileHover="hovered"
+              className="text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors text-left w-full flex items-start gap-2 group"
+            >
+              <span className="flex-1">
+                {affirmation || (
+                  <span className="italic">{t("dashboard.addPersonalStatement")}</span>
+                )}
+              </span>
+              <motion.span
+                variants={{ hovered: { rotate: -15, scale: 1.2 } }}
+                transition={{ type: "spring", stiffness: 500, damping: 18 }}
+                className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0 mt-0.5"
+              >
+                <Pencil size={11} />
+              </motion.span>
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

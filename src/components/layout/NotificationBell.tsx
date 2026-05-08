@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, Smartphone, Download } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 import { subscribeToPush, unsubscribeFromPush, getPushState } from "@/components/providers/PushProvider";
@@ -92,23 +93,49 @@ export function NotificationBell() {
 
   return (
     <div ref={ref} className="relative">
-      <button
+      <motion.button
         onClick={() => setOpen((v) => !v)}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.94 }}
+        transition={{ type: "spring", stiffness: 500, damping: 22 }}
         className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary w-full transition-colors"
       >
         <div className="relative">
-          <Bell size={18} />
-          {notifications.length > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-              {notifications.length > 9 ? "9+" : notifications.length}
-            </span>
-          )}
+          <motion.div
+            animate={notifications.length > 0 && !open ? {
+              rotate: [0, -12, 10, -8, 6, -4, 0],
+            } : {}}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
+          >
+            <Bell size={18} />
+          </motion.div>
+          <AnimatePresence>
+            {notifications.length > 0 && (
+              <motion.span
+                key="badge"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center"
+              >
+                {notifications.length > 9 ? "9+" : notifications.length}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
         <span className="text-sm font-medium">{t("notifications.title")}</span>
-      </button>
+      </motion.button>
 
+      <AnimatePresence>
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+        <motion.div
+          key="popover"
+          initial={{ opacity: 0, y: 8, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 400, damping: 28 }}
+          className="absolute bottom-full left-0 mb-2 w-72 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
             <p className="text-sm font-semibold text-foreground">{t("notifications.title")}</p>
           </div>
@@ -183,8 +210,9 @@ export function NotificationBell() {
               </p>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

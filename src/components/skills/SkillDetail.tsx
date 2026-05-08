@@ -133,7 +133,7 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
       <motion.div variants={staggerItem}>
         <Link
           href="/skills"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm transition-colors"
+          className="link-arrow text-muted-foreground hover:text-foreground text-sm"
         >
           <ArrowLeft size={16} />
           {t("skills.backToSkillTree")}
@@ -196,15 +196,15 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-surface-inset rounded-lg p-3 text-center">
+              <div className="bg-surface-inset rounded-lg p-3 text-center stat-tile">
                 <p className="text-xl font-bold text-foreground">{totalCheckIns}</p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.checkIns")}</p>
               </div>
-              <div className="bg-surface-inset rounded-lg p-3 text-center">
+              <div className="bg-surface-inset rounded-lg p-3 text-center stat-tile">
                 <p className="text-xl font-bold text-primary">{initiatedDays}</p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.daysStudied")}</p>
               </div>
-              <div className="bg-surface-inset rounded-lg p-3 text-center">
+              <div className="bg-surface-inset rounded-lg p-3 text-center stat-tile">
                 <p className="text-xl font-bold text-[#4ade80]">
                   {(progress.stabilityScore * 100).toFixed(0)}%
                 </p>
@@ -294,17 +294,17 @@ export function SkillDetail({ skill, progress, checkIns }: SkillDetailProps) {
               </div>
             )}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-surface-inset rounded-lg p-3 text-center">
+              <div className="bg-surface-inset rounded-lg p-3 text-center stat-tile">
                 <p className="text-xl font-bold text-[#4ade80]">
                   {(progress.stabilityScore * 100).toFixed(0)}%
                 </p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.finalStability")}</p>
               </div>
-              <div className="bg-surface-inset rounded-lg p-3 text-center">
+              <div className="bg-surface-inset rounded-lg p-3 text-center stat-tile">
                 <p className="text-xl font-bold text-foreground">{totalCheckIns}</p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.totalCheckIns")}</p>
               </div>
-              <div className="bg-surface-inset rounded-lg p-3 text-center">
+              <div className="bg-surface-inset rounded-lg p-3 text-center stat-tile">
                 <p className="text-xl font-bold text-primary">{focusedDays}</p>
                 <p className="text-muted-foreground/70 text-xs mt-1">{t("skills.focusedDays")}</p>
               </div>

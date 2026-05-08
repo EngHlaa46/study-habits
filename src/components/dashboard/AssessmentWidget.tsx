@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/lib/language";
 
 export function AssessmentWidget() {
   const { t } = useLanguage();
-  const [text, setText] = useState<string | null | false>(null); // null=loading, false=no data
+  const [text, setText] = useState<string | null | false>(null);
 
   useEffect(() => {
     fetch("/api/assessment")
@@ -22,15 +23,38 @@ export function AssessmentWidget() {
         {t("dashboard.recentPerformance")}
       </p>
 
-      {text === null ? (
-        <div className="space-y-2">
-          <div className="h-3 bg-secondary rounded animate-pulse w-full" />
-          <div className="h-3 bg-secondary rounded animate-pulse w-5/6" />
-          <div className="h-3 bg-secondary rounded animate-pulse w-4/6" />
-        </div>
-      ) : (
-        <p className="text-foreground/80 text-sm leading-relaxed">{text}</p>
-      )}
+      <AnimatePresence mode="wait">
+        {text === null ? (
+          <motion.div
+            key="skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-2"
+          >
+            {[100, 83, 67].map((w, i) => (
+              <motion.div
+                key={i}
+                className="h-3 bg-secondary rounded animate-pulse"
+                style={{ width: `${w}%` }}
+                initial={{ scaleX: 0, originX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: i * 0.08, duration: 0.4, ease: "easeOut" }}
+              />
+            ))}
+          </motion.div>
+        ) : (
+          <motion.p
+            key="text"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 340, damping: 26 }}
+            className="text-foreground/80 text-sm leading-relaxed"
+          >
+            {text}
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
