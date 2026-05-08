@@ -1,5 +1,55 @@
 import Groq from "groq-sdk";
 
+export interface ValidationResult {
+  valid: boolean;
+  reason: string;
+}
+
+/**
+ * Quick pre-flight check using the fast 8b model.
+ * Returns { valid: false, reason } if the input is gibberish, too vague,
+ * or not a learnable subject. Costs ~100 tokens — runs before the 70b agent.
+ */
+export async function validateMaterial(
+  groq: Groq,
+  materialName: string,
+  materialDescription: string
+): Promise<ValidationResult> {
+  const response = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [
+      {
+        role: "system",
+        content: `You are a validator. Decide whether the user's input describes a real, learnable educational subject or course material.
+
+Return ONLY a JSON object: { "valid": true/false, "reason": "short explanation" }
+
+VALID examples: "Calculus", "Machine Learning", "Organic Chemistry", "Python Programming", "World War II", "Piano basics"
+INVALID examples: single letters, random words, nonsense strings, empty phrases, things that are not learnable subjects (e.g. "r", "asdf", "I don't know", "hello")
+
+Be lenient with abbreviations (e.g. "ML", "CS", "OOP" are valid). Reject only clear gibberish or non-subjects.`,
+      },
+      {
+        role: "user",
+        content: `Subject name: "${materialName}"\nAdditional context: "${materialDescription || "(none)"}"`,
+      },
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 80,
+  });
+
+  const content = response.choices[0]?.message?.content ?? "{}";
+  try {
+    const parsed = JSON.parse(content) as { valid?: boolean; reason?: string };
+    return {
+      valid: parsed.valid === true,
+      reason: parsed.reason ?? "Invalid subject",
+    };
+  } catch {
+    return { valid: true, reason: "validation parse error — proceeding" };
+  }
+}
+
 export interface SkillNodeInput {
   id: string;
   name: string;

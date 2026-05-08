@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import Groq from "groq-sdk";
-import { runSkillTreeAgent } from "@/lib/ai/dcs/skillTreeAgent";
+import { runSkillTreeAgent, validateMaterial } from "@/lib/ai/dcs/skillTreeAgent";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
@@ -50,6 +50,19 @@ export async function POST(req: NextRequest) {
 
   if (!text.trim()) {
     return NextResponse.json({ error: "Could not extract text from file" }, { status: 400 });
+  }
+
+  // Validate the material before running the full SkillTreeAgent
+  try {
+    const validation = await validateMaterial(groq, materialName, text.slice(0, 500));
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: `"${materialName}" doesn't look like a learnable subject. ${validation.reason}` },
+        { status: 400 }
+      );
+    }
+  } catch {
+    // Validation failure is non-fatal — let the main agent proceed
   }
 
   let nodes;
