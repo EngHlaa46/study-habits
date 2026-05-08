@@ -369,6 +369,11 @@ export async function runDCSPipeline(
         ];
         analyzeAndUpdateKnowledge(groq, userId, exchangeForAnalysis).catch(() => {});
 
+        // Fire-and-forget: auto-assign a challenge if none are pending
+        import("@/lib/games/autoChallenge")
+          .then(({ autoAssignChallengeIfNeeded }) => autoAssignChallengeIfNeeded(userId))
+          .catch(() => {});
+
         controller.close();
       } catch (error) {
         console.error("DCS pipeline error:", error);
