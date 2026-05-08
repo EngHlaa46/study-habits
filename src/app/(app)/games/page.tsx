@@ -1,8 +1,10 @@
 import { requireAuth } from "@/lib/session";
 import { prisma } from "@/lib/db/prisma";
+import { GamesHero } from "@/components/games/GamesHero";
 import { StandardGamesSection } from "@/components/games/StandardGamesSection";
 import { CoachChallengesSection } from "@/components/games/CoachChallengesSection";
 import { WeaknessesSection } from "@/components/games/WeaknessesSection";
+import { autoAssignChallengeIfNeeded } from "@/lib/games/autoChallenge";
 import type { GameChallengeClient } from "@/types/games";
 import type { WeakNode } from "@/components/games/WeaknessesSection";
 
@@ -10,11 +12,13 @@ export default async function GamesPage() {
   const session = await requireAuth();
   const userId = session.user.id;
 
-  const [skillTrees, rawChallenges, rawWeakNodes] = await Promise.all([
-    prisma.skillTree.findMany({
+  await autoAssignChallengeIfNeeded(userId);
+
+  const [mostRecentTree, rawChallenges, rawWeakNodes] = await Promise.all([
+    prisma.skillTree.findFirst({
       where: { userId },
-      select: { id: true },
-      take: 1,
+      orderBy: { generatedAt: "desc" },
+      select: { id: true, materialName: true },
     }),
     (prisma.gameChallenge as { findMany: (args: object) => Promise<{
       id: string; gameType: string; title: string; description: string;
@@ -42,7 +46,7 @@ export default async function GamesPage() {
     }).catch(() => []),
   ]);
 
-  const hasNodes = skillTrees.length > 0;
+  const hasNodes = !!mostRecentTree;
 
   const challenges: GameChallengeClient[] = rawChallenges.map((c) => ({
     id: c.id,
@@ -66,17 +70,22 @@ export default async function GamesPage() {
   }));
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10">
+    <div className="max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Games</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Practice through play. Game results update your mastery scores.
+          Play to grow your palm. Each correct answer waters it.
         </p>
       </div>
 
+      <GamesHero
+        skillTreeId={mostRecentTree?.id}
+        skillTreeName={mostRecentTree?.materialName}
+      />
+
       <WeaknessesSection nodes={weakNodes} />
       <CoachChallengesSection challenges={challenges} />
-      <StandardGamesSection hasNodes={hasNodes} />
+      <StandardGamesSection hasNodes={hasNodes} skillTreeId={mostRecentTree?.id} />
     </div>
   );
 }
