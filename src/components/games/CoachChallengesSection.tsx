@@ -37,18 +37,14 @@ interface Props {
 export function CoachChallengesSection({ challenges }: Props) {
   const router = useRouter();
 
+  if (challenges.length === 0) return null;
+
   return (
     <div>
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4">Coach Challenges</h2>
 
-      {challenges.length === 0 ? (
-        <div className="glass-card glass-panel px-6 py-8 text-center">
-          <p className="text-sm text-muted-foreground">Your coach hasn&apos;t assigned any challenges yet.</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Ask the AI coach to assign you a specific game challenge.</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {challenges.map((c) => {
+      <div className="flex flex-col gap-3">
+        {challenges.map((c) => {
             const color = GAME_COLORS[c.gameType] ?? "#38bdf8";
             const dueLabel = getDueLabel(c.dueBy);
             const isOverdue = dueLabel === "Overdue";
@@ -101,7 +97,6 @@ export function CoachChallengesSection({ challenges }: Props) {
             );
           })}
         </div>
-      )}
     </div>
   );
 }
