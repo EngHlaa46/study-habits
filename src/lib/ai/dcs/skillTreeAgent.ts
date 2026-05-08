@@ -87,6 +87,42 @@ Return ONLY valid JSON: { "goals": ["goal 1", "goal 2", "goal 3", "goal 4"] }`,
   return [];
 }
 
+/**
+ * Extracts a structured outline from one or more converted Markdown files.
+ * Combines content from all sources into a single course outline string.
+ */
+export async function extractCombinedOutline(
+  groq: Groq,
+  materialName: string,
+  markdownSources: { fileName: string; markdownContent: string }[]
+): Promise<string> {
+  // Take first 2000 chars from each source to capture TOC / intro sections
+  const snippets = markdownSources
+    .map((s) => `=== ${s.fileName} ===\n${s.markdownContent.slice(0, 2000)}`)
+    .join("\n\n");
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [
+      {
+        role: "system",
+        content: `You extract a unified course outline from one or more educational documents.
+Read the provided document excerpts and produce a single, clean, structured outline covering all major topics.
+Output ONLY the outline as a plain bulleted list using "- " prefixes. No intro sentence, no explanation.
+Merge overlapping topics. Keep each line concise (under 12 words). Max 40 bullet points.`,
+      },
+      {
+        role: "user",
+        content: `Subject: "${materialName}"\n\nDocument excerpts:\n\n${snippets}`,
+      },
+    ],
+    max_tokens: 800,
+    temperature: 0.2,
+  });
+
+  return response.choices[0]?.message?.content?.trim() ?? "";
+}
+
 export interface SkillNodeInput {
   id: string;
   name: string;

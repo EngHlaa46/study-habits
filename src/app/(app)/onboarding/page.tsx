@@ -5,9 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, BookOpen, Upload, X, FileText } from "lucide-react";
+import { Loader2, BookOpen, Upload, X, FileText, FolderOpen } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 const TOTAL_STEPS = 5; // 0=subject, 1=goal/hours, 2=challenges, 3=time, 4=event
@@ -21,11 +20,9 @@ function OnboardingContent() {
 
   // Step 0 — subject selection
   const [subjectName, setSubjectName] = useState("");
-  const [outline, setOutline] = useState("");
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [extractingOutline, setExtractingOutline] = useState(false);
-  const [extractError, setExtractError] = useState("");
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const [generatingTree, setGeneratingTree] = useState(false);
   const [treeError, setTreeError] = useState("");
 
@@ -78,41 +75,28 @@ function OnboardingContent() {
     return JSON.stringify(items);
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setUploadedFile(file);
-    setExtractError("");
-    if (!file) return;
-
-    // Pre-fill subject name from filename
-    if (!subjectName.trim()) {
-      const name = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-      setSubjectName(name);
-    }
-
-    // Auto-extract outline
-    setExtractingOutline(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/materials/extract-outline", { method: "POST", body: fd });
-      const data = await res.json();
-      if (res.ok && data.outline) {
-        setOutline(data.outline);
-      } else {
-        setExtractError("Couldn't auto-extract outline — you can type it manually below.");
+  const addFiles = (incoming: FileList | null) => {
+    if (!incoming) return;
+    const allowed = ["pdf", "pptx", "txt", "md", "markdown"];
+    const newFiles = Array.from(incoming).filter((f) => {
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      return allowed.includes(ext);
+    });
+    setUploadedFiles((prev) => {
+      const existingNames = new Set(prev.map((f) => f.name));
+      const deduped = newFiles.filter((f) => !existingNames.has(f.name));
+      const merged = [...prev, ...deduped];
+      // Auto-fill subject name from first file if blank
+      if (!subjectName.trim() && merged.length > 0) {
+        const name = merged[0].name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+        setSubjectName(name);
       }
-    } catch {
-      setExtractError("Couldn't auto-extract outline — you can type it manually below.");
-    } finally {
-      setExtractingOutline(false);
-    }
+      return merged;
+    });
   };
 
-  const clearFile = () => {
-    setUploadedFile(null);
-    setExtractError("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const removeFile = (index: number) => {
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Step 0: generate skill tree then advance
@@ -127,22 +111,14 @@ function OnboardingContent() {
     try {
       let res: Response;
 
-      if (outline.trim()) {
-        // Outline present — always preferred; send as JSON regardless of file
-        const materialText = `${subjectName}\n\n${outline.trim()}`;
-        res = await fetch("/api/materials", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: materialText, name: subjectName.trim() }),
-        });
-      } else if (uploadedFile) {
-        // No outline but file uploaded — fall back to raw file text
+      if (uploadedFiles.length > 0) {
+        // Files uploaded — convert to MD + extract outline server-side
         const formData = new FormData();
-        formData.append("file", uploadedFile);
         formData.append("name", subjectName.trim());
+        for (const f of uploadedFiles) formData.append("files", f);
         res = await fetch("/api/materials", { method: "POST", body: formData });
       } else {
-        // Subject name only
+        // Subject name only — send as text
         res = await fetch("/api/materials", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -235,72 +211,98 @@ function OnboardingContent() {
                   onChange={(e) => setSubjectName(e.target.value)}
                   placeholder="e.g. Calculus, Python Programming, Organic Chemistry…"
                   className="bg-surface-inset border-border text-foreground"
-                  disabled={generatingTree || extractingOutline}
+                  disabled={generatingTree}
                 />
               </div>
 
-              {/* Primary: Course outline */}
+              {/* File / folder upload */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-foreground/80">
-                    Course outline or syllabus{" "}
-                    <span className="text-muted-foreground/50 font-normal">(recommended)</span>
-                  </Label>
-                  {/* File upload trigger */}
-                  <div className="flex items-center gap-2">
-                    {uploadedFile ? (
-                      <div className="flex items-center gap-1.5 text-xs text-primary/80">
-                        <FileText size={12} />
-                        <span className="max-w-[120px] truncate">{uploadedFile.name}</span>
-                        <button
-                          onClick={clearFile}
-                          disabled={generatingTree || extractingOutline}
-                          className="text-muted-foreground/60 hover:text-foreground/80"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={generatingTree || extractingOutline}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-primary/80 transition-colors"
-                      >
-                        <Upload size={12} />
-                        Extract from file
-                      </button>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,.txt,.md,.markdown"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                  </div>
-                </div>
+                <Label className="text-foreground/80">
+                  Course material{" "}
+                  <span className="text-muted-foreground/50 font-normal">
+                    (PDF, PPTX, TXT, MD — optional)
+                  </span>
+                </Label>
 
-                <div className="relative">
-                  <Textarea
-                    value={outline}
-                    onChange={(e) => setOutline(e.target.value)}
-                    placeholder={"Paste your syllabus, chapter list, or topic outline…\n\ne.g.\n- Week 1: Limits and continuity\n- Week 2: Derivatives\n- Week 3: Chain rule and implicit differentiation"}
-                    className="bg-surface-inset border-border text-foreground resize-none"
-                    rows={6}
-                    disabled={generatingTree || extractingOutline}
-                  />
-                  {extractingOutline && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-md bg-surface-inset/80">
-                      <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 size={14} className="animate-spin" />
-                        Extracting outline…
-                      </span>
-                    </div>
+                {/* Drop zone / buttons */}
+                <div
+                  className="rounded-md border border-dashed border-border p-4 space-y-3"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    addFiles(e.dataTransfer.files);
+                  }}
+                >
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={generatingTree}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-primary/80 transition-colors border border-border rounded px-2 py-1.5"
+                    >
+                      <Upload size={12} />
+                      Add files
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => folderInputRef.current?.click()}
+                      disabled={generatingTree}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-primary/80 transition-colors border border-border rounded px-2 py-1.5"
+                    >
+                      <FolderOpen size={12} />
+                      Add folder
+                    </button>
+                    <span className="text-xs text-muted-foreground/40 self-center">
+                      or drag & drop
+                    </span>
+                  </div>
+
+                  {/* File list */}
+                  {uploadedFiles.length > 0 && (
+                    <ul className="space-y-1">
+                      {uploadedFiles.map((f, i) => (
+                        <li key={i} className="flex items-center gap-2 text-xs text-foreground/70">
+                          <FileText size={11} className="text-primary/60 shrink-0" />
+                          <span className="truncate flex-1">{f.name}</span>
+                          <span className="text-muted-foreground/40 shrink-0">
+                            {(f.size / 1024).toFixed(0)} KB
+                          </span>
+                          <button
+                            onClick={() => removeFile(i)}
+                            disabled={generatingTree}
+                            className="text-muted-foreground/40 hover:text-foreground/70 shrink-0"
+                          >
+                            <X size={11} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
-                {extractError && (
-                  <p className="text-xs text-amber-500">{extractError}</p>
+
+                {/* Hidden inputs */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.pptx,.txt,.md,.markdown"
+                  className="hidden"
+                  onChange={(e) => addFiles(e.target.files)}
+                />
+                <input
+                  ref={folderInputRef}
+                  type="file"
+                  // @ts-expect-error webkitdirectory is non-standard
+                  webkitdirectory=""
+                  multiple
+                  className="hidden"
+                  onChange={(e) => addFiles(e.target.files)}
+                />
+
+                {uploadedFiles.length > 0 && (
+                  <p className="text-xs text-muted-foreground/50">
+                    {uploadedFiles.length} file{uploadedFiles.length > 1 ? "s" : ""} — outlines will be extracted and full content sent to the activity generator
+                  </p>
                 )}
               </div>
 
@@ -310,13 +312,13 @@ function OnboardingContent() {
 
               <Button
                 onClick={handleSubjectNext}
-                disabled={subjectName.trim().length < 3 || generatingTree || extractingOutline}
+                disabled={subjectName.trim().length < 3 || generatingTree}
                 className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-5"
               >
                 {generatingTree ? (
                   <span className="flex items-center gap-2">
                     <Loader2 size={16} className="animate-spin" />
-                    Building your skill tree…
+                    {uploadedFiles.length > 0 ? "Converting files & building skill tree…" : "Building your skill tree…"}
                   </span>
                 ) : (
                   "Build my plan →"
@@ -325,7 +327,9 @@ function OnboardingContent() {
 
               {generatingTree && (
                 <p className="text-xs text-center text-muted-foreground/50">
-                  Analysing your subject and mapping mastery paths — takes about 20 seconds
+                  {uploadedFiles.length > 0
+                    ? `Converting ${uploadedFiles.length} file${uploadedFiles.length > 1 ? "s" : ""} to Markdown, extracting outline, mapping mastery paths…`
+                    : "Analysing your subject and mapping mastery paths — takes about 20 seconds"}
                 </p>
               )}
             </CardContent>

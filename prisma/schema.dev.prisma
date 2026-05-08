@@ -205,12 +205,22 @@ model KnowledgeEntry {
 }
 
 model SkillTree {
-  id           String      @id @default(cuid())
+  id           String           @id @default(cuid())
   userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   materialName String
-  generatedAt  DateTime    @default(now())
+  generatedAt  DateTime         @default(now())
   nodes        SkillNode[]
+  sources      MaterialSource[]
+}
+
+model MaterialSource {
+  id              String    @id @default(cuid())
+  skillTreeId     String
+  skillTree       SkillTree @relation(fields: [skillTreeId], references: [id], onDelete: Cascade)
+  fileName        String
+  markdownContent String
+  createdAt       DateTime  @default(now())
 }
 
 model SkillNode {

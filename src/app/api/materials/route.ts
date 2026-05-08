@@ -3,7 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import Groq from "groq-sdk";
-import { runSkillTreeAgent, validateMaterial, generateStudyGoals } from "@/lib/ai/dcs/skillTreeAgent";
+import {
+  runSkillTreeAgent,
+  validateMaterial,
+  generateStudyGoals,
+  extractCombinedOutline,
+} from "@/lib/ai/dcs/skillTreeAgent";
+import { convertFileToMarkdown } from "@/lib/converters/toMarkdown";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
@@ -13,48 +19,69 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let text = "";
-  let materialName = "Unnamed Material";
+  let materialName = "My Subject";
+  let outlineText = ""; // what goes to SkillTreeAgent
+  const convertedSources: { fileName: string; markdownContent: string }[] = [];
 
   const contentType = req.headers.get("content-type") ?? "";
 
   if (contentType.includes("application/json")) {
-    // Direct text input (e.g. from onboarding subject selection)
+    // Text/outline input from onboarding
     const body = (await req.json()) as { text?: string; name?: string };
-    text = body.text ?? "";
+    outlineText = body.text ?? "";
     materialName = body.name || "My Subject";
   } else {
-    // File upload
+    // File upload(s) — convert each to Markdown, then extract combined outline
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    materialName = (formData.get("name") as string) || file?.name || "Unnamed Material";
+    materialName = (formData.get("name") as string) || "My Subject";
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    const files = formData.getAll("files") as File[];
+    const singleFile = formData.get("file") as File | null;
+    const allFiles = files.length > 0 ? files : singleFile ? [singleFile] : [];
+
+    if (allFiles.length === 0) {
+      return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
-    if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
+    // Convert all files to Markdown in parallel
+    const results = await Promise.allSettled(
+      allFiles.map(async (file) => {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const data = await pdfParse(buffer);
-        text = data.text;
-      } catch {
-        return NextResponse.json({ error: "Failed to parse PDF" }, { status: 400 });
-      }
-    } else {
-      text = await file.text();
+        return convertFileToMarkdown(file.name, file.type, buffer);
+      })
+    );
+
+    for (const r of results) {
+      if (r.status === "fulfilled") convertedSources.push(r.value);
+    }
+
+    if (convertedSources.length === 0) {
+      return NextResponse.json({ error: "Failed to convert any files" }, { status: 400 });
+    }
+
+    // Extract combined outline from all converted MDs
+    outlineText = await extractCombinedOutline(groq, materialName, convertedSources);
+
+    // Fallback: concatenate headings from MDs if LLM fails
+    if (!outlineText) {
+      outlineText = convertedSources
+        .flatMap((s) =>
+          s.markdownContent
+            .split("\n")
+            .filter((l) => l.startsWith("#") || l.startsWith("- "))
+            .slice(0, 20)
+        )
+        .join("\n");
     }
   }
 
-  if (!text.trim()) {
-    return NextResponse.json({ error: "Could not extract text from file" }, { status: 400 });
+  if (!outlineText.trim()) {
+    return NextResponse.json({ error: "Could not extract text from input" }, { status: 400 });
   }
 
-  // Validate the material before running the full SkillTreeAgent
+  // Validate subject before running the full agent
   try {
-    const validation = await validateMaterial(groq, materialName, text.slice(0, 500));
+    const validation = await validateMaterial(groq, materialName, outlineText.slice(0, 500));
     if (!validation.valid) {
       return NextResponse.json(
         { error: `"${materialName}" doesn't look like a learnable subject. ${validation.reason}` },
@@ -62,22 +89,21 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch {
-    // Validation failure is non-fatal — let the main agent proceed
+    // Non-fatal — proceed if validator crashes
   }
 
   let nodes;
   let studyGoals: string[] = [];
   try {
     [nodes, studyGoals] = await Promise.all([
-      runSkillTreeAgent(groq, text, materialName),
-      generateStudyGoals(groq, materialName, text.slice(0, 300)).catch(() => []),
+      runSkillTreeAgent(groq, outlineText, materialName),
+      generateStudyGoals(groq, materialName, outlineText.slice(0, 300)).catch(() => []),
     ]);
   } catch (err) {
-    console.error('[materials] SkillTreeAgent failed:', err);
+    console.error("[materials] SkillTreeAgent failed:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 
-  // Find root nodes (no prerequisites) to activate first
   const rootLocalIds = new Set(
     nodes.filter((n) => n.prerequisites.length === 0).map((n) => n.id)
   );
@@ -99,11 +125,20 @@ export async function POST(req: NextRequest) {
             masteryStatus: rootLocalIds.has(node.id) ? "active" : "locked",
           })),
         },
+        // Store converted MD sources for the GenerationAgent
+        ...(convertedSources.length > 0 && {
+          sources: {
+            create: convertedSources.map((s) => ({
+              fileName: s.fileName,
+              markdownContent: s.markdownContent,
+            })),
+          },
+        }),
       },
-      include: { nodes: true },
+      include: { nodes: true, sources: true },
     });
   } catch (err) {
-    console.error('[materials] Prisma create failed:', err);
+    console.error("[materials] Prisma create failed:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 
@@ -118,7 +153,10 @@ export async function GET() {
 
   const skillTrees = await prisma.skillTree.findMany({
     where: { userId: session.user.id },
-    include: { nodes: { orderBy: { createdAt: "asc" } } },
+    include: {
+      nodes: { orderBy: { createdAt: "asc" } },
+      sources: { select: { id: true, fileName: true, createdAt: true } },
+    },
     orderBy: { generatedAt: "desc" },
   });
 

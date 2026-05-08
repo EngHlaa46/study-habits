@@ -18,7 +18,8 @@ export async function runGenerationAgent(
     description: string;
     whatMasteryLooksLike: string;
     suggestedEvalFormat: string;
-  }
+  },
+  materialContent?: string
 ): Promise<GeneratedActivity> {
   const formatInstructions: Record<string, string> = {
     recall_quiz: `Generate 4 short recall questions testing specific facts, definitions, or concepts.
@@ -53,6 +54,7 @@ ${formatInstructions[formatKey]}
 RULES:
 - Make the activity genuinely test the mastery level described — not just surface recall
 - Be specific and concrete, not generic
+- Use content from the student's actual course material when provided — reference real examples, terms, or problems from it
 - Output ONLY valid JSON matching the structure above — no other text`,
       },
       {
@@ -60,7 +62,7 @@ RULES:
         content: `Skill: ${node.name}
 Description: ${node.description}
 Mastery looks like: ${node.whatMasteryLooksLike}
-Format: ${formatKey}`,
+Format: ${formatKey}${materialContent ? `\n\nCourse material (use this to make the activity specific to their content):\n${materialContent.slice(0, 4000)}` : ""}`,
       },
     ],
     response_format: { type: "json_object" },
