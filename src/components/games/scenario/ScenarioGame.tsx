@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { PixelPalm } from "@/components/games/palm/PixelPalm";
+import { LevelUpCeremony } from "@/components/games/palm/LevelUpCeremony";
 import type { PalmAnimationState } from "@/components/games/palm/palmData";
 import type { Scenario, ScenarioChoice } from "@/lib/ai/games/generateScenario";
 import type { SkillPalmState } from "@/types/gamification";
@@ -35,6 +36,8 @@ export function ScenarioGame() {
   const [localHealth, setLocalHealth] = useState(100);
   const [palmAnim, setPalmAnim] = useState<PalmAnimationState>("idle");
   const animLockRef = useRef(false);
+  const [showCeremony, setShowCeremony] = useState(false);
+  const [ceremonyStage, setCeremonyStage] = useState(1);
 
   useEffect(() => {
     if (!skillTreeId) return;
@@ -117,7 +120,12 @@ export function ScenarioGame() {
             totalAnswers: results.length,
             gameType: "SCENARIO",
           }),
-        });
+        }).then((r) => r.json()).then((xp: { palmStageChanged?: boolean; newPalmStage?: number }) => {
+          if (xp.palmStageChanged) {
+            setCeremonyStage(xp.newPalmStage ?? 1);
+            setShowCeremony(true);
+          }
+        }).catch(() => {});
       }
     }
   }
@@ -130,6 +138,12 @@ export function ScenarioGame() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <LevelUpCeremony
+        show={showCeremony}
+        newStage={ceremonyStage}
+        skillTreeName={palmState?.skillTreeName}
+        onDone={() => setShowCeremony(false)}
+      />
       <div className="mb-4">
         <h1 className="text-xl font-bold text-foreground">Skill Scenario</h1>
         {scenario && phase !== "complete" && (

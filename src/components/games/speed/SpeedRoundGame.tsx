@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { PixelPalm } from "@/components/games/palm/PixelPalm";
+import { LevelUpCeremony } from "@/components/games/palm/LevelUpCeremony";
 import type { PalmAnimationState } from "@/components/games/palm/palmData";
 import type { SpeedQuestion } from "@/lib/ai/games/generateSpeedRound";
 import type { SkillPalmState } from "@/types/gamification";
@@ -29,6 +30,8 @@ export function SpeedRoundGame() {
   const [countdown, setCountdown] = useState(3);
   const [error, setError] = useState<string | null>(null);
   const [newPB, setNewPB] = useState(false);
+  const [showCeremony, setShowCeremony] = useState(false);
+  const [ceremonyStage, setCeremonyStage] = useState(1);
 
   // Palm state
   const [palmState, setPalmStateObj] = useState<SkillPalmState | null>(null);
@@ -129,7 +132,7 @@ export function SpeedRoundGame() {
       setPalmAnim("dateBurst");
     }
 
-    // Save session + award XP
+    // Save session + award XP (check for palm stage up)
     if (skillTreeId) {
       void fetch("/api/games/submit", {
         method: "POST",
@@ -143,7 +146,12 @@ export function SpeedRoundGame() {
           questionsCorrect: correctCount,
           score,
         }),
-      });
+      }).then((r) => r.json()).then((data: { xp?: { palmStageChanged?: boolean; newPalmStage?: number } }) => {
+        if (data.xp?.palmStageChanged) {
+          setCeremonyStage(data.xp.newPalmStage ?? 1);
+          setShowCeremony(true);
+        }
+      }).catch(() => {});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -194,6 +202,12 @@ export function SpeedRoundGame() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <LevelUpCeremony
+        show={showCeremony}
+        newStage={ceremonyStage}
+        skillTreeName={palmState?.skillTreeName}
+        onDone={() => setShowCeremony(false)}
+      />
       <div className="mb-4">
         <h1 className="text-xl font-bold text-foreground">Speed Round</h1>
         <p className="text-sm text-muted-foreground mt-0.5">

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QuizQuestion } from "./QuizQuestion";
 import { QuizResults } from "./QuizResults";
 import { PixelPalm } from "@/components/games/palm/PixelPalm";
+import { LevelUpCeremony } from "@/components/games/palm/LevelUpCeremony";
 import type { PalmAnimationState } from "@/components/games/palm/palmData";
 import type { QuizQuestion as QuizQuestionType, GameSubmitResult } from "@/types/games";
 import type { SkillPalmState } from "@/types/gamification";
@@ -24,6 +25,8 @@ export function QuizGame() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [result, setResult] = useState<GameSubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCeremony, setShowCeremony] = useState(false);
+  const [ceremonyStage, setCeremonyStage] = useState(1);
 
   // Palm state
   const [palmState, setPalmState] = useState<SkillPalmState | null>(null);
@@ -130,8 +133,13 @@ export function QuizGame() {
         const data = await res.json() as GameSubmitResult & { error?: string };
         if (!res.ok) throw new Error(data.error ?? "Submit failed");
         setResult(data);
-        setPhase("results");
-        if (data.score >= 0.8) triggerAnim("dateBurst");
+        if (data.xp?.palmStageChanged) {
+          setCeremonyStage(data.xp.newPalmStage);
+          setShowCeremony(true);
+        } else {
+          setPhase("results");
+          if (data.score >= 0.8) triggerAnim("dateBurst");
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to submit");
         setPhase("error");
@@ -145,6 +153,12 @@ export function QuizGame() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      <LevelUpCeremony
+        show={showCeremony}
+        newStage={ceremonyStage}
+        skillTreeName={palmState?.skillTreeName}
+        onDone={() => { setShowCeremony(false); setPhase("results"); }}
+      />
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1">
