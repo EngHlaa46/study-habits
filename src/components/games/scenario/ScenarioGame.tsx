@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { PixelPalm } from "@/components/games/palm/PixelPalm";
 import { LevelUpCeremony } from "@/components/games/palm/LevelUpCeremony";
 import type { PalmAnimationState } from "@/components/games/palm/palmData";

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useAnimation, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, useAnimation } from "framer-motion";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   STAGE_CONFIGS,
@@ -38,7 +38,6 @@ const FROND_CRACK_LINE = "#5A4020";   // crack line
 
 // Date colors
 const DATE_COLOR = "#C85A14";
-const DATE_SHADOW = "#8B3A08";
 const DATE_LEGENDARY = "#D4A017";
 const DATE_LEGENDARY_GLOW = "#FFD700";
 
