@@ -279,7 +279,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "auth.sending": "Sending...",
     "auth.welcomeBack": "Welcome Back",
     "auth.continueJourney": "Sign in to continue your study journey",
-    "auth.startHabits": "Start building better study habits",
+    "auth.startHabits": "Start building real study skills",
     "auth.email": "Email",
     "auth.name": "Name",
     "auth.rememberMe": "Remember me",

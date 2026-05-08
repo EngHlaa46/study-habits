@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
         await prisma.notification.create({
           data: { userId: user.id, content, type: "daily" },
         });
-        await sendPushToUser(user.id, "Study Habits", content);
+        await sendPushToUser(user.id, "Study Skills Builder", content);
         created++;
       } catch {
         // Skip this user on error; don't abort the whole batch

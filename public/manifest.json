@@ -1,7 +1,7 @@
 {
-  "name": "Study Habits",
-  "short_name": "Study",
-  "description": "AI-guided study habit refinement",
+  "name": "Study Skills Builder",
+  "short_name": "SSB",
+  "description": "AI-guided mastery platform for students",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#0d0d14",

@@ -18,8 +18,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Study Habits",
-  description: "AI-guided study habit refinement system",
+  title: "Study Skills Builder",
+  description: "AI-guided mastery platform for students",
   manifest: "/manifest.json",
 };
 
