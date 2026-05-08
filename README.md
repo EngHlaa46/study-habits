@@ -13,6 +13,7 @@ Live at **[studyskillsbuilder.com](https://studyskillsbuilder.com)**
 3. **The AssessmentAgent evaluates you** — not a quiz bank, but the right format for each node: recall games, debugging tasks, novel problems, explanation prompts, analogy challenges
 4. **The system tracks mastery objectively** — no "rate your focus 1–5", just what you can and can't do yet
 5. **Spaced repetition runs automatically** — due nodes surface, weak areas get targeted, the tree grows more granular where you're stuck
+6. **Play to reinforce** — adaptive mini-games (Quiz, Memory Sprint, Task Breakdown) update mastery scores; the AI coach silently assigns targeted challenges when weak areas are detected
 
 ---
 
@@ -100,7 +101,11 @@ Low-pressure mini-games that reinforce mastery without self-report or session tr
 
 **Materials → Quiz pipeline:** Every uploaded PDF/file is stored as source material. Hitting **Quiz** on any material card routes directly to a Knowledge Quiz grounded in that file's exact terminology and examples — not generic textbook questions.
 
-**Coach Challenges:** The AI coach can assign targeted game instances from chat (e.g. *"I've set up a Memory Sprint on Fourier transforms in your Games section"*). Challenges appear on the Games page with difficulty, due date, and a Play button.
+**Wrong-answer explanations:** After selecting an incorrect option the quiz shows exactly why that specific choice was wrong (the misconception it represents), then reveals why the correct answer is right.
+
+**Focus Areas panel:** The Games page surfaces your 6 weakest non-locked nodes (masteryScore < 60%) with colored mastery bars and direct Quiz links, so you always know where to start.
+
+**Coach Challenges:** After every chat response the pipeline silently checks: if no challenges are pending and none were assigned in the last 24 hours, it automatically creates a QUIZ challenge targeting your weakest nodes — no prompt required. The AI can also assign challenges manually from chat. All challenges appear on the Games page with difficulty, due date, and a Play button.
 
 ### Dashboard
 - **Plan widget** — all your skill trees with mastery progress bars and due/active nodes
@@ -136,7 +141,7 @@ Low-pressure mini-games that reinforce mastery without self-report or session tr
 | Auth | NextAuth.js v4 — JWT + Credentials (bcryptjs) |
 | AI | Groq API — Llama 3.3 70B (SkillTreeAgent) + Llama 3.1 8B (validation, goal gen, outline extraction) |
 | Email | Resend (password reset) |
-| UI | Tailwind CSS + shadcn/ui |
+| UI | Tailwind CSS + shadcn/ui + framer-motion (page transitions, stagger animations) |
 | Charts | Recharts (lazy-loaded) |
 | Push | Web Push API + web-push (VAPID) |
 | Deployment | Railway (Node.js + PostgreSQL) + Cloudflare Worker (reverse proxy) |
@@ -260,19 +265,23 @@ src/
       notifications/     — push notification generation (cron)
   components/
     games/
-      quiz/              — QuizGame, QuizQuestion, QuizResults
-      memory-sprint/     — MemorySprintGame, ConceptCard, RecallInput, MemorySprintResults
+      quiz/              — QuizGame, QuizQuestion, QuizResults (with per-option wrong explanations)
+      memory-sprint/     — MemorySprintGame, ConceptCard (SVG countdown ring), RecallInput, MemorySprintResults
       task-breakdown/    — TaskBreakdownGame, GoalCard, StepBuilder, TaskBreakdownResults
+      WeaknessesSection  — Focus Areas panel: weakest nodes with mastery bars + Quiz links
+    layout/
+      AnimatedPage       — framer-motion page transition wrapper
+      BackgroundOrbs     — ambient animated background orbs
   lib/
     ai/
       systemPrompt.ts    — single source of truth for AI behavior
-      buildContext.ts    — assembles full student state before each AI call
+      buildContext.ts    — assembles full student state before each AI call (includes pending challenges)
       dcs/
-        pipeline.ts      — DCS pipeline (sentinels → coaches → orchestrator)
+        pipeline.ts      — DCS pipeline (sentinels → coaches → orchestrator + auto-challenge)
         skillTreeAgent.ts — SkillTreeAgent, validateMaterial, generateStudyGoals
         knowledgeAnalyzer.ts
       games/
-        generateQuiz.ts       — adaptive MCQ with Bloom's taxonomy difficulty bands
+        generateQuiz.ts       — adaptive MCQ with Bloom's taxonomy difficulty bands + optionExplanations
         generateMemorySprint.ts
         generateTaskBreakdown.ts
         evaluateRecall.ts
@@ -280,6 +289,8 @@ src/
     games/
       masteryUpdate.ts   — applyGameMasteryDelta (weight by isRetentionCheck)
       stabilityUpdate.ts — applyPlanningStabilityNudge (Task Breakdown → SkillProgress)
+      autoChallenge.ts   — autoAssignChallengeIfNeeded: silent background challenge creation
+    motion.ts            — shared framer-motion variants (staggerContainer, staggerItem)
     skills/
       progression.ts     — skill unlock thresholds
 ```
