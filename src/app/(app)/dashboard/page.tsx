@@ -2,7 +2,6 @@ import { requireAuth } from "@/lib/session";
 import { prisma } from "@/lib/db/prisma";
 import { redirect } from "next/navigation";
 import { EventCard } from "@/components/dashboard/EventCard";
-import { InspirationWidget } from "@/components/dashboard/InspirationWidget";
 import { AssessmentWidget } from "@/components/dashboard/AssessmentWidget";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
 import { PlanWidget } from "@/components/dashboard/PlanWidget";
@@ -100,8 +99,6 @@ export default async function DashboardPage() {
         <AssessmentWidget />
         <EventCard events={formattedEvents} />
       </div>
-
-      <InspirationWidget />
 
       <MiniChatWidget initialMessages={initialMessages} />
     </div>
