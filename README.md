@@ -1,135 +1,116 @@
-# Study Habits — AI-Guided Study Skill Builder
+# Study Skills Builder — AI-Driven Mastery Platform
 
-An AI-powered web application that helps students build real, lasting study skills through structured behavioral progression. Built on cognitive-behavioral research, it trains one skill at a time with a 3-week deployment cycle — no gamification, no streaks, just measurable habit change.
+An AI-powered study platform that builds a personalised skill tree from your actual course material, then assesses mastery through targeted activities — no generic advice, no self-report bias.
 
----
-
-## The Problem
-
-Most students know they need to study better — they just don't know how to change. Generic productivity advice doesn't stick because it ignores the underlying behavioral and cognitive barriers: failure to initiate, poor focus quality, lack of planning, and emotional resistance. This app applies a research-backed framework to systematically close those gaps.
+Live at **[studyskillsbuilder.com](https://studyskillsbuilder.com)**
 
 ---
 
-## Research Foundation
+## What It Does
 
-The system is grounded in the paper *"Developing Study Skills and Cognitive Behavior Using AI: Study Skill Builder Platform"*, which defines:
-
-**Three Dimensions of Study Skills:**
-| Dimension | Role in Session | What It Trains |
-|-----------|----------------|---------------|
-| **Planning & Prep** | Pre-session | Task clarity, time estimation, flexible replanning |
-| **Behavioral** | Starting session | Initiation, environment control, sticking to plan |
-| **Cognitive** | During session | Focus containment, focus endurance, cognitive recovery |
-
-**Cognitive-Behavioral Model:** perception → emotion → behavior. The AI uses this chain to interpret why a student acts the way they do, not just what they did.
-
-**Growth vs. Fixed Mindset:** Absolute language ("I always procrastinate", "I can't focus") is detected and reframed using the student's own check-in data. The AI never lectures — it uses behavioral evidence to challenge fixed-mindset framing.
+1. **You describe your subject** — paste a course outline, upload a PDF/syllabus, or type a subject name
+2. **The SkillTreeAgent reads it** and maps the path from novice to genuine mastery: what experts can *do*, explain, and perceive that beginners cannot — specific to your material
+3. **The AssessmentAgent evaluates you** — not a quiz bank, but the right format for each node: recall games, debugging tasks, novel problems, explanation prompts, analogy challenges
+4. **The system tracks mastery objectively** — no "rate your focus 1–5", just what you can and can't do yet
+5. **Spaced repetition runs automatically** — due nodes surface, weak areas get targeted, the tree grows more granular where you're stuck
 
 ---
 
-## How It Works
+## Architecture: Two-Layer Model
 
-### 1. Onboarding
-Student sets their study goal, identifies their biggest challenges (multi-select + free text), and enters the system.
+### Layer 1 — Curriculum (SkillTreeAgent)
+Reads your uploaded material or course outline and derives a skill tree unique to that content. Structure (node count, depth, relationships) emerges entirely from the material — no preset template. Each node describes:
+- What this skill is and why it matters on the path to mastery
+- What a master can **do** that a beginner cannot (specific and observable)
+- Prerequisite nodes that must be mastered first
+- The right evaluation format for this type of knowledge
 
-### 2. Skill Training
-Onboarding completion immediately activates all 3 Level 1 skills — no waiting period. Check-in data from day one builds a behavioral baseline that feeds the AI context. Students work through 9 skills across 3 levels, with all 3 skills in a level trained simultaneously. Each skill follows a **3-week deployment cycle**:
-- **Week 1 — Stabilize:** Build the habit at a fixed time, place, and action
-- **Week 2 — Express:** Adapt the skill to fit real-world schedule variation
-- **Week 3 — Probe:** Stress-test and generalize the skill under pressure
+Root nodes (no prerequisites) activate immediately. Locked nodes unlock as their prerequisites are mastered.
 
-A skill advances when it reaches a **stability score ≥ 0.70** — computed from check-in data (initiation rate, focus rate, atypical day handling). Brief sessions (under 15 min) count as 0.5 toward focus rate, because the hardest behavioral act is starting.
+### Layer 2 — Assessment (EvaluationAgent)
+Receives the current skill node and generates an appropriate evaluation activity. Format is matched to what the node's mastery description requires:
 
-### 3. Skill Progression Tree
-Skills are organised in a 3 × 3 grid — three levels, one skill per dimension per level. All 3 skills in a level train in parallel. When every skill in a level reaches "stable", the next level auto-activates.
+| Format | When used |
+|--------|-----------|
+| `recall_quiz` | Definitions, terminology, factual recall |
+| `matching_game` | Associations, vocabulary, symbol-meaning pairs |
+| `problem_solving` | Applying rules to solve problems (math, logic) |
+| `code_debugging` | Finding/fixing errors in code or logic |
+| `explanation_prompt` | Conceptual depth — "explain why…", "teach this to a beginner" |
+| `analogy_task` | Abstract understanding — "how is X like Y in another domain?" |
+| `creative_challenge` | Generative, open-ended application |
 
-```
-                Planning & Prep     Behavioral          Cognitive
-Level 1 · Beginner   Task Clarity       Initiation          Focus Containment
-                         ↓                  ↓                     ↓
-Level 2 · Intermediate  Estimating Time  Environment Control  Focus Endurance
-                         ↓                  ↓                     ↓
-Level 3 · Mastery    Flexible Planning  Sticking to Plan    Cognitive Recovery
-```
+---
 
-### 4. AI Coaching (DCS v2 — Multi-Agent Pipeline)
-The chat runs a **Distributed Cognitive Scaffolding (DCS)** pipeline before each response:
+## Onboarding Flow
 
-1. **Sentinel agents** (rule-based, no LLM) extract behavioral, cognitive, and metacognitive signals from check-in data
-2. **Dimension coaches** (3× llama-3.1-8b-instant in parallel) produce internal specialist notes — never shown to student
-3. **InterventionOrchestrator** (llama-3.3-70b-versatile, streaming) synthesises all signals into one calibrated response
+**Step 0 — Subject & Outline**
+- Enter a subject name (min. 3 characters — validated by a fast LLM before the main agent runs)
+- Paste your course outline or syllabus (recommended — gives the agent the best signal)
+- Or upload a PDF/txt/md — the system auto-extracts the outline from the file, which you can review and edit
+- The SkillTreeAgent (~20s) builds your personalised skill tree and generates 4 material-specific study goal options
 
-The orchestrator receives the student's full context before every message:
-- Current level and all active skills (up to 3 in parallel)
-- Last 14 check-ins (with focus level, methods, miss reasons, session intentions)
-- Procrastination pattern analysis (repeated miss reasons flagged)
-- Dimension profile (Behavioral / Cognitive / Metacognitive scores)
+**Steps 1–4** — study goal, challenges, preferred study time, upcoming events
+
+**Returning users** — if you log in with no skill tree (e.g. after a reset), you go straight to step 0 only. After adding a subject you return to the dashboard — no need to redo steps 1–4.
+
+---
+
+## AI Coaching Pipeline (DCS)
+
+The chat uses a **Distributed Cognitive Scaffolding** pipeline before each response:
+
+1. **Sentinel agents** (rule-based, no LLM) — extract behavioral signals from check-in data
+2. **Dimension coaches** (3× llama-3.1-8b-instant in parallel) — produce internal specialist notes, never shown to the student
+3. **InterventionOrchestrator** (llama-3.3-70b-versatile, streaming) — synthesises all signals into one calibrated, non-moralising response
+
+**Three chat modes:**
+- *Skills Coach* (default) — habit coaching, check-in review, task planning; AI can update your skill task directly via tool call
+- *Study* — direct subject-matter answers with tool recommendations
+- *Training* — Socratic exam prep, never gives answers
+
+**Context fed to the AI per message:**
+- Active skill trees and node mastery scores
+- Last 14 check-ins (focus, methods, intentions, miss reasons)
 - Upcoming events and deadlines
-- Study method → focus correlations (e.g. `qa: 3/4 focused`)
-- **Knowledge profile** — subjects and topics the student struggled with or mastered across all past sessions
-- **Coaching preferences** — style (direct/Socratic), motivation frame, phone screen time
+- Study method → focus correlations
+- Knowledge profile (subjects/topics where you're struggling or strong)
+- Coaching preferences (style, motivation frame, phone screen time)
 
 ---
 
 ## Features
 
 ### Core
-- **Daily Check-in** (< 2 min) — session type (full / brief / no), focus level, energy, mood, study methods, miss reason, pre-session intention
-- **Skill Tree** — 3 × 3 level/dimension grid, color-coded by dimension, stability bars per active skill
-- **Skill Detail** — training timeline, stats, user-defined task (time + place + action), growth narrative
-- **AI Chat** — three-mode DCS pipeline:
-  - *Skills Coach* (default) — habit coaching, check-in review, planning; AI can update your skill task directly
-  - *Study* — direct subject-matter answers with tool recommendations
-  - *Training* — Socratic exam prep, never gives answers
-  - Voice-to-text input, AI autocomplete suggestions (Tab to accept)
-- **AI Tools** — curated study tools page (StudyFetch, NotebookLM, Napkin, Consensus, Magic School) with dimension-aware highlights
-- **Event Tracking** — exams, deadlines, projects with days-until countdown
-- **Check-in History** — full log with filtering
+- **Subject skill tree** — AI-generated from your own material; nodes show mastery status, prerequisites, and what mastery looks like
+- **Assessment sessions** — activity format matched to skill node type; confidence calibration before answering
+- **Daily check-in** (< 2 min) — session type, focus level, methods used, miss reason, pre-session intention
+- **Spaced repetition** — nodes track `lastPracticedAt`, `nextReviewAt`, `reviewInterval`; interval adjusts by mastery score
+- **AI chat** — three-mode DCS pipeline with voice input, autocomplete, and tool calling
+- **Event tracking** — exams, deadlines, projects with days-until countdown
 
 ### Dashboard
-- **Phase banner** — shows current phase and day count
-- **Active Plan Card** — current level, all 3 active skills with week phase and dimension color, challenge summary
-- **Skill Radar Chart** — visual skill status across all 9 skills
-- **Dimension Profile Card** — Planning & Prep / Behavioral / Cognitive progress bars with expandable explanations
-- **Weekly Trend Chart** — 14-day check-in heatmap
-- **Today's Note** — AI-generated daily inspiration + personal affirmation field
-- **Check-in Widget** — quick status and 14-day calendar dots
-- **Assessment Widget** — periodic self-assessment prompt
-- **Mini Chat Widget** — quick AI access from dashboard
+- **Plan widget** — all your skill trees with mastery progress bars and due/active nodes
+- **Check-in widget** — 14-day calendar dots + quick status
+- **Assessment widget** — surfaces next queued activity
+- **Events card** — upcoming deadlines
+- **Weekly trend chart** — 14-day check-in heatmap
+- **Inspiration widget** — AI-generated daily focus message
 
 ### Notifications
-- **Daily notifications** — AI-generated personalized motivation sent at 8am via cron
-- **Weekly insights** — richer cognitive-behavioral analysis every 7 days covering dimension progress, procrastination patterns, and one actionable recommendation
-- **Push notifications** — PWA web push to phone (Android Chrome + iOS Safari 16.4+ via Home Screen)
+- **Daily** — AI-generated personalised motivation at 8am via Railway cron
+- **Weekly insights** — cognitive-behavioral analysis every Sunday
+- **Push notifications** — Web Push to phone (Android Chrome + iOS Safari 16.4+ via Home Screen)
 
 ### PWA
 - Installable on iOS and Android as a standalone app
 - Service worker for push notification delivery
-- Tap notifications to open the app directly
 
 ### Personalization
-- **Banner photo** — custom dashboard banner with drag-to-reposition (Pointer Events API, works on touch)
-- **Accent color** — full theme customization (applied to chat bubbles and UI accents)
-- **Arabic / English** toggle with RTL support, persisted in localStorage
-- **Coaching preferences** — style (direct/Socratic), motivation frame (intrinsic/exam), phone screen time; all fed to AI context
-
-### Admin & Communication
-- **Feedback system** — users can submit feedback from the sidebar; admin views all submissions at `/admin/feedback`
-- **Cron endpoint** — POST `/api/notifications/generate` (secured with CRON_SECRET) for daily/weekly notification generation
-
----
-
-## AI Behavior Design
-
-The system prompt enforces strict behavioral guidelines:
-
-- **Never moralizes** — missed sessions are data, not failure
-- **Mindset detection** — detects "I always fail", "I can't help it", "nothing works" → reframes once using the student's own check-in evidence
-- **Procrastination interpretation** — emotional miss reasons (overwhelmed, not in mood) = cognitive structure signal; logistical reasons = scheduling friction
-- **Dimension-aware advice** — behavioral weak → initiation framing; cognitive weak → session quality; metacognitive locked → no planning-level advice
-- **Brief session reinforcement** — a 7-minute session that started counts as a behavioral win, especially in Level 1
-- **One recommendation at a time** — never floods with advice
-- **Context overrides** — atypical days marked by user; AI adjusts without penalizing
+- **Banner photo** — custom dashboard banner with drag-to-reposition
+- **Accent color** — full theme customization
+- **Arabic / English** toggle with RTL support
+- **Coaching preferences** — style (direct/Socratic), motivation frame, phone screen time
 
 ---
 
@@ -140,35 +121,36 @@ The system prompt enforces strict behavioral guidelines:
 | Framework | Next.js 14 (App Router, TypeScript) |
 | Database | PostgreSQL (Railway) + Prisma ORM |
 | Auth | NextAuth.js v4 — JWT + Credentials (bcryptjs) |
-| AI | Groq API — Llama 3.3 70B Versatile |
-| Email | Resend (password reset; requires verified domain in production) |
-| UI | Tailwind CSS + shadcn/ui components |
-| Charts | Recharts (lazy-loaded via next/dynamic) |
+| AI | Groq API — Llama 3.3 70B (SkillTreeAgent) + Llama 3.1 8B (validation, goal gen, outline extraction) |
+| Email | Resend (password reset) |
+| UI | Tailwind CSS + shadcn/ui |
+| Charts | Recharts (lazy-loaded) |
 | Push | Web Push API + web-push (VAPID) |
 | Deployment | Railway (Node.js + PostgreSQL) + Cloudflare Worker (reverse proxy) |
-| Domain | studyskillsbuilder.com (Cloudflare DNS + Worker routing to Railway) |
-| Cron | Railway cron service calling `/api/notifications/generate` daily at 8am |
+| Domain | studyskillsbuilder.com |
+| Cron | Railway cron service → `POST /api/notifications/generate` daily at 8am |
 
 ---
 
 ## Database Schema
 
-Key models:
-
 | Model | Purpose |
 |-------|---------|
 | `User` | Auth identity |
 | `UserProfile` | Goals, challenges, theme, banner, onboarding state |
-| `ActivePhase` | Current phase (onboarding / skill_training) + start date |
-| `Skill` | 9 skills with level (1–3), dimension (planning/behavioral/cognitive), slug |
-| `SkillProgress` | Per-user skill status, stability score, week phase, user task, completion narrative — up to 3 active records simultaneously |
-| `CheckIn` | Daily check-in data — initiated, focus, energy, mood, methods, miss reason, session intention |
+| `ActivePhase` | Current phase + start date |
+| `SkillTree` | AI-generated skill tree per material upload |
+| `SkillNode` | Individual node with mastery status, score, spaced repetition fields |
+| `QueuedActivity` | Pre-built assessment activities awaiting the student |
+| `AssessmentSession` | Completed activity: student response, mastery delta, calibration score |
+| `WeeklyInsight` | Weekly AI summary: nodes mastered, weakest concept, narrative |
+| `CheckIn` | Daily check-in data |
 | `ChatMessage` | AI conversation history |
 | `Event` | Upcoming exams/deadlines |
-| `Notification` | Daily and weekly AI-generated notifications |
-| `PushSubscription` | Web push endpoint + VAPID keys per device |
-| `Feedback` | User-submitted feedback messages |
-| `KnowledgeEntry` | Persistent subject/topic knowledge profile (struggling / improving / strong) |
+| `Notification` | AI-generated push notifications |
+| `PushSubscription` | Web push endpoint per device |
+| `KnowledgeEntry` | Persistent subject/topic knowledge profile |
+| `Feedback` | User-submitted feedback |
 
 ---
 
@@ -176,7 +158,7 @@ Key models:
 
 ### Prerequisites
 - Node.js 18+
-- A PostgreSQL database (Railway or local) — or use local SQLite for dev
+- PostgreSQL (Railway) or local SQLite for dev
 
 ### Local Setup
 
@@ -189,73 +171,41 @@ npm install
 Create `.env`:
 
 ```env
-# Local dev uses SQLite
 DATABASE_URL="file:./prisma/dev.db"
-
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="generate-a-random-string"
 GROQ_API_KEY="your-groq-api-key"
 RESEND_API_KEY="your-resend-api-key"   # optional locally
 CRON_SECRET="any-secret-string"
-
-# PWA push notifications (optional locally)
-VAPID_PUBLIC_KEY="..."
-VAPID_PRIVATE_KEY="..."
-VAPID_SUBJECT="mailto:you@email.com"
-NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."     # same as VAPID_PUBLIC_KEY
-```
-
-First-time setup (push SQLite schema + seed 9 skills):
-
-```bash
-npm run db:setup
-```
-
-Start dev server:
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-### Generating VAPID Keys (for push notifications)
-
-```bash
-npx web-push generate-vapid-keys
-```
-
-Add both values to your `.env` and Railway environment variables.
-
-### Production (Railway)
-
-The app is deployed on Railway with a PostgreSQL database. Traffic is routed through a Cloudflare Worker to the Railway service URL, exposing it at **studyskillsbuilder.com**.
-
-**Railway environment variables:**
-
-```env
-DATABASE_URL="postgresql://postgres:password@postgres.railway.internal:5432/railway"
-NEXTAUTH_URL="https://studyskillsbuilder.com"
-NEXTAUTH_SECRET="..."
-GROQ_API_KEY="..."
-RESEND_API_KEY="..."
-CRON_SECRET="..."
 VAPID_PUBLIC_KEY="..."
 VAPID_PRIVATE_KEY="..."
 VAPID_SUBJECT="mailto:you@email.com"
 NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."
 ```
 
-**Push schema to Railway** (run after any schema change, using the public proxy URL):
+First-time setup:
+
+```bash
+npm run db:setup   # push SQLite schema + seed
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+### Generating VAPID Keys
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+### Production (Railway)
+
+Traffic routes through a Cloudflare Worker to Railway, exposed at **studyskillsbuilder.com**.
+
+**Push schema after changes** (using Railway public proxy URL):
 
 ```bash
 DATABASE_URL='postgresql://postgres:password@centerbeam.proxy.rlwy.net:33356/railway' npx prisma db push --schema=prisma/schema.prisma
-```
-
-**Daily cron** — handled by a Railway cron service (`cron/Dockerfile`) that runs at 8am and calls:
-```
-POST https://studyskillsbuilder.com/api/notifications/generate
-x-cron-secret: <CRON_SECRET>
 ```
 
 ---
@@ -264,87 +214,40 @@ x-cron-secret: <CRON_SECRET>
 
 ```
 prisma/
-  schema.prisma          — PostgreSQL schema (production/Railway)
+  schema.prisma          — PostgreSQL schema (production)
   schema.dev.prisma      — SQLite schema (local dev)
-  seed.ts                — 9 skills: 3 levels × 3 dimensions, no dependency edges
-
-public/
-  manifest.json          — PWA manifest (installable app)
-  sw.js                  — Service worker (handles push events + notification clicks)
 
 src/
   app/
-    (auth)/              — login, register, forgot-password, reset-password
+    (auth)/              — login, register, password reset
     (app)/               — authenticated pages:
       dashboard/         — main dashboard
-      check-in/          — daily check-in flow
-      skills/            — skill tree + skill detail pages
-      chat/              — full AI chat
+      onboarding/        — subject + skill tree generation flow
+      check-in/          — daily check-in
+      skills/            — skill tree view + detail
+      chat/              — AI chat (DCS pipeline)
       events/            — exam/deadline tracker
-      history/           — check-in history log
-      settings/          — theme, accent color, account settings
-      onboarding/        — first-time setup flow
-    admin/
-      feedback/          — admin-only feedback viewer
-    api/                 — all route handlers
-  components/
-    dashboard/           — all dashboard widgets
-    skills/              — skill tree and detail components
-    check-in/            — check-in form
-    chat/                — ChatInterface (modes, voice, autocomplete, tool call toasts)
-    layout/              — sidebar, notification bell, feedback button
-    providers/           — session, theme, push, language providers
-    ui/                  — shadcn/ui primitives
+      history/           — check-in log
+      settings/          — theme, preferences
+    api/
+      materials/         — POST: generate skill tree from text/file
+        extract-outline/ — POST: extract course outline from uploaded file
+      assessment/        — activity generation and submission
+      check-in/          — daily check-in submission
+      chat/              — streaming AI chat + voice transcription
+      onboarding/        — complete onboarding profile
+      notifications/     — push notification generation (cron)
   lib/
     ai/
-      systemPrompt.ts    — single source of truth for all AI behavior rules
+      systemPrompt.ts    — single source of truth for AI behavior
       buildContext.ts    — assembles full student state before each AI call
       dcs/
-        pipeline.ts      — DCS pipeline (sentinels → coaches → orchestrator → tool calls)
-        sentinels.ts     — rule-based signal extraction (no LLM)
-        coaches.ts       — parallel dimension coach LLM calls
-        knowledgeAnalyzer.ts — fire-and-forget knowledge profile updater
-        types.ts         — shared signal and output types
+        pipeline.ts      — DCS pipeline (sentinels → coaches → orchestrator)
+        skillTreeAgent.ts — SkillTreeAgent, validateMaterial, generateStudyGoals
+        knowledgeAnalyzer.ts
     skills/
-      progression.ts     — stability score formula and unlock thresholds
-    auth.ts              — NextAuth configuration
-    db/prisma.ts         — Prisma client singleton
-    language.tsx         — Arabic/English context with RTL support
-    session.ts           — session helpers
+      progression.ts     — skill unlock thresholds
 ```
-
----
-
-## Dual Schema Setup
-
-The project maintains two Prisma schemas:
-
-| Schema | Provider | Used by |
-|--------|----------|---------|
-| `prisma/schema.dev.prisma` | SQLite | `npm run dev` (local) |
-| `prisma/schema.prisma` | PostgreSQL | Railway build + Railway PostgreSQL |
-
-> After any schema change to `schema.prisma`, push it manually using the Railway public proxy URL before deploying, as Railway's internal URL (`postgres.railway.internal`) is not reachable from outside.
-
-This allows local development without a cloud database while keeping production on PostgreSQL.
-
----
-
-## Reference Documents
-
-These files live outside the repo at `/home/milkyway/Study habit refirement system/` and should be kept in sync with the codebase:
-
-| File | Purpose | Editable |
-|------|---------|---------|
-| `SSB_Features_Roadmap.md` | Feature roadmap — v1 live, v2 DCS shipped, post-hack backlog | Yes (Markdown) |
-| `SSB_Features_Roadmap.docx` | Original Word version of the roadmap | No (binary) |
-| `ssb-map.html` | English mind map of the full system | Yes (HTML) |
-| `ssb-map-ar.html` | Arabic mind map of the full system | Yes (HTML) |
-| `SSB.pdf` | Research paper the system is based on | No (binary) |
-| `Requirements.md` | Original requirements document | Yes (Markdown) |
-| `System Prompt.md` | Reference system prompt draft | Yes (Markdown) |
-
-When updating features, keep `SSB_Features_Roadmap.md` and `EDITS.md` in sync.
 
 ---
 
