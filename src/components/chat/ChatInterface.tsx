@@ -4,10 +4,88 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Mic, MicOff, Sparkles, Wrench, ExternalLink, X } from "lucide-react";
+import { Send, Mic, MicOff, Sparkles, Wrench, ExternalLink, X, Plus } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 import { TOOLS } from "@/lib/tools-data";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
+
+const STARTER_PROMPTS = [
+  "How's my mastery looking?",
+  "What should I practice next?",
+  "Help me understand a concept",
+  "Assign me a challenge",
+];
+
+function renderInline(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**"))
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith("*") && part.endsWith("*"))
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    if (part.startsWith("`") && part.endsWith("`"))
+      return <code key={i} className="bg-secondary px-1 py-0.5 rounded text-[11px] font-mono">{part.slice(1, -1)}</code>;
+    return part;
+  });
+}
+
+function MarkdownMessage({ content }: { content: string }) {
+  const blocks = content.split(/\n\n+/);
+  return (
+    <div className="space-y-2 text-sm leading-relaxed">
+      {blocks.map((block, i) => {
+        const lines = block.split("\n").filter(Boolean);
+        if (lines.length === 0) return null;
+
+        const allBullets = lines.every((l) => /^[-*]\s/.test(l));
+        const allNumbered = lines.every((l) => /^\d+\.\s/.test(l));
+        const someBullets = lines.some((l) => /^[-*]\s/.test(l));
+
+        if (allBullets) {
+          return (
+            <ul key={i} className="space-y-1">
+              {lines.map((l, j) => (
+                <li key={j} className="flex gap-2">
+                  <span className="text-primary shrink-0 mt-0.5">•</span>
+                  <span>{renderInline(l.replace(/^[-*]\s/, ""))}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        if (allNumbered) {
+          return (
+            <ol key={i} className="space-y-1">
+              {lines.map((l, j) => (
+                <li key={j} className="flex gap-2">
+                  <span className="text-muted-foreground shrink-0">{j + 1}.</span>
+                  <span>{renderInline(l.replace(/^\d+\.\s/, ""))}</span>
+                </li>
+              ))}
+            </ol>
+          );
+        }
+        if (someBullets) {
+          return (
+            <div key={i} className="space-y-1">
+              {lines.map((l, j) =>
+                /^[-*]\s/.test(l) ? (
+                  <div key={j} className="flex gap-2">
+                    <span className="text-primary shrink-0">•</span>
+                    <span>{renderInline(l.replace(/^[-*]\s/, ""))}</span>
+                  </div>
+                ) : (
+                  <p key={j}>{renderInline(l)}</p>
+                )
+              )}
+            </div>
+          );
+        }
+        return <p key={i}>{renderInline(block)}</p>;
+      })}
+    </div>
+  );
+}
 
 interface Message {
   id: string;
@@ -90,7 +168,7 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, chatMode: "skills" }),
+        body: JSON.stringify({ message: text }),
       });
 
       if (!res.ok) {
@@ -171,11 +249,22 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pb-4">
         {messages.length === 0 && (
-          <div className="text-center text-muted-foreground/70 mt-20">
-            <p className="text-lg mb-2">{t("chat.aiStudyCoach")}</p>
-            <p className="text-sm">
-              {t("chat.coachDescription")}
-            </p>
+          <div className="mt-16 flex flex-col items-center gap-6">
+            <div className="text-center text-muted-foreground/70">
+              <p className="text-lg mb-1">{t("chat.aiStudyCoach")}</p>
+              <p className="text-sm">{t("chat.coachDescription")}</p>
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {STARTER_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => { setInput(prompt); textareaRef.current?.focus(); }}
+                  className="px-3 py-1.5 rounded-full text-xs border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         <AnimatePresence initial={false}>
@@ -194,7 +283,10 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
                     : "bg-card text-foreground/80 border border-border"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                {msg.role === "assistant"
+                  ? <MarkdownMessage content={msg.content} />
+                  : <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                }
               </div>
             </motion.div>
           ))}
@@ -283,6 +375,13 @@ export function ChatInterface({ initialMessages }: ChatInterfaceProps) {
       {/* Input */}
       <div className="border-t border-border pt-4">
         <div className="flex gap-2">
+          <button
+            onClick={() => { setMessages([]); setInput(""); setSuggestion(""); }}
+            title="New chat"
+            className="px-3 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <Plus size={16} />
+          </button>
           <div className="flex-1 flex flex-col gap-1">
             <Textarea
               ref={textareaRef}

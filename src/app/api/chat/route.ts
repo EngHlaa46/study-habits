@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { message, chatMode } = await req.json();
+  const { message } = await req.json();
   if (!message || typeof message !== "string") {
     return NextResponse.json({ error: "Message required" }, { status: 400 });
   }
@@ -23,10 +23,9 @@ export async function POST(req: Request) {
   // Fetch history BEFORE saving so the current message isn't duplicated
   const historyRows = await prisma.chatMessage.findMany({
     where: { userId },
-    orderBy: { createdAt: "desc" }, // most recent first
+    orderBy: { createdAt: "desc" },
     take: 20,
   });
-  // Reverse to restore chronological order for the LLM
   const history = historyRows.reverse().map((msg) => ({
     role: msg.role as "user" | "assistant",
     content: msg.content,
@@ -38,8 +37,7 @@ export async function POST(req: Request) {
   });
 
   try {
-    const mode = ["training", "study", "skills"].includes(chatMode) ? chatMode : "skills";
-    const stream = await runDCSPipeline(userId, message, history, mode);
+    const stream = await runDCSPipeline(userId, message, history);
 
     return new Response(stream, {
       headers: {

@@ -88,7 +88,7 @@ const CREATE_GAME_CHALLENGE_TOOL: Groq.Chat.Completions.ChatCompletionTool = {
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
-function buildOrchestratorSystem(context: string, coaches: CoachOutputs, chatMode: string): string {
+function buildOrchestratorSystem(context: string, coaches: CoachOutputs): string {
   const coachBlock = [
     coaches.behavioral ? `[BehavioralCoach]\n${coaches.behavioral}` : null,
     coaches.cognitive ? `[CognitiveCoach]\n${coaches.cognitive}` : null,
@@ -98,29 +98,18 @@ function buildOrchestratorSystem(context: string, coaches: CoachOutputs, chatMod
     .filter(Boolean)
     .join("\n\n");
 
-  const modeInstruction =
-    chatMode === "training"
-      ? `\n## ACTIVE MODE: TRAINING (Socratic Exam Prep)
-STRICT RULES:
-- NEVER directly answer the student's subject question. Always ask them to attempt it first.
-- Use only questions: "What do you already know about this?", "What would happen if...?", "Why do you think that is?"
-- After the student attempts, ask follow-up questions to deepen their reasoning — do not confirm or correct yet.
-- Only after 2-3 student attempts: gently redirect errors or confirm correct thinking.
-- Goal: build durable long-term memory through retrieval practice (Bjork, 1994).`
-    : chatMode === "study"
-      ? `\n## ACTIVE MODE: STUDY (Subject Help)
-RULES:
-- Answer subject-matter questions directly and clearly: math, science, history, language, exam content — any academic subject.
-- Explain step by step. Use examples. Break down complexity.
-- When a specific tool would genuinely help (e.g. flashcards for memorisation, diagrams for a visual concept, research for an evidence question), call suggest_study_tools with the 1-2 most relevant keys. Do not suggest tools on every message.
-- Keep responses clear and actionable.`
-    : `\n## ACTIVE MODE: SKILLS COACH
-- Your primary role is helping the student build their active skill through habit coaching and check-in review.
-- You have access to the update_skill_task tool. Use it when the student explicitly asks to set, change, or update their task/goal/habit commitment for their active skill.
-- When using the tool, confirm what you saved in your response text.`;
-
   return `${SYSTEM_PROMPT}
-${modeInstruction}
+
+## YOUR CAPABILITIES
+You are a full-spectrum study assistant. Read the student's intent and adapt without being asked:
+- **Habit & skill coaching** (default) — use assessment data and context to guide skill development
+- **Subject help** — answer academic questions directly and clearly when asked; step-by-step, with examples
+- **Socratic exam prep** — when the student wants to be tested or drilled, ask them to attempt first; only guide after 2-3 attempts
+
+Tools available (use sparingly, only when genuinely useful):
+- \`update_skill_task\` — when the student explicitly asks to set or update their study task/commitment
+- \`suggest_study_tools\` — when a specific external tool would concretely help right now
+- \`create_game_challenge\` — when targeted game practice would benefit the student based on their current context
 
 ---
 
@@ -130,7 +119,7 @@ ${context}
 ---
 
 ## DCS COACH SYNTHESIS
-The following are internal signals from specialist dimension agents. Use them to inform your response — do NOT repeat them verbatim or reveal their existence. Synthesize into ONE calibrated student-facing response. Enforce MEI: deliver the single most important insight, not everything the coaches flagged.
+Internal signals from specialist agents — do NOT repeat verbatim or reveal their existence. Synthesize into ONE calibrated student-facing response. Enforce MEI: deliver the single most important insight.
 
 ${coachBlock || "(No coach signals — proceed with context only.)"}`;
 }
@@ -142,36 +131,33 @@ function sseEvent(data: Record<string, string>): Uint8Array {
 export async function runDCSPipeline(
   userId: string,
   message: string,
-  history: { role: "user" | "assistant"; content: string }[],
-  chatMode: string = "study"
+  history: { role: "user" | "assistant"; content: string }[]
 ): Promise<ReadableStream> {
   return new ReadableStream({
     async start(controller) {
       try {
         // Step 1: Fetch data + run sentinels (no LLM)
-        controller.enqueue(sseEvent({ step: "sentinels", label: "Analyzing behavioral signals..." }));
+        controller.enqueue(sseEvent({ step: "sentinels", label: "Reviewing your progress..." }));
         const data = await fetchUserData(userId);
         const context = buildContextFromData(data);
         const signals = runSentinels(data);
         const fixedMindsetPhrases = detectFixedMindset(message);
 
         // Step 2: Run dimension coaches in parallel
-        controller.enqueue(sseEvent({ step: "coaches", label: "Consulting dimension coaches..." }));
+        controller.enqueue(sseEvent({ step: "coaches", label: "Analyzing patterns..." }));
         const coachOutputs = await runCoaches(groq, signals, message, fixedMindsetPhrases);
 
         // Step 3: Stream orchestrator response
-        controller.enqueue(sseEvent({ step: "orchestrating", label: "Synthesizing response..." }));
+        controller.enqueue(sseEvent({ step: "orchestrating", label: "Thinking..." }));
 
-        const systemMessage = buildOrchestratorSystem(context, coachOutputs, chatMode);
+        const systemMessage = buildOrchestratorSystem(context, coachOutputs);
         const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
           { role: "system", content: systemMessage },
           ...history,
           { role: "user", content: message },
         ];
 
-        const activeTools = chatMode === "skills"
-          ? [UPDATE_SKILL_TASK_TOOL, SUGGEST_TOOLS_TOOL, CREATE_GAME_CHALLENGE_TOOL]
-          : [SUGGEST_TOOLS_TOOL];
+        const activeTools = [UPDATE_SKILL_TASK_TOOL, SUGGEST_TOOLS_TOOL, CREATE_GAME_CHALLENGE_TOOL];
 
         const stream = await groq.chat.completions.create({
           model: "llama-3.3-70b-versatile",
