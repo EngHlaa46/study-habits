@@ -104,7 +104,7 @@ export function Sidebar() {
             }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           >
-            Study <span className="text-primary">Habits</span>
+            Skills <span className="text-primary">Builder</span>
           </motion.span>
         </Link>
         <motion.button
@@ -168,7 +168,7 @@ export function Sidebar() {
               }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             >
-              Study <span className="text-primary">Habits</span>
+              Skills <span className="text-primary">Builder</span>
             </motion.span>
           </Link>
         </div>

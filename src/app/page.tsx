@@ -28,7 +28,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="text-center max-w-2xl">
         <h1 className="text-5xl font-bold text-foreground mb-4">
-          Study <span className="text-primary">Habits</span>
+          Skills <span className="text-primary">Builder</span>
         </h1>
         <p className="text-xl text-muted-foreground mb-2">
           One skill at a time. One habit that sticks.
