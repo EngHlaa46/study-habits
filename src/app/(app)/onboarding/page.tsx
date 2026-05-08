@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, BookOpen, Upload, X } from "lucide-react";
+import { Loader2, BookOpen, Upload, X, FileText } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 const TOTAL_STEPS = 5; // 0=subject, 1=goal/hours, 2=challenges, 3=time, 4=event
@@ -21,9 +21,11 @@ function OnboardingContent() {
 
   // Step 0 — subject selection
   const [subjectName, setSubjectName] = useState("");
-  const [subjectDescription, setSubjectDescription] = useState("");
+  const [outline, setOutline] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [extractingOutline, setExtractingOutline] = useState(false);
+  const [extractError, setExtractError] = useState("");
   const [generatingTree, setGeneratingTree] = useState(false);
   const [treeError, setTreeError] = useState("");
 
@@ -76,18 +78,40 @@ function OnboardingContent() {
     return JSON.stringify(items);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setUploadedFile(file);
-    if (file && !subjectName.trim()) {
-      // Pre-fill subject name from filename (strip extension)
+    setExtractError("");
+    if (!file) return;
+
+    // Pre-fill subject name from filename
+    if (!subjectName.trim()) {
       const name = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
       setSubjectName(name);
+    }
+
+    // Auto-extract outline
+    setExtractingOutline(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/materials/extract-outline", { method: "POST", body: fd });
+      const data = await res.json();
+      if (res.ok && data.outline) {
+        setOutline(data.outline);
+      } else {
+        setExtractError("Couldn't auto-extract outline — you can type it manually below.");
+      }
+    } catch {
+      setExtractError("Couldn't auto-extract outline — you can type it manually below.");
+    } finally {
+      setExtractingOutline(false);
     }
   };
 
   const clearFile = () => {
     setUploadedFile(null);
+    setExtractError("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -103,22 +127,26 @@ function OnboardingContent() {
     try {
       let res: Response;
 
-      if (uploadedFile) {
-        const formData = new FormData();
-        formData.append("file", uploadedFile);
-        formData.append("name", subjectName.trim());
-        if (subjectDescription.trim()) {
-          formData.append("description", subjectDescription.trim());
-        }
-        res = await fetch("/api/materials", { method: "POST", body: formData });
-      } else {
-        const materialText = subjectDescription.trim()
-          ? `${subjectName}\n\n${subjectDescription}`
-          : subjectName;
+      if (outline.trim()) {
+        // Outline present — always preferred; send as JSON regardless of file
+        const materialText = `${subjectName}\n\n${outline.trim()}`;
         res = await fetch("/api/materials", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: materialText, name: subjectName.trim() }),
+        });
+      } else if (uploadedFile) {
+        // No outline but file uploaded — fall back to raw file text
+        const formData = new FormData();
+        formData.append("file", uploadedFile);
+        formData.append("name", subjectName.trim());
+        res = await fetch("/api/materials", { method: "POST", body: formData });
+      } else {
+        // Subject name only
+        res = await fetch("/api/materials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: subjectName.trim(), name: subjectName.trim() }),
         });
       }
 
@@ -207,60 +235,73 @@ function OnboardingContent() {
                   onChange={(e) => setSubjectName(e.target.value)}
                   placeholder="e.g. Calculus, Python Programming, Organic Chemistry…"
                   className="bg-surface-inset border-border text-foreground"
-                  disabled={generatingTree}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground/80">
-                  What topics or concepts are you studying?{" "}
-                  <span className="text-muted-foreground/50 font-normal">(optional but helps)</span>
-                </Label>
-                <Textarea
-                  value={subjectDescription}
-                  onChange={(e) => setSubjectDescription(e.target.value)}
-                  placeholder="e.g. Derivatives, integrals, limits, the chain rule — preparing for a final exam…"
-                  className="bg-surface-inset border-border text-foreground resize-none"
-                  rows={3}
-                  disabled={generatingTree}
+                  disabled={generatingTree || extractingOutline}
                 />
               </div>
 
-              {/* File upload */}
+              {/* Primary: Course outline */}
               <div className="space-y-2">
-                <Label className="text-foreground/80">
-                  Upload course material{" "}
-                  <span className="text-muted-foreground/50 font-normal">(PDF, .txt, .md — optional)</span>
-                </Label>
-                {uploadedFile ? (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-primary/40 bg-primary/5">
-                    <Upload size={14} className="text-primary shrink-0" />
-                    <span className="text-sm text-foreground/80 truncate flex-1">{uploadedFile.name}</span>
-                    <button
-                      onClick={clearFile}
-                      disabled={generatingTree}
-                      className="text-muted-foreground/60 hover:text-foreground/80 shrink-0"
-                    >
-                      <X size={14} />
-                    </button>
+                <div className="flex items-center justify-between">
+                  <Label className="text-foreground/80">
+                    Course outline or syllabus{" "}
+                    <span className="text-muted-foreground/50 font-normal">(recommended)</span>
+                  </Label>
+                  {/* File upload trigger */}
+                  <div className="flex items-center gap-2">
+                    {uploadedFile ? (
+                      <div className="flex items-center gap-1.5 text-xs text-primary/80">
+                        <FileText size={12} />
+                        <span className="max-w-[120px] truncate">{uploadedFile.name}</span>
+                        <button
+                          onClick={clearFile}
+                          disabled={generatingTree || extractingOutline}
+                          className="text-muted-foreground/60 hover:text-foreground/80"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={generatingTree || extractingOutline}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-primary/80 transition-colors"
+                      >
+                        <Upload size={12} />
+                        Extract from file
+                      </button>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.txt,.md,.markdown"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={generatingTree}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-md border border-dashed border-border text-muted-foreground/60 hover:border-muted-foreground/40 hover:text-foreground/70 transition-colors text-sm"
-                  >
-                    <Upload size={14} />
-                    Upload syllabus, notes, or PDF
-                  </button>
+                </div>
+
+                <div className="relative">
+                  <Textarea
+                    value={outline}
+                    onChange={(e) => setOutline(e.target.value)}
+                    placeholder={"Paste your syllabus, chapter list, or topic outline…\n\ne.g.\n- Week 1: Limits and continuity\n- Week 2: Derivatives\n- Week 3: Chain rule and implicit differentiation"}
+                    className="bg-surface-inset border-border text-foreground resize-none"
+                    rows={6}
+                    disabled={generatingTree || extractingOutline}
+                  />
+                  {extractingOutline && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-md bg-surface-inset/80">
+                      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 size={14} className="animate-spin" />
+                        Extracting outline…
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {extractError && (
+                  <p className="text-xs text-amber-500">{extractError}</p>
                 )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.txt,.md,.markdown"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
               </div>
 
               {treeError && (
@@ -269,7 +310,7 @@ function OnboardingContent() {
 
               <Button
                 onClick={handleSubjectNext}
-                disabled={subjectName.trim().length < 3 || generatingTree}
+                disabled={subjectName.trim().length < 3 || generatingTree || extractingOutline}
                 className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-5"
               >
                 {generatingTree ? (
