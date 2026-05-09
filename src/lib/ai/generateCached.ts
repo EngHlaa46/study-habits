@@ -23,7 +23,8 @@ export async function generateCached(
   prompt: string,
   maxAgeMs: number,
   textField: CacheableTextField,
-  atField: CacheableAtField
+  atField: CacheableAtField,
+  maxTokens = 150
 ): Promise<string> {
   const isStale =
     !cachedText ||
@@ -35,7 +36,7 @@ export async function generateCached(
   const completion = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
     messages: [{ role: "user", content: prompt }],
-    max_tokens: 150,
+    max_tokens: maxTokens,
     stream: false,
   });
 

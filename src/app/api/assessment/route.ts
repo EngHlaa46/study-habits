@@ -16,15 +16,23 @@ export async function GET() {
   const userId = session.user.id;
   const profile = await prisma.userProfile.findUnique({ where: { userId } });
 
-  // Need at least some check-ins to make a useful assessment
-  const checkInCount = await prisma.checkIn.count({ where: { userId } });
-  if (checkInCount < 3) {
+  const sessionCount = await prisma.gameSession.count({ where: { userId } });
+  if (sessionCount < 1) {
     return NextResponse.json({ text: null });
   }
 
   const context = await buildUserContext(userId);
 
-  const prompt = `You are a study coach reviewing a student's recent performance. Write 2-3 concise sentences summarizing their study patterns based on the data below. Be honest but constructive — name what's working and what isn't. Output only the summary, no preamble.
+  const prompt = `You are an assessment coach reviewing a student's recent practice session data.
+
+Write exactly 2 short sentences:
+1. Call out one concrete win — reference a specific node name, score, or mastery trend from the data
+2. Name the single best area to push next — frame it as momentum to build on, not a gap to fix
+
+Rules:
+- Be direct and energetic, like a coach who genuinely believes in them
+- Use actual numbers or node names from the data — no generic praise
+- No preamble, no sign-off, output only the 2 sentences
 
 Student context:
 ${context}`;
@@ -36,7 +44,8 @@ ${context}`;
     prompt,
     MAX_AGE_MS,
     "assessmentText",
-    "assessmentAt"
+    "assessmentAt",
+    100
   );
 
   return NextResponse.json({ text });
