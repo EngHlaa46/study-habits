@@ -8,7 +8,10 @@ export default async function SkillsPage() {
 
   const skillTrees = await prisma.skillTree.findMany({
     where: { userId },
-    include: { nodes: { orderBy: { createdAt: "asc" } } },
+    include: {
+      nodes: { orderBy: { createdAt: "asc" } },
+      sources: { select: { id: true, fileName: true, createdAt: true }, orderBy: { createdAt: "asc" } },
+    },
     orderBy: { generatedAt: "desc" },
   });
 
@@ -16,6 +19,11 @@ export default async function SkillsPage() {
     id: tree.id,
     materialName: tree.materialName,
     generatedAt: tree.generatedAt.toISOString(),
+    sources: tree.sources.map((s) => ({
+      id: s.id,
+      fileName: s.fileName,
+      createdAt: s.createdAt.toISOString(),
+    })),
     nodes: tree.nodes.map((node) => ({
       id: node.id,
       localId: node.localId,

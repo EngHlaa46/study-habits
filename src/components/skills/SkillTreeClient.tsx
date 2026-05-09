@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AssessmentPanel } from "@/components/materials/AssessmentPanel";
+import { MaterialsWidget } from "@/components/skills/MaterialsWidget";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 
 interface SkillNode {
@@ -26,10 +27,17 @@ interface SkillNode {
   lastPracticedAt: string | null;
 }
 
+interface MaterialSource {
+  id: string;
+  fileName: string;
+  createdAt: string;
+}
+
 interface SkillTree {
   id: string;
   materialName: string;
   generatedAt: string;
+  sources: MaterialSource[];
   nodes: SkillNode[];
 }
 
@@ -649,8 +657,15 @@ export function SkillTreeClient({
             )}
           </motion.div>
 
-          {/* Insights panel */}
-          <InsightsPanel key={`insights-${activeTreeId}`} tree={activeTree} />
+          {/* Right sidebar */}
+          <div className="space-y-4">
+            <InsightsPanel key={`insights-${activeTreeId}`} tree={activeTree} />
+            <MaterialsWidget
+              key={`materials-${activeTreeId}`}
+              skillTreeId={activeTree.id}
+              initialSources={activeTree.sources}
+            />
+          </div>
         </div>
       )}
 
