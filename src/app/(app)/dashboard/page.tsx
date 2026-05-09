@@ -48,29 +48,38 @@ export default async function DashboardPage() {
     redirect("/onboarding?returning=true");
   }
 
-  const skillTreeSummaries = await Promise.all(
-    skillTrees.map(async (tree) => {
-      const totalNodes = await prisma.skillNode.count({ where: { skillTreeId: tree.id } });
-      const masteredNodes = await prisma.skillNode.count({
-        where: { skillTreeId: tree.id, masteryStatus: { in: ["mastered", "maintenance"] } },
-      });
-      return {
-        id: tree.id,
-        materialName: tree.materialName,
-        totalNodes,
-        masteredNodes,
-        activeNodes: tree.nodes
-          .filter((n) => n.masteryStatus === "active" || n.masteryStatus === "developing")
-          .map((n) => ({
-            id: n.id,
-            name: n.name,
-            masteryScore: n.masteryScore,
-            masteryStatus: n.masteryStatus,
-            isDue: n.nextReviewAt != null && n.nextReviewAt <= now,
-          })),
-      };
-    })
-  );
+  const treeIds = skillTrees.map((t) => t.id);
+  const allNodes = treeIds.length > 0
+    ? await prisma.skillNode.findMany({
+        where: { skillTreeId: { in: treeIds } },
+        select: { skillTreeId: true, masteryStatus: true },
+      })
+    : [];
+
+  const nodesByTree = new Map<string, typeof allNodes>();
+  for (const n of allNodes) {
+    if (!nodesByTree.has(n.skillTreeId)) nodesByTree.set(n.skillTreeId, []);
+    nodesByTree.get(n.skillTreeId)!.push(n);
+  }
+
+  const skillTreeSummaries = skillTrees.map((tree) => {
+    const treeNodes = nodesByTree.get(tree.id) ?? [];
+    return {
+      id: tree.id,
+      materialName: tree.materialName,
+      totalNodes: treeNodes.length,
+      masteredNodes: treeNodes.filter((n) => n.masteryStatus === "mastered" || n.masteryStatus === "maintenance").length,
+      activeNodes: tree.nodes
+        .filter((n) => n.masteryStatus === "active" || n.masteryStatus === "developing")
+        .map((n) => ({
+          id: n.id,
+          name: n.name,
+          masteryScore: n.masteryScore,
+          masteryStatus: n.masteryStatus,
+          isDue: n.nextReviewAt != null && n.nextReviewAt <= now,
+        })),
+    };
+  });
 
   const formattedEvents = upcomingEvents.map((e) => ({
     id: e.id,
