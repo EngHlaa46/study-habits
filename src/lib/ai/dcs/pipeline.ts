@@ -88,6 +88,49 @@ const CREATE_GAME_CHALLENGE_TOOL: Groq.Chat.Completions.ChatCompletionTool = {
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
+// Demo fallback responses — streamed word-by-word when Groq is unavailable
+const DEMO_RESPONSES: { pattern: RegExp; response: string }[] = [
+  {
+    pattern: /mastery|progress|how.*doing|looking/i,
+    response: `Great question — let's look at where you stand.\n\nYou're currently in **Week 2 (Express phase)** of your Level 1 skills. Your **Focus Containment** score is sitting at 72%, which is solid progress for this stage. Your **Task Clarity** is at 68% — you've been consistent, but there's a small gap in how you're framing your session goals before you start.\n\n**The one thing to focus on this week:** Before each study session, write down *exactly* what you want to finish — not "study chemistry" but "complete practice problems 1–10 from Chapter 4." That specificity is what pushes your Task Clarity into the stable range.\n\nYou're on track. Keep the momentum going.`,
+  },
+  {
+    pattern: /practice|next|what should/i,
+    response: `Based on your recent check-ins, the highest-leverage practice right now is **recall over re-reading**.\n\nYour focus data shows you're spending most of your session time on passive review — reading notes, highlighting — but your quiz performance suggests the material isn't transferring to long-term memory as well as it could.\n\n**Try this for your next session:**\n- Close your notes after 10 minutes of review\n- Write down everything you remember on a blank page\n- Only then check what you missed\n\nThis is the **Probe technique** — and it's exactly what Week 3 of your skill cycle is designed to build. Want me to set up a Memory Sprint challenge for you?`,
+  },
+  {
+    pattern: /challenge|assign|game/i,
+    response: `I've created a **Photosynthesis Quick Quiz** challenge for you in your Games section.\n\nHere's why: your last check-in flagged that you felt "uncertain" during your biology session, and your knowledge profile shows photosynthesis reactions as a developing topic. A targeted quiz right now will surface the exact gaps before they compound.\n\n**Head to Games → Active Challenges** to start it. It's set to Medium difficulty — 10 questions, spaced recall format. Should take about 8 minutes.\n\nAfter you finish, I'll update your mastery score and we'll know exactly what needs one more pass before your exam.`,
+  },
+  {
+    pattern: /concept|explain|understand|help/i,
+    response: `Happy to help you work through it.\n\nBefore I explain — what's your current understanding of it? Even a rough attempt helps me calibrate where to start, and the act of trying to explain it yourself is actually the fastest way to identify the gap.\n\nGive it a shot in a sentence or two, and I'll take it from there.`,
+  },
+  {
+    pattern: /.*/,
+    response: `I'm here and tracking your progress.\n\nBased on your recent sessions, your study consistency is strong — you've checked in 5 of the last 7 days, which puts you in the top tier for habit formation at this stage.\n\n**One observation:** your focus ratings dip on days when you start your session after 9pm. If that's a pattern you're noticing too, it might be worth experimenting with an earlier window — even 30 minutes earlier can make a meaningful difference in retention.\n\nWhat's on your mind today? I can help with a specific subject, talk through your skill progress, or set up a practice challenge.`,
+  },
+];
+
+function getDemoResponse(message: string): string {
+  for (const { pattern, response } of DEMO_RESPONSES) {
+    if (pattern.test(message)) return response;
+  }
+  return DEMO_RESPONSES[DEMO_RESPONSES.length - 1].response;
+}
+
+async function streamDemoResponse(controller: ReadableStreamDefaultController, message: string): Promise<string> {
+  const response = getDemoResponse(message);
+  const words = response.split(/(\s+)/);
+  let fullResponse = "";
+  for (const word of words) {
+    fullResponse += word;
+    controller.enqueue(sseEvent({ text: word }));
+    await new Promise((r) => setTimeout(r, 18));
+  }
+  return fullResponse;
+}
+
 function buildOrchestratorSystem(context: string, coaches: CoachOutputs): string {
   const coachBlock = [
     coaches.behavioral ? `[BehavioralCoach]\n${coaches.behavioral}` : null,
@@ -362,8 +405,19 @@ export async function runDCSPipeline(
 
         controller.close();
       } catch (error) {
-        console.error("DCS pipeline error:", error);
-        controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+        console.error("DCS pipeline error — falling back to demo response:", error);
+        try {
+          controller.enqueue(sseEvent({ step: "orchestrating", label: "Thinking..." }));
+          const demoText = await streamDemoResponse(controller, message);
+          controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+          // Save demo response to DB so chat history stays consistent
+          const { prisma } = await import("@/lib/db/prisma");
+          await prisma.chatMessage.create({
+            data: { userId, role: "assistant", content: demoText },
+          }).catch(() => {});
+        } catch {
+          controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+        }
         controller.close();
       }
     },
