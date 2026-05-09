@@ -17,14 +17,18 @@ export function PalmWidget({ variant = "widget" }: PalmWidgetProps) {
 
   useEffect(() => {
     fetch("/api/gamification/profile")
-      .then((r) => r.json())
-      .then((d: GamificationProfile) => { setProfile(d); setLoading(false); })
+      .then(async (r) => {
+        if (!r.ok) { setLoading(false); return; }
+        const d: GamificationProfile = await r.json();
+        setProfile(d);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
-  const palm: SkillPalmState | null = profile?.palms[0] ?? null;
-  const streak = profile?.profile.currentStreak ?? 0;
-  const dailyBonus = profile?.profile.dailyBonusAvailable ?? false;
+  const palm: SkillPalmState | null = profile?.palms?.[0] ?? null;
+  const streak = profile?.profile?.currentStreak ?? 0;
+  const dailyBonus = profile?.profile?.dailyBonusAvailable ?? false;
   const wateredToday = palm?.wateredToday ?? false;
 
   const spinnerSize = variant === "hero" ? "min-h-[100px]" : "min-h-[120px]";
