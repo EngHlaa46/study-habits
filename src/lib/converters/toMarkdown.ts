@@ -2,10 +2,48 @@ import JSZip from "jszip";
 
 // ── PDF ────────────────────────────────────────────────────────────────────
 
+// pdf-parse v2 uses pdfjs-dist which requires browser globals not present in Node.js 18.
+// Polyfill them before the first import so the library can load.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyClass = new (...args: any[]) => any;
+
+function makeDOMMatrix(): AnyClass {
+  return class DOMMatrix {
+    a=1; b=0; c=0; d=1; e=0; f=0;
+    is2D=true; isIdentity=true;
+    multiply() { return new DOMMatrix(); }
+    translate() { return new DOMMatrix(); }
+    scale() { return new DOMMatrix(); }
+    rotate() { return new DOMMatrix(); }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transformPoint(p: any) { return { x: p?.x ?? 0, y: p?.y ?? 0, z: p?.z ?? 0, w: p?.w ?? 1 }; }
+    toString() { return "matrix(1, 0, 0, 1, 0, 0)"; }
+    static fromMatrix() { return new DOMMatrix(); }
+    static fromFloat64Array() { return new DOMMatrix(); }
+    static fromFloat32Array() { return new DOMMatrix(); }
+  };
+}
+
+// pdf-parse v2 bundles pdfjs-dist web build which requires browser globals absent in Node.js 18.
+// Install minimal stubs so the library can initialize before the first require().
+if (typeof globalThis.DOMMatrix === "undefined") {
+  (globalThis as Record<string, unknown>).DOMMatrix = makeDOMMatrix();
+}
+if (typeof globalThis.ImageData === "undefined") {
+  (globalThis as Record<string, unknown>).ImageData = class ImageData {
+    width: number; height: number; data: Uint8ClampedArray;
+    constructor(w: number, h: number) { this.width = w; this.height = h; this.data = new Uint8ClampedArray(w * h * 4); }
+  };
+}
+if (typeof globalThis.Path2D === "undefined") {
+  (globalThis as Record<string, unknown>).Path2D = class Path2D { addPath() {} };
+}
+
 async function pdfToMarkdown(buffer: Buffer, fileName: string): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
-  const { text } = await pdfParse(buffer);
+  const { PDFParse } = require("pdf-parse") as { PDFParse: new (opts: { data: Buffer }) => { getText(): Promise<{ text: string }> } };
+  const parser = new PDFParse({ data: buffer });
+  const { text } = await parser.getText();
 
   const lines = text
     .split("\n")
