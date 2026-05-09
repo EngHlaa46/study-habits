@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, BookOpen, Upload, X, FileText, FolderOpen } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
-const TOTAL_STEPS = 5; // 0=subject, 1=goal/hours, 2=challenges, 3=time, 4=event
+const TOTAL_STEPS = 4; // 0=subject, 1=goal, 2=challenges, 3=event+calendar
 
 function OnboardingContent() {
   const { t } = useLanguage();
@@ -32,11 +32,13 @@ function OnboardingContent() {
   const [goalOther, setGoalOther] = useState(false);
   const [selectedChallenges, setSelectedChallenges] = useState<string[]>([]);
   const [otherChallenge, setOtherChallenge] = useState("");
-  const [preferredTime, setPreferredTime] = useState("");
-  const [typicalHours] = useState("");
   const [eventName, setEventName] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventType, setEventType] = useState("exam");
+  const [calendarUrl, setCalendarUrl] = useState("");
+  const [calendarSyncing, setCalendarSyncing] = useState(false);
+  const [calendarSyncResult, setCalendarSyncResult] = useState<{ imported: number } | null>(null);
+  const [calendarSyncError, setCalendarSyncError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const challengeKeys = [
@@ -47,15 +49,6 @@ function OnboardingContent() {
     "onboarding.challenge.procrastinate",
     "onboarding.challenge.dontKnowWhat",
     "onboarding.challenge.other",
-  ];
-
-  const timeKeys = [
-    "onboarding.time.earlyMorning",
-    "onboarding.time.lateMorning",
-    "onboarding.time.afternoon",
-    "onboarding.time.evening",
-    "onboarding.time.lateNight",
-    "onboarding.time.varies",
   ];
 
   const toggleChallenge = (key: string) => {
@@ -146,6 +139,27 @@ function OnboardingContent() {
     }
   };
 
+  const handleCalendarSync = async () => {
+    if (!calendarUrl.trim()) return;
+    setCalendarSyncing(true);
+    setCalendarSyncError("");
+    setCalendarSyncResult(null);
+    try {
+      const res = await fetch("/api/events/sync-calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: calendarUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCalendarSyncError(data.error ?? "Sync failed"); return; }
+      setCalendarSyncResult({ imported: data.imported });
+    } catch {
+      setCalendarSyncError("Network error — check your connection.");
+    } finally {
+      setCalendarSyncing(false);
+    }
+  };
+
   const handleComplete = async () => {
     setSubmitting(true);
     try {
@@ -155,8 +169,8 @@ function OnboardingContent() {
         body: JSON.stringify({
           studyGoal,
           biggestChallenge: buildBiggestChallenge(),
-          preferredTime: preferredTime ? t(preferredTime) : "",
-          typicalHours,
+          preferredTime: "",
+          typicalHours: "",
           eventName,
           eventDate,
           eventType,
@@ -435,100 +449,126 @@ function OnboardingContent() {
                 disabled={selectedChallenges.length === 0}
                 className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold mt-2"
               >
-                {t("common.next")}
+                Next
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* ── Step 3: Preferred time ── */}
+        {/* ── Step 3: Events + calendar sync ── */}
         {step === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-foreground text-xl">
-                {t("onboarding.timeTitle")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                {timeKeys.map((key) => (
-                  <Button
-                    key={key}
-                    variant="outline"
-                    onClick={() => {
-                      setPreferredTime(key);
-                      setStep(4);
-                    }}
-                    className={`py-4 ${
-                      preferredTime === key
-                        ? "border-primary text-primary bg-primary/10"
-                        : "border-border text-muted-foreground hover:border-muted-foreground"
-                    }`}
-                  >
-                    {t(key)}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ── Step 4: Upcoming event ── */}
-        {step === 4 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-foreground text-xl">
-                {t("onboarding.eventTitle")}
+                Any upcoming exams or deadlines?
               </CardTitle>
               <p className="text-muted-foreground text-sm">
-                {t("onboarding.eventSubtitle")}
+                Helps the AI coach time your practice. Skip if you don't have anything yet.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-foreground/80">{t("onboarding.eventNameLabel")}</Label>
-                <Input
-                  value={eventName}
-                  onChange={(e) => setEventName(e.target.value)}
-                  placeholder={t("onboarding.eventNamePlaceholder")}
-                  className="bg-surface-inset border-border text-foreground"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground/80">{t("onboarding.eventDateLabel")}</Label>
-                <Input
-                  type="date"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
-                  className="bg-surface-inset border-border text-foreground"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground/80">{t("onboarding.eventTypeLabel")}</Label>
-                <div className="flex flex-wrap gap-2">
-                  {["exam", "quiz", "deadline", "project"].map((v) => (
-                    <Button
-                      key={v}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEventType(v)}
-                      className={`capitalize ${
-                        eventType === v
-                          ? "border-primary text-primary bg-primary/10"
-                          : "border-border text-muted-foreground"
-                      }`}
-                    >
-                      {t(`events.${v}`)}
-                    </Button>
-                  ))}
+              {/* Manual event */}
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-foreground/80">{t("onboarding.eventNameLabel")}</Label>
+                  <Input
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    placeholder={t("onboarding.eventNamePlaceholder")}
+                    className="bg-surface-inset border-border text-foreground"
+                  />
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground/80">{t("onboarding.eventDateLabel")}</Label>
+                  <Input
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="bg-surface-inset border-border text-foreground"
+                  />
+                </div>
+                {(eventName || eventDate) && (
+                  <div className="flex flex-wrap gap-2">
+                    {["exam", "quiz", "deadline", "project"].map((v) => (
+                      <Button
+                        key={v}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEventType(v)}
+                        className={`capitalize ${
+                          eventType === v
+                            ? "border-primary text-primary bg-primary/10"
+                            : "border-border text-muted-foreground"
+                        }`}
+                      >
+                        {t(`events.${v}`)}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground/50">or</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Calendar sync */}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground/80">Sync from your calendar</p>
+                  <p className="text-xs text-muted-foreground/60 mt-0.5">
+                    Paste an iCal URL to import all upcoming events at once — exams, deadlines, everything.
+                  </p>
+                </div>
+
+                <details className="text-xs text-muted-foreground/60 cursor-pointer">
+                  <summary className="hover:text-muted-foreground transition-colors select-none">
+                    How to get the URL ↓
+                  </summary>
+                  <ul className="mt-2 space-y-1.5 pl-3 list-disc list-outside">
+                    <li><span className="text-foreground/70">Google Calendar</span> — Settings → your calendar → Integrate calendar → copy the <em>Secret address in iCal format</em></li>
+                    <li><span className="text-foreground/70">Blackboard</span> — Calendar → Settings icon → iCal Feed → copy the URL</li>
+                    <li><span className="text-foreground/70">Canvas</span> — Calendar → Calendar Feed (bottom right) → copy the URL</li>
+                  </ul>
+                </details>
+
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={calendarUrl}
+                    onChange={(e) => { setCalendarUrl(e.target.value); setCalendarSyncResult(null); setCalendarSyncError(""); }}
+                    placeholder="https://calendar.google.com/calendar/ical/…"
+                    className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
+                  />
+                  <button
+                    onClick={handleCalendarSync}
+                    disabled={calendarSyncing || !calendarUrl.trim()}
+                    className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground/80 hover:text-foreground hover:border-primary/40 disabled:opacity-40 transition-colors whitespace-nowrap"
+                  >
+                    {calendarSyncing ? "Syncing…" : "Sync"}
+                  </button>
+                </div>
+
+                {calendarSyncError && (
+                  <p className="text-xs text-red-400">{calendarSyncError}</p>
+                )}
+                {calendarSyncResult && (
+                  <p className="text-xs text-[#4ade80]">
+                    ✓ Imported {calendarSyncResult.imported} event{calendarSyncResult.imported !== 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
               <Button
                 onClick={handleComplete}
                 disabled={submitting}
-                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-6"
+                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-6 mt-2"
               >
-                {submitting ? t("onboarding.settingUp") : t("onboarding.startObservation")}
+                {submitting ? t("onboarding.settingUp") : "Get started →"}
               </Button>
               <Button
                 variant="ghost"
@@ -536,7 +576,7 @@ function OnboardingContent() {
                 disabled={submitting}
                 className="w-full text-muted-foreground/70 hover:text-foreground/80"
               >
-                {t("onboarding.skipEvent")}
+                Skip for now
               </Button>
             </CardContent>
           </Card>
