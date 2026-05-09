@@ -72,7 +72,6 @@ export function EventsSection({ initialEvents }: Props) {
   const [topicEdits, setTopicEdits] = useState<Record<string, string>>({});
   const [readiness, setReadiness] = useState<Record<string, ReadinessResult>>({});
   const [readinessLoading, setReadinessLoading] = useState<Record<string, boolean>>({});
-  const [showTopicsBrief, setShowTopicsBrief] = useState<Record<string, boolean>>({});
 
   // Add form
   const [showAdd, setShowAdd] = useState(false);
@@ -287,7 +286,7 @@ export function EventsSection({ initialEvents }: Props) {
               const result = readiness[event.id];
               const loading = readinessLoading[event.id] ?? false;
               const canEvaluate = (event.type === "exam" || event.type === "quiz");
-              const showTopics = showTopicsBrief[event.id] ?? false;
+
 
               return (
                 <div key={event.id} className={`rounded-xl border ${c.border} ${c.bg} overflow-hidden`}>
@@ -307,7 +306,6 @@ export function EventsSection({ initialEvents }: Props) {
                         <button
                           onClick={() => {
                             toggleExpand(event);
-                            setShowTopicsBrief((prev) => ({ ...prev, [event.id]: !isExpanded }));
                           }}
                           className="text-muted-foreground/60 hover:text-foreground transition-colors"
                           title="Topics & readiness"

@@ -463,7 +463,7 @@ function OnboardingContent() {
                 Any upcoming exams or deadlines?
               </CardTitle>
               <p className="text-muted-foreground text-sm">
-                Helps the AI coach time your practice. Skip if you don't have anything yet.
+                Helps the AI coach time your practice. Skip if you don&apos;t have anything yet.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
