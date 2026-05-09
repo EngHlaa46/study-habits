@@ -36,6 +36,24 @@ export async function POST(req: Request) {
     data: { userId, role: "user", content: message },
   });
 
+  // DEMO MODE: stream a hardcoded instant response
+  if (process.env.DEMO_MODE === "true") {
+    const demoReply = `Great question! Based on your current progress, I'd focus on **Core Concepts** first — it's the foundation everything else builds on. Once you're comfortable there, move to Key Terminology so you can think and communicate in the subject's language. You're on a solid track. What specific part would you like to work on today?`;
+    await prisma.chatMessage.create({ data: { userId, role: "assistant", content: demoReply } });
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        for (const char of demoReply) {
+          controller.enqueue(encoder.encode(char));
+        }
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+    });
+  }
+
   try {
     const stream = await runDCSPipeline(userId, message, history);
 

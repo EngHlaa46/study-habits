@@ -18,6 +18,19 @@ export async function POST(req: Request) {
   if (!event || event.userId !== userId) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (!event.examContent?.trim()) return NextResponse.json({ error: "No exam topics added yet" }, { status: 400 });
 
+  if (process.env.DEMO_MODE === "true") {
+    return NextResponse.json({
+      score: 0.68,
+      summary: "You have solid coverage of the core concepts — strong foundation. The area to drill before the exam is problem-solving under time pressure; run 2-3 timed practice sets this week.",
+      topics: [
+        { topic: "Core Concepts", readiness: 0.85, note: "Well understood — keep reviewing briefly" },
+        { topic: "Key Terminology", readiness: 0.75, note: "Good grasp, minor gaps in edge-case terms" },
+        { topic: "Problem Solving", readiness: 0.55, note: "Needs timed practice before the exam" },
+        { topic: "Analysis & Evaluation", readiness: 0.60, note: "Developing — focus on worked examples" },
+      ],
+    });
+  }
+
   const daysUntil = Math.ceil((event.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
   const nodes = await prisma.skillNode.findMany({

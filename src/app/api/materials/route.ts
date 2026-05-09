@@ -3,6 +3,19 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
 import Groq from "groq-sdk";
+
+const DEMO_NODES = [
+  { id: "n1", name: "Core Concepts", description: "Foundational ideas of the subject", whatMasteryLooksLike: "Can explain core concepts from memory", prerequisites: [], suggestedEvalFormat: "explanation" },
+  { id: "n2", name: "Key Terminology", description: "Domain-specific vocabulary", whatMasteryLooksLike: "Uses terms correctly in context", prerequisites: ["n1"], suggestedEvalFormat: "matching" },
+  { id: "n3", name: "Problem Solving", description: "Applying concepts to solve problems", whatMasteryLooksLike: "Solves novel problems independently", prerequisites: ["n2"], suggestedEvalFormat: "problem-set" },
+  { id: "n4", name: "Analysis & Evaluation", description: "Critical evaluation of material", whatMasteryLooksLike: "Critiques and compares approaches", prerequisites: ["n3"], suggestedEvalFormat: "essay" },
+];
+
+const DEMO_GOALS = [
+  "Understand core concepts well enough to apply them in exams",
+  "Build strong problem-solving skills in this subject",
+  "Develop deep comprehension beyond memorization",
+];
 import {
   runSkillTreeAgent,
   validateMaterial,
@@ -17,6 +30,36 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // DEMO MODE: skip all Groq calls and return instant hardcoded skill tree
+  if (process.env.DEMO_MODE === "true") {
+    const contentType2 = req.headers.get("content-type") ?? "";
+    let demoName = "My Subject";
+    if (contentType2.includes("application/json")) {
+      const body = await req.json() as { name?: string };
+      demoName = body.name || demoName;
+    }
+    const rootIds = new Set(DEMO_NODES.filter((n) => n.prerequisites.length === 0).map((n) => n.id));
+    const skillTree = await prisma.skillTree.create({
+      data: {
+        userId: session.user.id,
+        materialName: demoName,
+        nodes: {
+          create: DEMO_NODES.map((node) => ({
+            localId: node.id,
+            name: node.name,
+            description: node.description,
+            whatMasteryLooksLike: node.whatMasteryLooksLike,
+            prerequisites: JSON.stringify(node.prerequisites),
+            suggestedEvalFormat: node.suggestedEvalFormat,
+            masteryStatus: rootIds.has(node.id) ? "active" : "locked",
+          })),
+        },
+      },
+      include: { nodes: true, sources: true },
+    });
+    return NextResponse.json({ skillTree, studyGoals: DEMO_GOALS });
   }
 
   let materialName = "My Subject";
