@@ -160,7 +160,7 @@ export async function runDCSPipeline(
         const activeTools = [UPDATE_SKILL_TASK_TOOL, SUGGEST_TOOLS_TOOL, CREATE_GAME_CHALLENGE_TOOL];
 
         const stream = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
+          model: "llama-3.1-8b-instant",
           messages,
           max_tokens: 1024,
           stream: true,
@@ -217,7 +217,7 @@ export async function runDCSPipeline(
             ];
 
             const followUp = await groq.chat.completions.create({
-              model: "llama-3.3-70b-versatile",
+              model: "llama-3.1-8b-instant",
               messages: followUpMessages as Parameters<typeof groq.chat.completions.create>[0]["messages"],
               max_tokens: 512,
               stream: true,
@@ -262,7 +262,7 @@ export async function runDCSPipeline(
               ];
 
               const confirmStream = await groq.chat.completions.create({
-                model: "llama-3.3-70b-versatile",
+                model: "llama-3.1-8b-instant",
                 messages: followUpMessages as Parameters<typeof groq.chat.completions.create>[0]["messages"],
                 max_tokens: 256,
                 stream: true,
@@ -321,7 +321,7 @@ export async function runDCSPipeline(
             ];
 
             const confirmStream = await groq.chat.completions.create({
-              model: "llama-3.3-70b-versatile",
+              model: "llama-3.1-8b-instant",
               messages: followUpMessages as Parameters<typeof groq.chat.completions.create>[0]["messages"],
               max_tokens: 256,
               stream: true,
