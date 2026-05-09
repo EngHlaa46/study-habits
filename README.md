@@ -406,6 +406,38 @@ src/
 
 ---
 
+## Demo Workflow
+
+```
+Sign Up / Login
+      │
+      ▼
+Onboarding — type your subject name → "Build my plan"
+      │  [SkillTreeAgent generates a personalised skill tree]
+      │
+      ▼
+Select Study Goal → complete onboarding steps
+      │
+      ▼
+Dashboard
+  ├── Skill nodes visible with mastery status
+  └── Weekly trend chart
+      │
+      ▼
+Chat — ask a question about your subject
+  │  [AI coach responds based on your skill tree + mastery data]
+  │
+  ▼
+Events Page
+  ├── Calendar grid showing upcoming exams & deadlines
+  └── Click an exam → add topics → "How ready am I?"
+        [Readiness score + per-topic breakdown]
+```
+
+> **Demo Mode**: set `DEMO_MODE=true` in environment variables to bypass all AI calls and return instant hardcoded responses — useful for live demos where latency matters.
+
+---
+
 ## License
 
 MIT
