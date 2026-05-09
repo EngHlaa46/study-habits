@@ -55,7 +55,7 @@ Respond ONLY with valid JSON — no markdown, no code fences:
 score is 0.0–1.0. Cover up to 5 of the main exam topics.`;
 
   const completion = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "llama-3.1-8b-instant",
     messages: [{ role: "user", content: prompt }],
     max_tokens: 400,
     stream: false,
