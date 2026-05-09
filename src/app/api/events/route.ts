@@ -65,10 +65,29 @@ export async function POST(req: Request) {
       type: body.type,
       date: new Date(body.date),
       notes: body.notes || null,
+      examContent: body.examContent || null,
     },
   });
 
   return NextResponse.json({ event }, { status: 201 });
+}
+
+export async function PATCH(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json() as { id: string; examContent?: string };
+  if (!body.id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+
+  const event = await prisma.event.findUnique({ where: { id: body.id } });
+  if (!event || event.userId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const updated = await prisma.event.update({
+    where: { id: body.id },
+    data: { examContent: body.examContent ?? null },
+  });
+
+  return NextResponse.json({ event: updated });
 }
 
 export async function DELETE(req: Request) {

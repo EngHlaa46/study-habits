@@ -76,7 +76,7 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   const body = await req.json();
-  const { url } = body as { url?: string };
+  const { url, filterKeyword } = body as { url?: string; filterKeyword?: string };
 
   if (!url || typeof url !== "string") {
     return NextResponse.json({ error: "url required" }, { status: 400 });
@@ -111,8 +111,15 @@ export async function POST(req: Request) {
   let imported = 0;
   let skipped = 0;
 
+  const keyword = filterKeyword?.trim().toLowerCase();
+
   for (const ev of events) {
     if (ev.date < now || ev.date > horizon) continue;
+
+    if (keyword) {
+      const haystack = `${ev.summary} ${ev.description ?? ""}`.toLowerCase();
+      if (!haystack.includes(keyword)) { skipped++; continue; }
+    }
 
     if (ev.uid) {
       const existing = await prisma.event.findFirst({ where: { userId, calendarUid: ev.uid } });

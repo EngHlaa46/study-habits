@@ -23,6 +23,7 @@ export default async function EventsPage() {
     date: e.date.toISOString().split("T")[0],
     status: e.date < now ? "passed" : "upcoming",
     notes: e.notes,
+    examContent: e.examContent ?? null,
   }));
 
   return (
